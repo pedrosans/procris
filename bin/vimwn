@@ -16,8 +16,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import site
-print site.getsitepackages()
 import argparse
 import vimwn
 from vimwn.controller import Controller
@@ -31,14 +29,20 @@ parser.add_argument("--start",
 parser.add_argument("--stop",
 		action="store_true",
 		help="Stops the running vimwn service if any")
+parser.add_argument("--status",
+		action="store_true",
+		help="Show the status of vimwn service")
 args = parser.parse_args()
 controller = Controller()
 if args.start:
 	service = NavigatorService()
-	controller.run()
+	controller.start()
 	service.release_bus_name()
 elif args.stop:
 	remote = RemoteInterface()
 	remote.stop_running_instance()
+elif args.status:
+	remote = RemoteInterface()
+	print remote.get_status()
 else:
 	controller.open()

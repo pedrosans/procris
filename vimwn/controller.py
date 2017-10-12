@@ -62,7 +62,7 @@ class Controller ():
 		self.show_ui(0)
 		Gtk.main()
 
-	def run(self):
+	def start(self):
 		self.view.connect("focus-out-event", self.hide_and_propagate_focus)
 		signal.signal(signal.SIGINT, signal.SIG_DFL)
 		signal.signal(signal.SIGTERM, signal.SIG_DFL)
@@ -72,6 +72,8 @@ class Controller ():
 		if not Keybinder.bind(hotkey, self.handle_keybind, None):
 			print("Could not bind the hotkey: " + hotkey)
 			exit()
+
+		print("vimwn is running and listening to " + hotkey)
 
 		NavigatorStatus(self.configurations)
 

@@ -67,13 +67,22 @@ class RemoteInterface():
 			print "no session"
 			quit()
 
+	def get_status(self):
+		if self.bus.name_has_owner(SERVICE_NAME):
+			return "Active, pid: " + self.get_running_instance_id()
+		else:
+			return "Inactive"
+
 	def get_running_instance_id(self):
 		service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
 		get_remote_id = service.get_dbus_method('get_id', 'io.github.vimwn.Service')
 		return get_remote_id()
 
 	def stop_running_instance(self):
-		service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
-		quit_function = service.get_dbus_method('quit', 'io.github.vimwn.Service')
-		quit_function()
-		print "done"
+		if self.bus.name_has_owner(SERVICE_NAME):
+			service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
+			quit_function = service.get_dbus_method('quit', 'io.github.vimwn.Service')
+			quit_function()
+			print "Remote instance were stopped"
+		else:
+			print "vimwn is not running"
