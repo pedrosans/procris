@@ -22,12 +22,17 @@ gi.require_version("Keybinder", "3.0")
 from gi.repository import Gtk, Gdk, Keybinder
 from vimwn.view import NavigatorWindow
 from vimwn.windows import Windows
+from vimwn.environment import Configurations
+from vimwn.status import NavigatorStatus
 
 class Controller ():
 
 	def __init__(self):
 		self.reading_command = False
 		self.state = 'normal_mode'
+		self.multiplier = ""
+		self.should_clean_state = False
+		self.configurations = Configurations()
 		self.windows = Windows(self)
 		self.view = NavigatorWindow(self, self.windows)
 		self.view.connect("key-press-event", self._on_key_press)
@@ -62,10 +67,14 @@ class Controller ():
 		signal.signal(signal.SIGINT, signal.SIG_DFL)
 		signal.signal(signal.SIGTERM, signal.SIG_DFL)
 		signal.signal(signal.SIGHUP, signal.SIG_DFL)
+		hotkey = self.configurations.get_hotkey()
 		Keybinder.init()
-		if not Keybinder.bind('<ctrl>q', self.handle_keybind, None):
-			print("Could not bind the hotkey:")
+		if not Keybinder.bind(hotkey, self.handle_keybind, None):
+			print("Could not bind the hotkey: " + hotkey)
 			exit()
+
+		NavigatorStatus(self.configurations)
+
 		Gtk.main()
 
 	def handle_keybind(self, key, data):
@@ -75,18 +84,27 @@ class Controller ():
 		self.windows.read_screen()
 		self.view.show(time)
 
+	def _popup_menu(self, status_icon, button, activate_time, menu):
+		menu.popup(None, None, Gtk.StatusIcon.position_menu, status_icon, button, activate_time)
+
+	def clear_state(self):
+		self.should_clean_state = True
+
+	#TODO remove, no need
+	def _clear_state(self):
+		self.state = 'normal_mode'
+		self.reading_command = False
+		self.multiplier = ""
+		self.should_clean_state = False
+
 	def open_window(self, window, time):
-		self.clear_internal_state()
+		self.should_clean_state = True
 		window.activate_transient(time)
 
 	def hide_and_propagate_focus(self, widget, event):
-		self.clear_internal_state()
+		self._clear_state()
 		self.view.hide()
 		return True;
-
-	def clear_internal_state(self):
-		self.state = 'normal_mode'
-		self.reading_command = False
 
 	def get_current_event_time(self):
 		gtk_event_time = Gtk.get_current_event_time()
@@ -101,10 +119,26 @@ class Controller ():
 			self.escape(None, None)
 		if self.reading_command:
 			return
+		if Gdk.keyval_name(event.keyval).isdigit():
+			self.multiplier = self.multiplier + Gdk.keyval_name(event.keyval)
+			return
 		if event.keyval in self.key_functions:
 			function = self.key_functions[event.keyval]
 			if function is not None:
-				function(event.keyval, event.time)
+				multiplier_int = int(self.multiplier) if self.multiplier else 1
+				for i in range(multiplier_int):
+					function(event.keyval, event.time)
+				if self.should_clean_state:
+					self._clear_state()
+
+	def on_command(self, pane_owner, current):
+		cmd = self.view.entry.get_text()[1:]
+		time = self.get_current_event_time()
+		for command in self.commands:
+			if command['pattern'].match(cmd):
+				command['f'](cmd, time)
+				break;
+		self.reading_command = False
 
 	def colon(self, keyval, time):
 		self.reading_command = True
@@ -120,17 +154,8 @@ class Controller ():
 		self.state = 'normal_mode'
 		self.view.hide()
 
-	def on_command(self, pane_owner, current):
-		cmd = self.view.entry.get_text()[1:]
-		time = self.get_current_event_time()
-		for command in self.commands:
-			if command['pattern'].match(cmd):
-				command['f'](cmd, time)
-				break;
-		self.reading_command = False
-
 	def only(self, cmd, time):
-		for w in self.windows.list:
+		for w in self.windows.visibles:
 			if self.windows.active != w:
 				w.minimize()
 		self.open_window(self.windows.active, time)

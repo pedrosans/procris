@@ -20,12 +20,19 @@ import time
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
 
+class IndexedWindow():
+	def __init__(self, window):
+		self.window = windows
+		start_position = self.windows.x_line.index(self.windows.active)
+		length = len(self.windows.x_line)
+		multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
+
 class Windows():
 
 	def __init__(self, controller):
 		self.controller = controller
 		self.active = None
-		self.list =[]
+		self.visibles =[]
 		self.buffers =[]
 		self.horizontal_axis = { 'coordinate_function' : self.get_x }
 		self.vertical_axis   = { 'coordinate_function' : self.get_y }
@@ -33,8 +40,8 @@ class Windows():
 		self.vertical_axis  ['perpendicular_axis'] = self.horizontal_axis
 
 	def read_screen(self):
-		self.list =[]
-		self.buffers =[]
+		del self.visibles[:]
+		del self.buffers[:]
 		self.screen = Wnck.Screen.get_default()
 		self.screen.force_update()  # recommended per Wnck documentation
 		workspace = self.screen.get_active_workspace()
@@ -47,27 +54,25 @@ class Windows():
 			self.buffers.append(wnck_window)
 			if wnck_window.is_minimized():
 				continue
-			self.list.append( wnck_window )
+			self.visibles.append(wnck_window)
 
-		self.active = self.get_active_window()
+		self.active = self.screen.get_active_window()
+		if self.active not in self.visibles:
+			self.active = None
+		if self.active is None:
+			for w in reversed(self.screen.get_windows_stacked()):
+				if w in self.visibles:
+					self.active = w
+					break
 
-		self.x_line = list(self.list)
+		self.x_line = list(self.visibles)
 		self.x_line.sort(key=lambda w: w.get_geometry().xp * 1000 + w.get_geometry().yp)
-		self.y_line = list(self.list)
+		self.y_line = list(self.visibles)
 		self.y_line.sort(key=lambda w: w.get_geometry().yp)
 		width = self.screen.get_width()
-		self.grid = list(self.list)
+		self.grid = list(self.visibles)
 		self.grid.sort(key=lambda w: ((w.get_geometry().xp * 12) / width) * 1000 + w.get_geometry().yp)
-		self.list = list(self.x_line)
-
-
-	def get_active_window(self):
-		active = self.screen.get_active_window()
-		if active is None:
-			windows_stack = self.screen.get_windows_stacked()
-			if(len(windows_stack) > 0):
-				active = windows_stack[-1]
-		return active
+		self.visibles = list(self.x_line)
 
 	def get_x(self, window):
 		return window.get_geometry().xp
@@ -78,6 +83,7 @@ class Windows():
 	def cycle(self, keyval, time):
 		next_window = self.x_line[(self.x_line.index(self.active) + 1) % len(self.x_line)]
 		self.controller.open_window(next_window, time)
+		self.active = next_window
 
 	def navigate_right(self, keyval, time):
 		self.navigate(self.x_line, 1, self.horizontal_axis, time)
@@ -95,6 +101,7 @@ class Windows():
 		at_the_side = self.look_at(oriented_list, self.active, increment, axis)
 		if at_the_side:
 			self.controller.open_window(at_the_side, time)
+			self.active = at_the_side
 
 	def calculate_x_line(self):
 		result = [self.active]
@@ -124,7 +131,7 @@ class Windows():
 				result.insert(0, above)
 		return result
 
-	def look_at(self, oriented_list, reference, increment, axis):	
+	def look_at(self, oriented_list, reference, increment, axis):
 		destination = self.get_candidates(oriented_list, reference, increment, axis['coordinate_function'])
 		coordinate_function = axis['perpendicular_axis']['coordinate_function']
 		pos = coordinate_function(reference)

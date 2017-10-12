@@ -89,8 +89,19 @@ class NavigatorWindow(Gtk.Window):
 		line.set_halign(Gtk.Align.CENTER)
 		self.output_box.pack_start(line, expand=True, fill=True, padding=0)
 
+		start_position = self.windows.x_line.index(self.windows.active)
+		length = len(self.windows.x_line)
 		for window in self.windows.x_line:
-			line.pack_start(WindowBtn(self.controller, window), expand=False, fill=False, padding=4)
+			column_box = Gtk.VBox(homogeneous=False, spacing=0)
+			column_box.set_valign(Gtk.Align.CENTER)
+			column_box.pack_start(WindowBtn(self.controller, window), expand=False, fill=False, padding=2)
+
+			multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
+			navigation_hint = Gtk.Label("." if multiplier == 0 else str(multiplier) + "w")
+			navigation_hint.get_style_context().add_class("navigation_hint")
+			column_box.pack_start(navigation_hint, expand=False, fill=False, padding=0)
+
+			line.pack_start(column_box, expand=False, fill=False, padding=4)
 
 	def list_windows(self, time):
 		lines = Gtk.VBox();
@@ -177,6 +188,7 @@ CSS = b"""
 	outline-width: initial;
 	outline-offset: initial;
 	font-family: monospace;
+	font-size: 10px;
 	transition-property: initial;
 	transition-duration: initial;
 	transition-timing-function: initial;
@@ -190,14 +202,19 @@ CSS = b"""
 	font-family: sans;
 	font-size: 10px;
 }
+.navigation_hint {
+	background: @bg_color;
+	font-family: sans;
+	font-size: 8px;
+	padding: 0;
+}
 .window-btn{
 	padding: 4px;
-	border: 1px dotted @border_color;
+	border: 1px solid transparent;
 	border-radius: 4px;
 	background: @bg_color;
 }
 .window-btn:hover {
-	background: @selected_bg_color;
 	border: 1px solid @border_color;
 }
 .active-btn{
