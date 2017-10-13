@@ -31,11 +31,11 @@ class Controller ():
 		self.reading_command = False
 		self.state = 'normal_mode'
 		self.multiplier = ""
-		self.should_clean_state = False
 		self.configurations = Configurations()
 		self.windows = Windows(self)
 		self.view = NavigatorWindow(self, self.windows)
-		self.view.connect("key-press-event", self._on_key_press)
+		self.view.connect("key-press-event", self.on_key_press)
+		self.pending_action = None
 		self.key_functions = {
 				Gdk.KEY_l     : self.windows.navigate_right,
 				Gdk.KEY_Right : self.windows.navigate_right,
@@ -86,25 +86,16 @@ class Controller ():
 		self.windows.read_screen()
 		self.view.show(time)
 
-	def _popup_menu(self, status_icon, button, activate_time, menu):
-		menu.popup(None, None, Gtk.StatusIcon.position_menu, status_icon, button, activate_time)
-
 	def clear_state(self):
-		self.should_clean_state = True
-
-	#TODO remove, no need
-	def _clear_state(self):
 		self.state = 'normal_mode'
 		self.reading_command = False
 		self.multiplier = ""
-		self.should_clean_state = False
 
 	def open_window(self, window, time):
-		self.should_clean_state = True
 		window.activate_transient(time)
 
 	def hide_and_propagate_focus(self, widget, event):
-		self._clear_state()
+		self.clear_state()
 		self.view.hide()
 		return True;
 
@@ -116,7 +107,7 @@ class Controller ():
 			return Keybinder.get_current_event_time()
 		return 0
 
-	def _on_key_press(self, widget, event):
+	def on_key_press(self, widget, event):
 		if event.keyval == Gdk.KEY_Escape:
 			self.escape(None, None)
 		if self.reading_command:
@@ -130,8 +121,7 @@ class Controller ():
 				multiplier_int = int(self.multiplier) if self.multiplier else 1
 				for i in range(multiplier_int):
 					function(event.keyval, event.time)
-				if self.should_clean_state:
-					self._clear_state()
+				self.windows.syncronize_state(event.time)
 
 	def on_command(self, pane_owner, current):
 		cmd = self.view.entry.get_text()[1:]
@@ -147,13 +137,11 @@ class Controller ():
 		self.view.show (time)
 
 	def enter(self, keyval, time):
-		self.state = 'normal_mode'
-		self.reading_command = False
+		self.clear_state()
 		self.view.show (time)
 
 	def escape(self, keyval, time):
-		self.reading_command = False
-		self.state = 'normal_mode'
+		self.clear_state()
 		self.view.hide()
 
 	def only(self, cmd, time):

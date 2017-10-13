@@ -20,18 +20,12 @@ import time
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
 
-class IndexedWindow():
-	def __init__(self, window):
-		self.window = windows
-		start_position = self.windows.x_line.index(self.windows.active)
-		length = len(self.windows.x_line)
-		multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
-
 class Windows():
 
 	def __init__(self, controller):
 		self.controller = controller
 		self.active = None
+		self.showing_active = True
 		self.visibles =[]
 		self.buffers =[]
 		self.horizontal_axis = { 'coordinate_function' : self.get_x }
@@ -69,10 +63,11 @@ class Windows():
 		self.x_line.sort(key=lambda w: w.get_geometry().xp * 1000 + w.get_geometry().yp)
 		self.y_line = list(self.visibles)
 		self.y_line.sort(key=lambda w: w.get_geometry().yp)
-		width = self.screen.get_width()
-		self.grid = list(self.visibles)
-		self.grid.sort(key=lambda w: ((w.get_geometry().xp * 12) / width) * 1000 + w.get_geometry().yp)
-		self.visibles = list(self.x_line)
+
+	def syncronize_state(self, time):
+		if not self.showing_active:
+			self.controller.open_window(self.active, time)
+			self.showing_active = True
 
 	def get_x(self, window):
 		return window.get_geometry().xp
@@ -82,8 +77,8 @@ class Windows():
 
 	def cycle(self, keyval, time):
 		next_window = self.x_line[(self.x_line.index(self.active) + 1) % len(self.x_line)]
-		self.controller.open_window(next_window, time)
 		self.active = next_window
+		self.showing_active = False
 
 	def navigate_right(self, keyval, time):
 		self.navigate(self.x_line, 1, self.horizontal_axis, time)
@@ -100,36 +95,8 @@ class Windows():
 	def navigate(self, oriented_list, increment, axis, time):
 		at_the_side = self.look_at(oriented_list, self.active, increment, axis)
 		if at_the_side:
-			self.controller.open_window(at_the_side, time)
 			self.active = at_the_side
-
-	def calculate_x_line(self):
-		result = [self.active]
-		right = self.active
-		while right:
-			right = self.look_at(self.x_line, right, 1, self.horizontal_axis)
-			if right:
-				result.append(right)
-		left = self.active
-		while left:
-			left = self.look_at(self.x_line, left, -1, self.horizontal_axis)
-			if left:
-				result.insert(0, left)
-		return result
-
-	def calculate_y_line(self):
-		result = [self.active]
-		below = self.active
-		while below:
-			below = self.look_at(self.y_line, below, 1, self.vertical_axis)
-			if below:
-				result.append(below)
-		above = self.active
-		while above:
-			above = self.look_at(self.y_line, above, -1, self.vertical_axis)
-			if above:
-				result.insert(0, above)
-		return result
+			self.showing_active = False
 
 	def look_at(self, oriented_list, reference, increment, axis):
 		destination = self.get_candidates(oriented_list, reference, increment, axis['coordinate_function'])
