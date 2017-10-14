@@ -7,6 +7,9 @@ __pycache__/
 *.so
 
 # Distribution / packaging
+deb_dist/
+*.tar.gz
+MANIFEST
 .Python
 env/
 build/
