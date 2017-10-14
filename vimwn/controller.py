@@ -51,10 +51,10 @@ class Controller ():
 				Gdk.KEY_Escape: self.escape
 				}
 		self.commands = [
-			{ 'pattern' : re.compile("^(only|on)$"), 'f' : self.only },
+			{ 'pattern' : re.compile("^\s*(only|on)\s*$"), 'f' : self.only },
 			{ 'pattern' : re.compile("^\s*(buffers|ls)\s*$"), 'f' : self.buffers },
-			{ 'pattern' : re.compile("^(buffer|b)\s*[0-9]+$\s*"), 'f' : self.open_buffer },
-			{ 'pattern' : re.compile("^(buffer|b)\s*\w+$\s*"), 'f' : self.open_named_buffer }
+			{ 'pattern' : re.compile("^\s*(buffer|b)\s*[0-9]+\s*$"), 'f' : self.open_buffer },
+			{ 'pattern' : re.compile("^\s*(buffer|b)\s*\w+\s*$"), 'f' : self.open_named_buffer }
 		]
 
 	def open(self):
