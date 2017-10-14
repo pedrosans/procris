@@ -127,10 +127,11 @@ class NavigatorWindow(Gtk.Window):
 			line.pack_start(label, expand=False, fill=False, padding=0)
 
 	def _render_command_line(self):
-		self.entry.set_text("")
+		self.entry.set_text(" " * 80)
 		if self.controller.reading_command is True:
 			self.entry.set_can_focus(True)
 			self.entry.grab_focus()
+			self.entry.set_position(0)
 		else:
 			self.entry.set_can_focus(False)
 			if self.controller.state == 'listing_windows':
