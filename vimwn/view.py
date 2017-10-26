@@ -46,6 +46,9 @@ class NavigatorWindow(Gtk.Window):
 		self.output_box = Gtk.Box(homogeneous=False, spacing=0)
 		self.v_box.pack_start(self.output_box, expand=True, fill=True, padding=0)
 
+		self.windows_list_box = Gtk.Box(homogeneous=False, spacing=0)
+		self.v_box.pack_start(self.windows_list_box, expand=True, fill=True, padding=0)
+
 		self.entry = Gtk.Entry()
 		self.entry.set_name("command-input")
 		self.entry.set_overwrite_mode(True)
@@ -53,28 +56,31 @@ class NavigatorWindow(Gtk.Window):
 		self.v_box.pack_start(self.entry, expand=True, fill=True, padding=2)
 
 		self.connect("realize", self._on_window_realize)
+		#self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
 		self.connect("size-allocate", self.on_size)
 
 	def on_size(self, allocation, data):
 		self._move_to_bottom()
 
 	def _move_to_bottom(self):
-		display = self.get_display()
-		screen, x, y, modifiers = display.get_pointer()
-		monitor_nr = screen.get_monitor_at_point(x, y)
-		geo = screen.get_monitor_geometry(monitor_nr)
+		geo = self.get_monitor_geometry()
 		wid, hei = self.get_size()
 		midx = geo.x + geo.width / 2 - wid / 2
 		midy = geo.y + geo.height - hei
 		self.move(midx, midy)
 
-	def show( self, event_time ):
-		for c in self.output_box.get_children():
-			c.destroy()
+	def get_monitor_geometry(self):
+		display = self.get_display()
+		screen, x, y, modifiers = display.get_pointer()
+		monitor_nr = screen.get_monitor_at_point(x, y)
+		return screen.get_monitor_geometry(monitor_nr)
 
-		if self.controller.state == 'normal_mode':
-			self.populate_navigation_options()
-		elif self.controller.state == 'listing_windows':
+	def show( self, event_time ):
+		for c in self.output_box.get_children(): c.destroy()
+		for c in self.windows_list_box.get_children(): c.destroy()
+
+		self.populate_navigation_options()
+		if self.controller.listing_windows:
 			self.list_windows(event_time)
 
 		self._render_command_line()
@@ -105,7 +111,7 @@ class NavigatorWindow(Gtk.Window):
 
 	def list_windows(self, time):
 		lines = Gtk.VBox();
-		self.output_box.pack_start(lines, expand=True, fill=True, padding=10)
+		self.windows_list_box.pack_start(lines, expand=True, fill=True, padding=10)
 		for window in self.windows.buffers:
 			line = Gtk.HBox(homogeneous=False, spacing=0)
 			lines.pack_start(line, expand=False, fill=True, padding=1)
@@ -128,18 +134,23 @@ class NavigatorWindow(Gtk.Window):
 
 	def _render_command_line(self):
 		self.entry.set_text(" " * 80)
+		self.entry.get_style_context().remove_class('error-message')
+		self.entry.get_style_context().add_class('input-ready')
+
 		if self.controller.reading_command is True:
 			self.entry.set_can_focus(True)
 			self.entry.grab_focus()
 			self.entry.set_position(0)
 		else:
 			self.entry.set_can_focus(False)
-			if self.controller.state == 'listing_windows':
-				self.entry.set_text("Press ENTER or type command to continue")
-				self.entry.set_position(-1)
-			else:
-				self.entry.hide()
-
+			self.entry.hide()
+			if self.controller.status_message:
+				self.entry.set_text(self.controller.status_message)
+				if self.controller.status_level == 'error':
+					self.entry.get_style_context().add_class('error-message')
+					self.entry.get_style_context().remove_class('input-ready')
+				else:
+					self.entry.set_position(-1)
 
 	def _on_window_realize(self, widget):
 		style_provider = Gtk.CssProvider()
@@ -216,11 +227,9 @@ CSS = b"""
 	background: @bg_color;
 }
 .window-btn:hover {
-	border: 1px solid @border_color;
+	background: @selected_bg_color;
 }
 .active-btn{
-	background: @selected_bg_color;
-	border: 1px solid @border_color;
 }
 .window-label{
 }
@@ -228,8 +237,14 @@ CSS = b"""
 	font-weight : bold;
 }
 #command-input {
-	background: @bg_color;
 	border: none;
 	font-family: monospace;
+}
+.input-ready{
+	background: @bg_color;
+}
+.error-message{
+	background: red;
+	color: white;
 }
 """

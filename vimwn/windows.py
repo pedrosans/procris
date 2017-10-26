@@ -20,6 +20,23 @@ import time
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
 
+def get_x(window):
+	return window.get_geometry().xp
+
+def get_y(window):
+	return window.get_geometry().yp
+
+class Axis():
+	def __init__(self, coordinate_function, position_mask, size_mask):
+		self.coordinate_function = coordinate_function
+		self.position_mask = position_mask
+		self.size_mask = size_mask
+
+VERTICAL = Axis(get_y, Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
+HORIZONTAL = Axis(get_x, Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
+HORIZONTAL.perpendicular_axis = VERTICAL
+VERTICAL.perpendicular_axis = HORIZONTAL
+
 class Windows():
 
 	def __init__(self, controller):
@@ -28,10 +45,6 @@ class Windows():
 		self.showing_active = True
 		self.visibles =[]
 		self.buffers =[]
-		self.horizontal_axis = { 'coordinate_function' : self.get_x }
-		self.vertical_axis   = { 'coordinate_function' : self.get_y }
-		self.horizontal_axis['perpendicular_axis'] = self.vertical_axis
-		self.vertical_axis  ['perpendicular_axis'] = self.horizontal_axis
 
 	def read_screen(self):
 		del self.visibles[:]
@@ -69,28 +82,57 @@ class Windows():
 			self.controller.open_window(self.active, time)
 			self.showing_active = True
 
-	def get_x(self, window):
-		return window.get_geometry().xp
-
-	def get_y(self, window):
-		return window.get_geometry().yp
-
 	def cycle(self, keyval, time):
 		next_window = self.x_line[(self.x_line.index(self.active) + 1) % len(self.x_line)]
 		self.active = next_window
 		self.showing_active = False
 
+	def move_right(self, keyval, time):
+		self.move(HORIZONTAL, 0.5)
+
+	def move_left(self, keyval, time):
+		self.move(HORIZONTAL, 0)
+
+	def move_up(self, keyval, time):
+		self.move(VERTICAL, 0)
+
+	def move_down(self, keyval, time):
+		self.move(VERTICAL, 0.5)
+
+	def move(self, axis, position):
+		if self.active.is_maximized():
+			self.active.unmaximize()
+		if self.active.is_maximized_horizontally():
+			self.active.unmaximize_horizontally()
+		if self.active.is_maximized_vertically():
+			self.active.unmaximize_vertically()
+		monitor_geo = self.controller.view.get_monitor_geometry()
+		xp, yp, widthp, heightp = self.active.get_geometry()
+		if axis == HORIZONTAL:
+			xp = monitor_geo.x + monitor_geo.width * position
+			widthp = monitor_geo.width / 2
+			self.active.maximize_vertically()
+		else:
+			yp = monitor_geo.y + monitor_geo.height * position
+			heightp = monitor_geo.height / 2
+			self.active.maximize_horizontally()
+
+		self.active.set_geometry(Wnck.WindowGravity.STATIC, axis.position_mask, xp, yp, widthp, heightp)
+		self.active.set_geometry(Wnck.WindowGravity.STATIC, axis.size_mask, xp, yp, widthp, heightp)
+
+		self.showing_active = False #causes vimwn to losse focus
+
 	def navigate_right(self, keyval, time):
-		self.navigate(self.x_line, 1, self.horizontal_axis, time)
+		self.navigate(self.x_line, 1, HORIZONTAL, time)
 
 	def navigate_left(self, keyval, time):
-		self.navigate(self.x_line, -1, self.horizontal_axis, time)
+		self.navigate(self.x_line, -1, HORIZONTAL, time)
 
 	def navigate_up(self, keyval, time):
-		self.navigate(self.y_line, -1, self.vertical_axis, time)
+		self.navigate(self.y_line, -1, VERTICAL, time)
 
 	def navigate_down(self, keyval, time):
-		self.navigate(self.y_line, 1, self.vertical_axis, time)
+		self.navigate(self.y_line, 1, VERTICAL, time)
 
 	def navigate(self, oriented_list, increment, axis, time):
 		at_the_side = self.look_at(oriented_list, self.active, increment, axis)
@@ -99,8 +141,8 @@ class Windows():
 			self.showing_active = False
 
 	def look_at(self, oriented_list, reference, increment, axis):
-		destination = self.get_candidates(oriented_list, reference, increment, axis['coordinate_function'])
-		coordinate_function = axis['perpendicular_axis']['coordinate_function']
+		destination = self.get_candidates(oriented_list, reference, increment, axis.coordinate_function)
+		coordinate_function = axis.perpendicular_axis.coordinate_function
 		pos = coordinate_function(reference)
 		if destination:
 			return min(destination, key=lambda w: abs( pos - coordinate_function(w)))
