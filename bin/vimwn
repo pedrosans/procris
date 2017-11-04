@@ -36,7 +36,7 @@ controller = Controller()
 
 if args.start:
 	service = NavigatorService()
-	print "Daemonizing the process, run \"vimwn --status\" to check its state"
+	print "Daemonizing the process, run \"vimwn --status\" to verify the daemon process status"
 	service.daemonize()
 	logging.debug("Service were daemonized, running as pid: " + str(os.getpid()))
 	controller.start()
