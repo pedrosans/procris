@@ -40,13 +40,13 @@ class Configurations():
 		dfile.set("X-GNOME-Autostart-enabled", str(auto_start).lower())
 		dfile.write(filename=self.autostart_file)
 
-	def get_hotkey(self):
+	def get_hotkeys(self):
 		self.parser.read(self.get_config_file())
 		if not self.parser.has_option('interface', 'hotkey'):
 			self.set_hotkey('<ctrl>q')
 		return self.parser.get('interface', 'hotkey')
 
-	def set_hotkey(self, hotkey):
+	def set_hotkeys(self, hotkey):
 		if not self.parser.has_section('interface'):
 			self.parser.add_section('interface')
 		self.parser.set('interface', 'hotkey', hotkey)

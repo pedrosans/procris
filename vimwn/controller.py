@@ -76,13 +76,15 @@ class Controller ():
 
 	def start(self):
 		self.view.connect("focus-out-event", self.hide_and_propagate_focus)
-		hotkey = self.configurations.get_hotkey()
 		Keybinder.init()
-		if not Keybinder.bind(hotkey, self.handle_keybind, None):
-			logging.error("Could not bind the hotkey: " + hotkey)
-			exit()
-
-		logging.debug("vimwn is running and listening to " + hotkey)
+		hotkeys = self.configurations.get_hotkeys()
+		logging.debug("Configuring hotkeys: " + hotkeys)
+		for hotkey in hotkeys.split(","):
+			bound = Keybinder.bind(hotkey, self.handle_keybind, None)
+			if not bound:
+				logging.error("Could not bind the hotkey: " + hotkey)
+				exit(1)
+			logging.debug("vimwn is istening to " + hotkey)
 
 		NavigatorStatus(self.configurations)
 		self._configure_ui_process_and_wait()
