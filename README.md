@@ -1,8 +1,8 @@
 # vimwn
-Emulates Vim commands to move and navigate around windows. It works by using Libwnck API so it will work on window managers respecting Extended Window Manager Hints (EWMH)
+Emulates Vim commands to move and navigate around windows.
 
 ## Usage
-Windows may be controlled by using a key combination of a prefix key, ‘C-q’ (Ctrl-q) by default, followed by:
+Windows may be controlled by using a combination of a prefix key, ‘C-q’ (Ctrl-q) by default, followed by:
 
 ### Emulated commands
 
@@ -38,14 +38,35 @@ Windows may be controlled by using a key combination of a prefix key, ‘C-q’ 
 
 ## Installation
 
+vimwn uses Libwnck API so it only works on X11
+
 ### From source code
+
+1) Install vimwn's dependencies, on Unbuntu 16.04 or 17.10:
+
+```
+sudo apt-get install python gir1.2-gtk-3.0 gir1.2-wnck-3.0 gir1.2-keybinder-3.0 libwnck-3-0 python-gi python-xdg python-dbus python-setproctitle
+```
+2) Install vimwn as a python package and command:
 ```
 sudo python setup.py install
 ```
+
+Instalation alternative:
+
 To track the list of installed files so vimwn can be uninstalled:
+
 ```
 sudo python setup.py install --record installed_files.txt
 sudo cat installed_files.txt | sudo  xargs rm -rf ; rm -f installed_files.txt
+```
+
+### From PPA
+
+```bash
+sudo add-apt-repository ppa:pedrosans/vimwn
+sudo apt-get update
+sudo apt-get install vimwn
 ```
 
 ## Commmand line interface
