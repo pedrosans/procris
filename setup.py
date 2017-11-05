@@ -3,7 +3,8 @@
 from distutils.core import setup
 
 setup(name='vimwn',
-	version='1.0',
+	version='1.1',
+	last_version='1.0',
 	description='Window navigator that emulates Vim commands',
 	author='Pedro Santos',
 	author_email='pedrosans@gmail.com',
