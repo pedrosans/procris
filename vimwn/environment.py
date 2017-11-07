@@ -23,6 +23,7 @@ from ConfigParser import SafeConfigParser
 
 VIMWN_DESKTOP="vimwn.desktop"
 VIMWN_PACKAGE="vimwn"
+DEFAULT_HOTKEYS="<ctrl>q"
 
 class Configurations():
 
@@ -42,14 +43,14 @@ class Configurations():
 
 	def get_hotkeys(self):
 		self.parser.read(self.get_config_file())
-		if not self.parser.has_option('interface', 'hotkey'):
-			self.set_hotkey('<ctrl>q')
-		return self.parser.get('interface', 'hotkey')
+		if not self.parser.has_option('interface', 'hotkeys'):
+			self.set_hotkeys(DEFAULT_HOTKEYS)
+		return self.parser.get('interface', 'hotkeys')
 
-	def set_hotkeys(self, hotkey):
+	def set_hotkeys(self, hotkeys):
 		if not self.parser.has_section('interface'):
 			self.parser.add_section('interface')
-		self.parser.set('interface', 'hotkey', hotkey)
+		self.parser.set('interface', 'hotkeys', hotkeys)
 		with open(self.get_config_file(), 'w') as f:
 			self.parser.write(f)
 
