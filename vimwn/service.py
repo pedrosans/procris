@@ -99,7 +99,7 @@ class NavigatorService (ExportedGObject):
 		os.dup2(so.fileno(), sys.stdout.fileno())
 		os.dup2(se.fileno(), sys.stderr.fileno())
 		try:
-			logging.basicConfig(filename='/var/log/vimwn.log',level=logging.DEBUG)
+			logging.basicConfig(filename='/var/log/vimwn.log',level=logging.WARN)
 		except IOError, e:
 			sys.stderr.write("failed to configure daemon log: %d (%s)\n" % (e.errno, e.strerror))
 

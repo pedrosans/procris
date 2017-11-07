@@ -15,8 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import gi
-import time
+import gi, time, logging
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
 
@@ -116,6 +115,9 @@ class Windows():
 			yp = monitor_geo.y + monitor_geo.height * position
 			heightp = monitor_geo.height / 2
 			self.active.maximize_horizontally()
+
+		logging.debug("monitor: x=%d  w=%d y=%d  h=%d",  monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height)
+		logging.debug("window: x=%d y=%d width=%d heigh=%d", xp, yp, widthp, heightp)
 
 		self.active.set_geometry(Wnck.WindowGravity.STATIC, axis.position_mask, xp, yp, widthp, heightp)
 		self.active.set_geometry(Wnck.WindowGravity.STATIC, axis.size_mask, xp, yp, widthp, heightp)

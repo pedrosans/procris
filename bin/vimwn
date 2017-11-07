@@ -22,15 +22,9 @@ from vimwn.service import NavigatorService
 from vimwn.service import RemoteInterface
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--start",
-		action="store_true",
-		help="Starts vimwn as a service")
-parser.add_argument("--stop",
-		action="store_true",
-		help="Stops the running vimwn service if any")
-parser.add_argument("--status",
-		action="store_true",
-		help="Show the status of vimwn service")
+parser.add_argument("--start",  action="store_true", help="Starts vimwn as a service")
+parser.add_argument("--stop",   action="store_true", help="Stops the running vimwn service if any")
+parser.add_argument("--status", action="store_true", help="Show the status of vimwn service")
 args = parser.parse_args()
 controller = Controller()
 

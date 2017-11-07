@@ -73,7 +73,7 @@ class NavigatorWindow(Gtk.Window):
 		display = self.get_display()
 		screen, x, y, modifiers = display.get_pointer()
 		monitor_nr = screen.get_monitor_at_point(x, y)
-		return screen.get_monitor_geometry(monitor_nr)
+		return screen.get_monitor_workarea(monitor_nr)
 
 	def show( self, event_time ):
 		for c in self.output_box.get_children(): c.destroy()
