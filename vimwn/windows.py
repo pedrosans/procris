@@ -40,6 +40,7 @@ class Windows():
 
 	def __init__(self, controller):
 		self.controller = controller
+		Wnck.set_client_type(Wnck.ClientType.PAGER)
 		self.active = None
 		self.showing_active = True
 		self.visibles =[]
@@ -49,18 +50,17 @@ class Windows():
 		del self.visibles[:]
 		del self.buffers[:]
 		self.screen = Wnck.Screen.get_default()
-		self.screen.force_update()  # recommended per Wnck documentation
-		workspace = self.screen.get_active_workspace()
+		self.screen.force_update()  #make sure we query X server
 
+		active_workspace = self.screen.get_active_workspace()
 		for wnck_window in self.screen.get_windows():
-			if not wnck_window.is_in_viewport(workspace):
-				continue
-			if wnck_window.is_skip_tasklist():
-				continue
-			self.buffers.append(wnck_window)
-			if wnck_window.is_minimized():
-				continue
-			self.visibles.append(wnck_window)
+			in_active_workspace = wnck_window.is_in_viewport(active_workspace)
+			if in_active_workspace or self.controller.configurations.is_list_workspaces():
+				self.buffers.append(wnck_window)
+			if (in_active_workspace
+					and not wnck_window.is_skip_tasklist()
+					and not wnck_window.is_minimized()):
+				self.visibles.append(wnck_window)
 
 		self.active = self.screen.get_active_window()
 		if self.active not in self.visibles:
@@ -75,6 +75,15 @@ class Windows():
 		self.x_line.sort(key=lambda w: w.get_geometry().xp * 1000 + w.get_geometry().yp)
 		self.y_line = list(self.visibles)
 		self.y_line.sort(key=lambda w: w.get_geometry().yp)
+
+	def shutdown(self):
+		self.screen = None
+		self.active = None
+		self.visibles =[]
+		self.buffers =[]
+		self.x_line = None
+		self.y_line = None
+		Wnck.shutdown()
 
 	def syncronize_state(self, time):
 		if not self.showing_active:
