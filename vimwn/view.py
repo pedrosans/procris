@@ -79,7 +79,8 @@ class NavigatorWindow(Gtk.Window):
 		for c in self.output_box.get_children(): c.destroy()
 		for c in self.windows_list_box.get_children(): c.destroy()
 
-		self.populate_navigation_options()
+		if self.windows.active:
+			self.populate_navigation_options()
 		if self.controller.listing_windows:
 			self.list_windows(event_time)
 
@@ -121,10 +122,15 @@ class NavigatorWindow(Gtk.Window):
 			icon.set_valign(Gtk.Align.START)
 			line.pack_start(icon, expand=False, fill=True, padding=0)
 
-			index = self.windows.buffers.index(window)
-			label = Gtk.Label(" " + str( index + 1 ) + " - " + window.get_name())
+			index = 1 + self.windows.buffers.index(window)
+			COLUMNS = 95
+			WINDOW_COLUMN = COLUMNS - 16
+			window_name = window.get_name().decode('utf8').ljust(WINDOW_COLUMN)[:WINDOW_COLUMN]
+			name = '{:>2} '.format(index) + window_name + ' {:12}'.format(window.get_workspace().get_name().lower())
+
+			label = Gtk.Label(name)
 			label.set_valign(Gtk.Align.END)
-			label.set_max_width_chars(80)
+			label.set_max_width_chars(COLUMNS)
 			label.get_layout().set_ellipsize(Pango.EllipsizeMode.END)
 			label.set_ellipsize(Pango.EllipsizeMode.END)
 			label.get_style_context().add_class("window-label")
@@ -205,8 +211,6 @@ CSS = b"""
 	transition-duration: initial;
 	transition-timing-function: initial;
 	transition-delay: initial;
-	engine: initial;
-	gtk-key-bindings: initial;
 }
 #vimwn-title {
 	background: @bg_color;
