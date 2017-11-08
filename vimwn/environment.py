@@ -21,16 +21,45 @@ from xdg import BaseDirectory as base
 from xdg import DesktopEntry as desktop
 from ConfigParser import SafeConfigParser
 
-VIMWN_DESKTOP="vimwn.desktop"
-VIMWN_PACKAGE="vimwn"
-DEFAULT_HOTKEYS="<ctrl>q"
+VIMWN_DESKTOP='vimwn.desktop'
+VIMWN_PACKAGE='vimwn'
+DEFAULT_HOTKEYS='<ctrl>q'
+DEFAULT_LIST_WORKSPACES='true'
 
 class Configurations():
 
 	def __init__(self):
-		self.parser = SafeConfigParser()
+
 		autostart_dir = base.save_config_path("autostart")
 		self.autostart_file = os.path.join(autostart_dir, VIMWN_DESKTOP)
+
+		self.parser = SafeConfigParser()
+		self.parser.read(self.get_config_file())
+		need_write = False
+		if not self.parser.has_section('interface'):
+			self.parser.add_section('interface')
+			need_write = True
+		if not self.parser.has_option('interface', 'hotkeys'):
+			self.parser.set('interface', 'hotkeys', DEFAULT_HOTKEYS)
+			need_write = True
+		if not self.parser.has_option('interface', 'list_workspaces'):
+			self.parser.set('interface', 'list_workspaces', DEFAULT_LIST_WORKSPACES)
+			need_write = True
+		if need_write:
+			with open(self.get_config_file(), 'w') as f:
+				self.parser.write(f)
+
+	def is_list_workspaces(self):
+		return self.parser.getboolean('interface', 'list_workspaces')
+
+	def get_hotkeys(self):
+		return self.parser.get('interface', 'hotkeys')
+
+	def get_config_file(self):
+		d = base.load_first_config(VIMWN_PACKAGE)
+		if not d:
+			d = base.save_config_path(VIMWN_PACKAGE)
+		return os.path.join(d, "vimwn.cfg")
 
 	def is_autostart(self):
 		dfile = desktop.DesktopEntry(self.autostart_file)
@@ -40,22 +69,3 @@ class Configurations():
 		dfile = desktop.DesktopEntry(self.autostart_file)
 		dfile.set("X-GNOME-Autostart-enabled", str(auto_start).lower())
 		dfile.write(filename=self.autostart_file)
-
-	def get_hotkeys(self):
-		self.parser.read(self.get_config_file())
-		if not self.parser.has_option('interface', 'hotkeys'):
-			self.set_hotkeys(DEFAULT_HOTKEYS)
-		return self.parser.get('interface', 'hotkeys')
-
-	def set_hotkeys(self, hotkeys):
-		if not self.parser.has_section('interface'):
-			self.parser.add_section('interface')
-		self.parser.set('interface', 'hotkeys', hotkeys)
-		with open(self.get_config_file(), 'w') as f:
-			self.parser.write(f)
-
-	def get_config_file(self):
-		d = base.load_first_config(VIMWN_PACKAGE)
-		if not d:
-			d = base.save_config_path(VIMWN_PACKAGE )
-		return os.path.join(d, "vimwn.cfg")
