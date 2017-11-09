@@ -206,7 +206,7 @@ CSS = b"""
 	outline-width: initial;
 	outline-offset: initial;
 	font-family: monospace;
-	font-size: 10px;
+	font-size: small;
 	transition-property: initial;
 	transition-duration: initial;
 	transition-timing-function: initial;
