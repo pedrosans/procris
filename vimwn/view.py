@@ -125,7 +125,7 @@ class NavigatorWindow(Gtk.Window):
 			index = 1 + self.windows.buffers.index(window)
 			COLUMNS = 95
 			WINDOW_COLUMN = COLUMNS - 16
-			window_name = window.get_name().decode('utf8').ljust(WINDOW_COLUMN)[:WINDOW_COLUMN]
+			window_name = window.get_name().ljust(WINDOW_COLUMN)[:WINDOW_COLUMN]
 			name = '{:>2} '.format(index) + window_name + ' {:12}'.format(window.get_workspace().get_name().lower())
 
 			label = Gtk.Label(name)
