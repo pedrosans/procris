@@ -76,14 +76,13 @@ class Windows():
 		self.y_line = list(self.visibles)
 		self.y_line.sort(key=lambda w: w.get_geometry().yp)
 
-	def shutdown(self):
+	def clear_state(self):
 		self.screen = None
 		self.active = None
 		self.visibles =[]
 		self.buffers =[]
 		self.x_line = None
 		self.y_line = None
-		Wnck.shutdown()
 
 	def syncronize_state(self, time):
 		if not self.showing_active:

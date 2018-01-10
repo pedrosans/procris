@@ -109,7 +109,7 @@ class Controller ():
 		self.clear_state()
 		self.listing_windows = False
 		self.view.hide()
-		self.windows.shutdown()
+		self.clear_state()
 		return True;
 
 	def get_current_event_time(self):
