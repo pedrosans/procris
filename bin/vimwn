@@ -1,4 +1,4 @@
-#!/usr/bin/env python
+#!/usr/bin/env python3
 """
 Copyright 2017 Pedro Santos <pedrosans@gmail.com>
 
@@ -30,7 +30,7 @@ controller = Controller()
 
 if args.start:
 	service = NavigatorService()
-	print "Daemonizing the process, run \"vimwn --status\" to verify the daemon process status"
+	print("Daemonizing the process, run \"vimwn --status\" to verify the daemon process status")
 	service.daemonize()
 	logging.debug("Service were daemonized, running as pid: " + str(os.getpid()))
 	controller.start()
@@ -40,6 +40,6 @@ elif args.stop:
 	remote.stop_running_instance()
 elif args.status:
 	remote = RemoteInterface()
-	print remote.get_status()
+	print(remote.get_status())
 else:
 	controller.open()

@@ -33,12 +33,12 @@ class NavigatorService (ExportedGObject):
 		self.bus = dbus.Bus()
 
 		if not self.bus:
-			print "no session"
+			print("no session")
 			quit()
 
 		if self.bus.name_has_owner(SERVICE_NAME):
 			pid = RemoteInterface().get_running_instance_id()
-			print "vimwn is already running, pid: " + pid
+			print("vimwn is already running, pid: " + pid)
 			quit()
 
 		bus_name = dbus.service.BusName(SERVICE_NAME, self.bus)
@@ -70,7 +70,7 @@ class NavigatorService (ExportedGObject):
 			if pid > 0:
 				# exit first parent
 				sys.exit(0)
-		except OSError, e:
+		except OSError as e:
 			sys.stderr.write("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
 			sys.exit(1)
 
@@ -85,22 +85,17 @@ class NavigatorService (ExportedGObject):
 			if pid > 0:
 				# exit from second parent
 				sys.exit(0)
-		except OSError, e:
+		except OSError as e:
 			sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
 			sys.exit(1)
 
 		# redirect standard file descriptors
 		sys.stdout.flush()
 		sys.stderr.flush()
-		try:
-			logging.basicConfig(filename='/var/log/vimwn.log',level=logging.WARN)
-			si = file('/var/log/vimwn.log', 'r')
-			so = file('/var/log/vimwn.log', 'a+')
-			se = file('/var/log/vimwn.log', 'a+', 0)
-		except IOError:
-			si = file('/dev/null', 'r')
-			so = file('/dev/null', 'a+')
-			se = file('/dev/null', 'a+', 0)
+		si = open(os.devnull, 'r')
+		so = open(os.devnull, 'a+')
+		se = open(os.devnull, 'a+')
+
 		os.dup2(si.fileno(), sys.stdin.fileno())
 		os.dup2(so.fileno(), sys.stdout.fileno())
 		os.dup2(se.fileno(), sys.stderr.fileno())
@@ -110,7 +105,7 @@ class RemoteInterface():
 	def __init__(self):
 		self.bus = dbus.Bus()
 		if not self.bus:
-			print "no session"
+			print("no session")
 			quit()
 
 	def get_status(self):
@@ -129,6 +124,6 @@ class RemoteInterface():
 			service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
 			quit_function = service.get_dbus_method('quit', 'io.github.vimwn.Service')
 			quit_function()
-			print "Remote instance were stopped"
+			print("Remote instance were stopped")
 		else:
-			print "vimwn is not running"
+			print("vimwn is not running")

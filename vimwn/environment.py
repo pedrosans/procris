@@ -15,11 +15,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import ConfigParser
+import configparser
 import os
 from xdg import BaseDirectory as base
 from xdg import DesktopEntry as desktop
-from ConfigParser import SafeConfigParser
+from configparser import SafeConfigParser
 
 VIMWN_DESKTOP='vimwn.desktop'
 VIMWN_PACKAGE='vimwn'

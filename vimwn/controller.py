@@ -191,7 +191,7 @@ class Controller ():
 
 	def open_named_buffer(self, cmd, time):
 		window_title = re.findall(r'\s+\w+', cmd.strip())[0].strip().lower()
-		print window_title
+		print(window_title)
 		matching_buffer = False
 		for w in self.windows.buffers:
 			if window_title in w.get_name().lower():
