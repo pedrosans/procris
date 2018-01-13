@@ -23,6 +23,7 @@ from configparser import SafeConfigParser
 
 VIMWN_DESKTOP='vimwn.desktop'
 VIMWN_PACKAGE='vimwn'
+DEFAULT_LOG_FILE='/var/log/vimwn.log'
 DEFAULT_HOTKEYS='<ctrl>q'
 DEFAULT_LIST_WORKSPACES='true'
 
@@ -36,6 +37,12 @@ class Configurations():
 		self.parser = SafeConfigParser()
 		self.parser.read(self.get_config_file())
 		need_write = False
+		if not self.parser.has_section('service'):
+			self.parser.add_section('service')
+			need_write = True
+		if not self.parser.has_option('service', 'log_file'):
+			self.parser.set('service', 'log_file', DEFAULT_LOG_FILE)
+			need_write = True
 		if not self.parser.has_section('interface'):
 			self.parser.add_section('interface')
 			need_write = True
@@ -55,6 +62,9 @@ class Configurations():
 	def get_hotkeys(self):
 		return self.parser.get('interface', 'hotkeys')
 
+	def get_log_file(self):
+		return self.parser.get('service', 'log_file')
+
 	def get_config_file(self):
 		d = base.load_first_config(VIMWN_PACKAGE)
 		if not d:
@@ -68,4 +78,5 @@ class Configurations():
 	def set_autostart(self, auto_start):
 		dfile = desktop.DesktopEntry(self.autostart_file)
 		dfile.set("X-GNOME-Autostart-enabled", str(auto_start).lower())
+		dfile.set("Exec", "vimwn --start --redirect-output")
 		dfile.write(filename=self.autostart_file)
