@@ -16,32 +16,36 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import argparse, vimwn, subprocess, logging, os, sys
+import argparse, vimwn, subprocess
 from vimwn.controller import Controller
 from vimwn.service import NavigatorService
 from vimwn.service import RemoteInterface
 
 parser = argparse.ArgumentParser()
 parser.add_argument("--start",  action="store_true", help="Starts vimwn service")
+parser.add_argument("--start-daemon",  action="store_true", help="Starts vimwn as a daemon service")
+parser.add_argument("--redirect-output",  action="store_true", help="true if the str and error output should be redirected to a configured log file")
 parser.add_argument("--stop",   action="store_true", help="Stops the running vimwn service if any")
 parser.add_argument("--status", action="store_true", help="Show the status of vimwn service")
 parser.add_argument("--open", action="store_true", help="Open wimwn main window for an one-time action")
 args = parser.parse_args()
-controller = Controller()
 
-if args.start:
+if args.start or args.start_daemon:
 	service = NavigatorService()
-	print("Daemonizing the process, run \"vimwn --status\" to verify the daemon process status")
-	logging.debug("Service were daemonized, running as pid: " + str(os.getpid()))
-	controller.start()
-	logging.debug("Ending daemonized service running as pid: " + str(os.getpid()))
+	if args.start_daemon:
+		print('Daemonizing the process, run "vimwn --status" to verify its status')
+		service.daemonize()
+	controller = Controller()
+	if args.start_daemon or args.redirect_output:
+		service.redirect_output(controller.configurations.get_log_file())
+	service.configure_process()
+	service.export_bus_object()
+	controller.listen_user_events()
 elif args.stop:
-	remote = RemoteInterface()
-	remote.stop_running_instance()
+	RemoteInterface().stop_running_instance()
 elif args.status:
-	remote = RemoteInterface()
-	print(remote.get_status())
+	print(RemoteInterface().get_status())
 elif args.open:
-	controller.open()
+	Controller().open()
 else:
 	parser.print_help()

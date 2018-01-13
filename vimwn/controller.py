@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, signal, re, setproctitle, logging
+import gi, signal, re, logging, os
 gi.require_version('Gtk', '3.0')
 gi.require_version("Keybinder", "3.0")
 from gi.repository import Gtk, Gdk, Keybinder
@@ -62,19 +62,12 @@ class Controller ():
 			{ 'pattern' : re.compile("^\s*(buffer|b)\s+\w+\s*$"), 'f' : self.open_named_buffer }
 		]
 
-	def _configure_ui_process_and_wait(self):
-		setproctitle.setproctitle("vimwn")
-		signal.signal(signal.SIGINT, signal.SIG_DFL)
-		signal.signal(signal.SIGTERM, signal.SIG_DFL)
-		signal.signal(signal.SIGHUP, signal.SIG_DFL)
-		Gtk.main()
-
 	def open(self):
 		self.view.connect("focus-out-event", Gtk.main_quit)
 		self.show_ui(0)
-		self._configure_ui_process_and_wait()
+		Gtk.main()
 
-	def start(self):
+	def listen_user_events(self):
 		self.view.connect("focus-out-event", self.hide_and_propagate_focus)
 		Keybinder.init()
 		hotkeys = self.configurations.get_hotkeys()
@@ -87,7 +80,9 @@ class Controller ():
 			logging.debug("vimwn is istening to " + hotkey)
 
 		NavigatorStatus(self.configurations)
-		self._configure_ui_process_and_wait()
+		print("Listening keys: '{}' pid: {} ".format( hotkeys, os.getpid()))
+		Gtk.main()
+		print("Ending vimwn service, pid: {}".format(os.getpid()))
 
 	def handle_keybind(self, key, data):
 		self.show_ui(Keybinder.get_current_event_time())

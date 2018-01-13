@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import sys, os, gi, dbus, dbus.service, logging
+import sys, os, gi, dbus, dbus.service, signal, setproctitle
 gi.require_version('Gtk', '3.0')
 from gi.repository import GObject
 from gi.repository import Gtk
@@ -25,33 +25,29 @@ from dbus.gi_service import ExportedGObject
 SERVICE_NAME = "io.github.vimwn"
 SERVICE_OBJECT_PATH = "/io/github/vimwn"
 
-class NavigatorService (ExportedGObject):
+class NavigatorService:
 
 	def __init__(self):
-		self.main_loop = DBusGMainLoop(set_as_default=True)
-		dbus.mainloop.glib.threads_init()
-		self.bus = dbus.Bus()
+		self.bus_object = None
 
-		if not self.bus:
-			print("no session")
-			quit()
+	def configure_process(self):
+		setproctitle.setproctitle("vimwn")
+		signal.signal(signal.SIGINT, signal.SIG_DFL)
+		signal.signal(signal.SIGTERM, signal.SIG_DFL)
+		signal.signal(signal.SIGHUP, signal.SIG_DFL)
 
-		if self.bus.name_has_owner(SERVICE_NAME):
-			pid = RemoteInterface().get_running_instance_id()
-			print("vimwn is already running, pid: " + pid)
-			quit()
+	def export_bus_object(self):
+		self.bus_object = NavigatorBusService()
 
-		bus_name = dbus.service.BusName(SERVICE_NAME, self.bus)
-		super(NavigatorService, self).__init__(conn=self.bus, object_path=SERVICE_OBJECT_PATH, bus_name=bus_name)
-
-	@dbus.service.method("io.github.vimwn.Service", in_signature='', out_signature='s')
-	def get_id(self):
-		return str(os.getpid())
-
-	@dbus.service.method("io.github.vimwn.Service", in_signature='', out_signature='')
-	def quit(self):
-		Gtk.main_quit()
-		self.bus.release_name(SERVICE_NAME)
+	def signal_handler(self, signal, frame):
+		"""
+		Implemented for reference, should be used
+		when python-gi version 3.27.0 gets into stable distros
+		https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=743208
+		usage: signal.signal(signal.SIGINT, self.signal_handler)
+		"""
+		print('You pressed Ctrl+C!')
+		self.bus_object.quit()
 
 	def daemonize(self):
 		"""
@@ -89,16 +85,48 @@ class NavigatorService (ExportedGObject):
 			sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
 			sys.exit(1)
 
+	def redirect_output(self, logfile='/dev/null' ):
 		# redirect standard file descriptors
 		sys.stdout.flush()
 		sys.stderr.flush()
-		si = open(os.devnull, 'r')
-		so = open(os.devnull, 'a+')
-		se = open(os.devnull, 'a+')
+		try:
+			so = open(logfile, 'a+')
+			se = open(logfile, 'a+')
+		except PermissionError:
+			print("Sevice can't redirect its output to " + logfile)
+			so = open(os.devnull, 'a+')
+			se = open(os.devnull, 'a+')
 
-		os.dup2(si.fileno(), sys.stdin.fileno())
 		os.dup2(so.fileno(), sys.stdout.fileno())
 		os.dup2(se.fileno(), sys.stderr.fileno())
+
+class NavigatorBusService (ExportedGObject):
+
+	def __init__(self):
+		self.main_loop = DBusGMainLoop(set_as_default=True)
+		dbus.mainloop.glib.threads_init()
+		self.bus = dbus.Bus()
+
+		if not self.bus:
+			print("no session")
+			quit()
+
+		if self.bus.name_has_owner(SERVICE_NAME):
+			pid = RemoteInterface().get_running_instance_id()
+			print("vimwn is already running, pid: " + pid)
+			quit()
+
+		bus_name = dbus.service.BusName(SERVICE_NAME, self.bus)
+		super(NavigatorBusService, self).__init__(conn=self.bus, object_path=SERVICE_OBJECT_PATH, bus_name=bus_name)
+
+	@dbus.service.method("io.github.vimwn.Service", in_signature='', out_signature='s')
+	def get_id(self):
+		return str(os.getpid())
+
+	@dbus.service.method("io.github.vimwn.Service", in_signature='', out_signature='')
+	def quit(self):
+		Gtk.main_quit()
+		self.bus.release_name(SERVICE_NAME)
 
 class RemoteInterface():
 
