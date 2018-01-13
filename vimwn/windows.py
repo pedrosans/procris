@@ -54,12 +54,12 @@ class Windows():
 
 		active_workspace = self.screen.get_active_workspace()
 		for wnck_window in self.screen.get_windows():
+			if wnck_window.is_skip_tasklist():
+				continue
 			in_active_workspace = wnck_window.is_in_viewport(active_workspace)
 			if in_active_workspace or self.controller.configurations.is_list_workspaces():
 				self.buffers.append(wnck_window)
-			if (in_active_workspace
-					and not wnck_window.is_skip_tasklist()
-					and not wnck_window.is_minimized()):
+			if in_active_workspace and not wnck_window.is_minimized():
 				self.visibles.append(wnck_window)
 
 		self.active = self.screen.get_active_window()
