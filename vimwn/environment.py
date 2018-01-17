@@ -26,6 +26,8 @@ VIMWN_PACKAGE='vimwn'
 DEFAULT_LOG_FILE='/var/log/vimwn.log'
 DEFAULT_HOTKEYS='<ctrl>q'
 DEFAULT_LIST_WORKSPACES='true'
+DEFAULT_POSITION='bottom'
+DEFAULT_WIDTH='800'
 
 class Configurations():
 
@@ -52,6 +54,12 @@ class Configurations():
 		if not self.parser.has_option('interface', 'list_workspaces'):
 			self.parser.set('interface', 'list_workspaces', DEFAULT_LIST_WORKSPACES)
 			need_write = True
+		if not self.parser.has_option('interface', 'position'):
+			self.parser.set('interface', 'position', DEFAULT_POSITION)
+			need_write = True
+		if not self.parser.has_option('interface', 'width'):
+			self.parser.set('interface', 'width', DEFAULT_WIDTH)
+			need_write = True
 		if need_write:
 			with open(self.get_config_file(), 'w') as f:
 				self.parser.write(f)
@@ -61,6 +69,12 @@ class Configurations():
 
 	def get_hotkeys(self):
 		return self.parser.get('interface', 'hotkeys')
+
+	def get_position(self):
+		return self.parser.get('interface', 'position')
+
+	def get_width(self):
+		return self.parser.getint('interface', 'width')
 
 	def get_log_file(self):
 		return self.parser.get('service', 'log_file')

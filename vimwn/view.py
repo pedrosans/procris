@@ -26,7 +26,7 @@ class NavigatorWindow(Gtk.Window):
 
 		self.controller = controller
 		self.windows = windows
-		self.set_size_request(800, -1)
+		self.set_size_request(self.controller.configurations.get_width(), -1)
 
 		self.set_keep_above(True)
 		self.set_skip_taskbar_hint(True)
@@ -60,13 +60,18 @@ class NavigatorWindow(Gtk.Window):
 		self.connect("size-allocate", self.on_size)
 
 	def on_size(self, allocation, data):
-		self._move_to_bottom()
+		self._move_to_preferred_position()
 
-	def _move_to_bottom(self):
+	def _move_to_preferred_position(self):
 		geo = self.get_monitor_geometry()
 		wid, hei = self.get_size()
 		midx = geo.x + geo.width / 2 - wid / 2
-		midy = geo.y + geo.height - hei
+		if self.controller.configurations.get_position() == 'center':
+			midy = geo.y + geo.height / 2- hei
+		elif self.controller.configurations.get_position() == 'top':
+			midy = geo.y
+		else:
+			midy = geo.y + geo.height - hei
 		self.move(midx, midy)
 
 	def get_monitor_geometry(self):
