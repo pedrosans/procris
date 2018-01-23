@@ -131,7 +131,7 @@ class Controller ():
 				multiplier_int = int(self.multiplier) if self.multiplier else 1
 				for i in range(multiplier_int):
 					function(event.keyval, event.time)
-				self.windows.syncronize_state(event.time)
+				self.windows.commit_navigation(event.time)
 
 	def on_command(self, pane_owner, current):
 		if not self.reading_command:

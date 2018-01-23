@@ -42,7 +42,7 @@ class Windows():
 		self.controller = controller
 		Wnck.set_client_type(Wnck.ClientType.PAGER)
 		self.active = None
-		self.showing_active = True
+		self.staging = False
 		self.visibles =[]
 		self.buffers =[]
 
@@ -87,15 +87,16 @@ class Windows():
 		self.x_line = None
 		self.y_line = None
 
-	def syncronize_state(self, time):
-		if not self.showing_active:
+	#Commits any staged change in the active window
+	def commit_navigation(self, time):
+		if self.staging:
 			self.controller.open_window(self.active, time)
-			self.showing_active = True
+			self.staging = False
 
 	def cycle(self, keyval, time):
 		next_window = self.x_line[(self.x_line.index(self.active) + 1) % len(self.x_line)]
 		self.active = next_window
-		self.showing_active = False
+		self.staging = True
 
 	def move_right(self, keyval, time):
 		self.move(HORIZONTAL, 0.5)
@@ -133,7 +134,7 @@ class Windows():
 		self.active.set_geometry(Wnck.WindowGravity.STATIC, axis.position_mask, xp, yp, widthp, heightp)
 		self.active.set_geometry(Wnck.WindowGravity.STATIC, axis.size_mask, xp, yp, widthp, heightp)
 
-		self.showing_active = False #causes vimwn to losse focus
+		self.staging = True
 
 	def navigate_right(self, keyval, time):
 		self.navigate(self.x_line, 1, HORIZONTAL, time)
@@ -151,7 +152,7 @@ class Windows():
 		at_the_side = self.look_at(oriented_list, self.active, increment, axis)
 		if at_the_side:
 			self.active = at_the_side
-			self.showing_active = False
+			self.staging = True
 
 	def look_at(self, oriented_list, reference, increment, axis):
 		destination = self.get_candidates(oriented_list, reference, increment, axis.coordinate_function)
