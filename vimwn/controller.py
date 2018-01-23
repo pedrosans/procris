@@ -58,6 +58,8 @@ class Controller ():
 		self.commands = [
 			{ 'pattern' : re.compile("^\s*(only|on)\s*$"), 'f' : self.only },
 			{ 'pattern' : re.compile("^\s*(buffers|ls)\s*$"), 'f' : self.buffers },
+			{ 'pattern' : re.compile("^\s*(bdelete|bd)\s*[0-9]+\s*$"), 'f' : self.close_indexed_buffer },
+			{ 'pattern' : re.compile("^\s*(bdelete|bd)\s+\w+\s*$"), 'f' : self.close_named_buffer },
 			{ 'pattern' : re.compile("^\s*(buffer|b)\s*[0-9]+\s*$"), 'f' : self.open_indexed_buffer },
 			{ 'pattern' : re.compile("^\s*(buffer|b)\s+\w+\s*$"), 'f' : self.open_named_buffer }
 		]
@@ -186,11 +188,36 @@ class Controller ():
 
 	def open_named_buffer(self, cmd, time):
 		window_title = re.findall(r'\s+\w+', cmd.strip())[0].strip().lower()
-		print(window_title)
 		matching_buffer = False
+		#TODO: move this lookup to windows.py
 		for w in self.windows.buffers:
 			if window_title in w.get_name().lower():
 				self.open_window(w, time)
+				matching_buffer = True
+				break;
+		if not matching_buffer:
+			self.show_error_message('No matching buffer for ' + window_title, time)
+
+	#TODO: remove duplicated tokenizer
+	def close_indexed_buffer(self, cmd, time):
+		buffer_number = re.findall(r'\d+', cmd)[0]
+		index = int(buffer_number) - 1
+		if index < len(self.windows.buffers):
+			self.windows.buffers[index].close(time)
+			self.windows.remove(self.windows.buffers[index])
+			self.clear_state()
+			self.listing_windows = False
+			self.view.show (time)
+		else:
+			self.show_error_message('Buffer {} does not exist'.format(buffer_number), time)
+
+	def close_named_buffer(self, cmd, time):
+		window_title = re.findall(r'\s+\w+', cmd.strip())[0].strip().lower()
+		matching_buffer = False
+		#TODO: move this lookup to windows.py
+		for w in self.windows.buffers:
+			if window_title in w.get_name().lower():
+				w.close(time)
 				matching_buffer = True
 				break;
 		if not matching_buffer:

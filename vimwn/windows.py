@@ -46,6 +46,11 @@ class Windows():
 		self.visibles =[]
 		self.buffers =[]
 
+	def remove(self, window):
+		self.visibles.remove(window)
+		self.buffers.remove(window)
+		self._update_internal_state()
+
 	def read_screen(self):
 		del self.visibles[:]
 		del self.buffers[:]
@@ -61,16 +66,14 @@ class Windows():
 				self.buffers.append(wnck_window)
 			if in_active_workspace and not wnck_window.is_minimized():
 				self.visibles.append(wnck_window)
+		self._update_internal_state()
 
-		self.active = self.screen.get_active_window()
-		if self.active not in self.visibles:
-			self.active = None
-		if self.active is None:
-			for w in reversed(self.screen.get_windows_stacked()):
-				if w in self.visibles:
-					self.active = w
-					break
-
+	def _update_internal_state(self):
+		self.active = None
+		for w in reversed(self.screen.get_windows_stacked()):
+			if w in self.visibles:
+				self.active = w
+				break
 		self.x_line = list(self.visibles)
 		self.x_line.sort(key=lambda w: w.get_geometry().xp * 1000 + w.get_geometry().yp)
 		self.y_line = list(self.visibles)
