@@ -49,6 +49,7 @@ class Controller ():
 				Gdk.KEY_Up    : self.windows.navigate_up,
 				Gdk.KEY_k     : self.windows.navigate_up,
 				Gdk.KEY_K     : self.windows.move_up,
+				Gdk.KEY_equal : self.windows.equalize,
 				Gdk.KEY_w     : self.windows.cycle,
 				Gdk.KEY_o     : self.only_key_handler,
 				Gdk.KEY_colon : self.colon,

@@ -99,40 +99,58 @@ class Windows():
 		self.staging = True
 
 	def move_right(self, keyval, time):
-		self.move(HORIZONTAL, 0.5)
+		self.move_active_window(HORIZONTAL, 0.5)
 
 	def move_left(self, keyval, time):
-		self.move(HORIZONTAL, 0)
+		self.move_active_window(HORIZONTAL, 0)
 
 	def move_up(self, keyval, time):
-		self.move(VERTICAL, 0)
+		self.move_active_window(VERTICAL, 0)
 
 	def move_down(self, keyval, time):
-		self.move(VERTICAL, 0.5)
+		self.move_active_window(VERTICAL, 0.5)
 
-	def move(self, axis, position):
-		if self.active.is_maximized():
-			self.active.unmaximize()
-		if self.active.is_maximized_horizontally():
-			self.active.unmaximize_horizontally()
-		if self.active.is_maximized_vertically():
-			self.active.unmaximize_vertically()
+	def equalize(self, keyval, time):
+		left = None
+		right = None
+		for w in reversed(self.screen.get_windows_stacked()):
+			if w in self.visibles:
+				if not right:
+					right = w
+					continue
+				if not left:
+					left = w
+					break
+		if left and right:
+			self.move_window(left, HORIZONTAL, 0)
+			self.move_window(right, HORIZONTAL, 0.5)
+
+	def move_active_window(self, axis, position):
+		self.move_window(self.active, axis, position)
+
+	def move_window(self, window, axis, position):
+		if window.is_maximized():
+			window.unmaximize()
+		if window.is_maximized_horizontally():
+			window.unmaximize_horizontally()
+		if window.is_maximized_vertically():
+			window.unmaximize_vertically()
 		monitor_geo = self.controller.view.get_monitor_geometry()
-		xp, yp, widthp, heightp = self.active.get_geometry()
+		xp, yp, widthp, heightp = window.get_geometry()
 		if axis == HORIZONTAL:
 			xp = monitor_geo.x + monitor_geo.width * position
 			widthp = monitor_geo.width / 2
-			self.active.maximize_vertically()
+			window.maximize_vertically()
 		else:
 			yp = monitor_geo.y + monitor_geo.height * position
 			heightp = monitor_geo.height / 2
-			self.active.maximize_horizontally()
+			window.maximize_horizontally()
 
 		logging.debug("monitor: x=%d  w=%d y=%d  h=%d",  monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height)
 		logging.debug("window: x=%d y=%d width=%d heigh=%d", xp, yp, widthp, heightp)
 
-		self.active.set_geometry(Wnck.WindowGravity.STATIC, axis.position_mask, xp, yp, widthp, heightp)
-		self.active.set_geometry(Wnck.WindowGravity.STATIC, axis.size_mask, xp, yp, widthp, heightp)
+		window.set_geometry(Wnck.WindowGravity.STATIC, axis.position_mask, xp, yp, widthp, heightp)
+		window.set_geometry(Wnck.WindowGravity.STATIC, axis.size_mask, xp, yp, widthp, heightp)
 
 		self.staging = True
 
