@@ -88,6 +88,10 @@ class Controller ():
 		self.view.show(time)
 
 	def clear_state(self):
+		self.clear_command_ui_state()
+		self.listing_windows = False
+
+	def clear_command_ui_state(self):
 		self.reading_command = False
 		self.multiplier = ""
 		self.status_message = None
@@ -97,8 +101,6 @@ class Controller ():
 		window.activate_transient(time)
 
 	def hide_and_propagate_focus(self, widget, event):
-		self.clear_state()
-		self.listing_windows = False
 		self.view.hide()
 		self.clear_state()
 		return True;
@@ -132,25 +134,30 @@ class Controller ():
 			return
 		cmd = self.view.entry.get_text()[1:]
 		time = self.get_current_event_time()
-		input_matches = False
+		command_function = self.find_command(cmd)
+		if command_function:
+			command_function(cmd, time)
+		else:
+			self.show_error_message('Not an editor command: ' + cmd, time)
+
+	def find_command(self, command_input):
+		"""
+		Returns matching command function if any
+		"""
 		for command in self.commands:
-			if command['pattern'].match(cmd):
-				input_matches = True
-				command['f'](cmd, time)
-				break;
-		if not input_matches:
-			self.clear_state()
-			self.status_message = 'Not an editor command: ' + cmd
-			self.status_level = 'error'
-			self.view.show (time)
-		self.clear_state()
+			if command['pattern'].match(command_input):
+				return command['f']
+		return None
 
 	def colon(self, keyval, time):
 		self.reading_command = True
 		self.view.show (time)
 
 	def enter(self, keyval, time):
-		self.listing_windows = False
+		self.refresh_view(time)
+
+	def refresh_view(self, time):
+		self.clear_state()
 		self.view.show (time)
 
 	def escape(self, keyval, time):
@@ -182,14 +189,10 @@ class Controller ():
 
 	def open_named_buffer(self, cmd, time):
 		window_title = re.findall(r'\s+\w+', cmd.strip())[0].strip().lower()
-		matching_buffer = False
-		#TODO: move this lookup to windows.py
-		for w in self.windows.buffers:
-			if window_title in w.get_name().lower():
-				self.open_window(w, time)
-				matching_buffer = True
-				break;
-		if not matching_buffer:
+		w = self.windows.find_by_name(window_title)
+		if w:
+			self.open_window(w, time)
+		else:
 			self.show_error_message('No matching buffer for ' + window_title, time)
 
 	#TODO: remove duplicated tokenizer
@@ -197,28 +200,22 @@ class Controller ():
 		buffer_number = re.findall(r'\d+', cmd)[0]
 		index = int(buffer_number) - 1
 		if index < len(self.windows.buffers):
-			self.windows.buffers[index].close(time)
-			self.windows.remove(self.windows.buffers[index])
-			self.clear_state()
-			self.listing_windows = False
-			self.view.show (time)
+			self.windows.remove(self.windows.buffers[index], time)
+			self.refresh_view(time)
 		else:
 			self.show_error_message('Buffer {} does not exist'.format(buffer_number), time)
 
 	def close_named_buffer(self, cmd, time):
 		window_title = re.findall(r'\s+\w+', cmd.strip())[0].strip().lower()
-		matching_buffer = False
-		#TODO: move this lookup to windows.py
-		for w in self.windows.buffers:
-			if window_title in w.get_name().lower():
-				w.close(time)
-				matching_buffer = True
-				break;
-		if not matching_buffer:
+		w = self.windows.find_by_name(window_title)
+		if w:
+			self.windows.remove(w, time)
+			self.refresh_view(time)
+		else:
 			self.show_error_message('No matching buffer for ' + window_title, time)
 
 	def show_error_message(self, message, time):
-		self.clear_state()
+		self.clear_command_ui_state()
 		self.status_message = message
 		self.status_level = 'error'
 		self.view.show(time)

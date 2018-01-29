@@ -36,6 +36,7 @@ HORIZONTAL = Axis(get_x, Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.
 HORIZONTAL.perpendicular_axis = VERTICAL
 VERTICAL.perpendicular_axis = HORIZONTAL
 
+#TODO a better name would be screen
 class Windows():
 
 	def __init__(self, controller):
@@ -46,7 +47,8 @@ class Windows():
 		self.visibles =[]
 		self.buffers =[]
 
-	def remove(self, window):
+	def remove(self, window, time):
+		window.close(time)
 		self.visibles.remove(window)
 		self.buffers.remove(window)
 		self._update_internal_state()
@@ -67,6 +69,12 @@ class Windows():
 			if in_active_workspace and not wnck_window.is_minimized():
 				self.visibles.append(wnck_window)
 		self._update_internal_state()
+
+	def find_by_name(self, window_title):
+		for w in self.buffers:
+			if window_title in w.get_name().lower():
+				return w;
+		return None
 
 	def _update_internal_state(self):
 		self.active = None
