@@ -17,32 +17,33 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import gi
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, Keybinder
+gi.require_version('AppIndicator3', '0.1')
+from gi.repository import Gtk
+from gi.repository import AppIndicator3
 
-class NavigatorStatus(Gtk.StatusIcon):
+ICONNAME = "gvim"
+class NavigatorStatus():
 
-	def __init__(self, configurations):
-		Gtk.StatusIcon.__init__(self)
+	def __init__(self, configurations, service):
 		self.configurations = configurations
-
-		self.set_from_icon_name("gvim")
-		self.set_tooltip_text("vimwn tooltip")
-
-		menu = Gtk.Menu()
+		self.service = service
+		self.menu = Gtk.Menu()
 
 		self.autostart_item = Gtk.CheckMenuItem(label="Autostart")
 		self.autostart_item.set_active(self.configurations.is_autostart())
 		self.autostart_item.connect("toggled", self._change_autostart)
 		self.autostart_item.show()
-		menu.append(self.autostart_item)
+		self.menu.append(self.autostart_item)
 
 		quit_item = Gtk.MenuItem(label="Quit")
 		quit_item.connect("activate", self._quit)
 		quit_item.show()
-		menu.append(quit_item)
+		self.menu.append(quit_item)
 
-		self.connect("popup-menu", self._popup_menu, menu)
-		self.set_visible(True)
+	def activate(self):
+		self.ind = AppIndicator3.Indicator.new("vimwn", ICONNAME, AppIndicator3.IndicatorCategory.APPLICATION_STATUS )
+		self.ind.set_status (AppIndicator3.IndicatorStatus.ACTIVE)
+		self.ind.set_menu(self.menu)
 
 	def _popup_menu(self, status_icon, button, activate_time, menu):
 		menu.popup(None, None, Gtk.StatusIcon.position_menu, status_icon, button, activate_time)
@@ -51,4 +52,4 @@ class NavigatorStatus(Gtk.StatusIcon):
 		self.configurations.set_autostart(self.autostart_item.get_active())
 
 	def _quit(self, data):
-		Gtk.main_quit()
+		self.service.stop()

@@ -17,8 +17,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys, os, gi, dbus, dbus.service, signal, setproctitle
 gi.require_version('Gtk', '3.0')
-from gi.repository import GObject
-from gi.repository import Gtk
+from vimwn.controller import Controller
+from vimwn.status import NavigatorStatus
+from gi.repository import GObject, Gtk
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus.gi_service import ExportedGObject
 
@@ -29,6 +30,25 @@ class NavigatorService:
 
 	def __init__(self):
 		self.bus_object = None
+
+	def start(self, redirect_output):
+		self.controller = Controller()
+		self.configurations = self.controller.configurations
+
+		if redirect_output:
+			self.redirect_output()
+		self.configure_process()
+		self.export_bus_object()
+
+		self.controller.listen_user_events()
+
+		NavigatorStatus(self.configurations, self).activate()
+
+		Gtk.main()
+		print("Ending vimwn service, pid: {}".format(os.getpid()))
+
+	def stop(self):
+		self.bus_object.quit()
 
 	def configure_process(self):
 		setproctitle.setproctitle("vimwn")
@@ -85,6 +105,9 @@ class NavigatorService:
 			sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
 			sys.exit(1)
 
+	def redirect_output(self):
+		self.redirect_output(controller.configurations.get_log_file())
+
 	def redirect_output(self, logfile='/dev/null' ):
 		# redirect standard file descriptors
 		sys.stdout.flush()
@@ -127,6 +150,7 @@ class NavigatorBusService (ExportedGObject):
 	def quit(self):
 		Gtk.main_quit()
 		self.bus.release_name(SERVICE_NAME)
+		print('vimwn service were released from bus')
 
 class RemoteInterface():
 

@@ -14,24 +14,23 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, signal, re, logging, os
+import gi, signal, re, os
 gi.require_version('Gtk', '3.0')
 gi.require_version("Keybinder", "3.0")
 from gi.repository import Gtk, Gdk, Keybinder
 from vimwn.view import NavigatorWindow
 from vimwn.windows import Windows
 from vimwn.environment import Configurations
-from vimwn.status import NavigatorStatus
 
 class Controller ():
 
 	def __init__(self):
+		self.configurations = Configurations()
 		self.reading_command = False
 		self.listing_windows = False
 		self.multiplier = ""
 		self.status_message = None
 		self.status_level = None
-		self.configurations = Configurations()
 		self.windows = Windows(self)
 		self.view = NavigatorWindow(self, self.windows)
 		self.view.connect("key-press-event", self.on_key_press)
@@ -74,18 +73,12 @@ class Controller ():
 		self.view.connect("focus-out-event", self.hide_and_propagate_focus)
 		Keybinder.init()
 		hotkeys = self.configurations.get_hotkeys()
-		logging.debug("Configuring hotkeys: " + hotkeys)
 		for hotkey in hotkeys.split(","):
 			bound = Keybinder.bind(hotkey, self.handle_keybind, None)
 			if not bound:
 				logging.error("Could not bind the hotkey: " + hotkey)
 				exit(1)
-			logging.debug("vimwn is istening to " + hotkey)
-
-		NavigatorStatus(self.configurations)
 		print("Listening keys: '{}' pid: {} ".format( hotkeys, os.getpid()))
-		Gtk.main()
-		print("Ending vimwn service, pid: {}".format(os.getpid()))
 
 	def handle_keybind(self, key, data):
 		self.show_ui(Keybinder.get_current_event_time())

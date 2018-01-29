@@ -31,16 +31,12 @@ parser.add_argument("--open", action="store_true", help="Open wimwn main window 
 args = parser.parse_args()
 
 if args.start or args.start_daemon:
+	redirect_output = args.start_daemon or args.redirect_output
 	service = NavigatorService()
 	if args.start_daemon:
 		print('Daemonizing the process, run "vimwn --status" to verify its status')
 		service.daemonize()
-	controller = Controller()
-	if args.start_daemon or args.redirect_output:
-		service.redirect_output(controller.configurations.get_log_file())
-	service.configure_process()
-	service.export_bus_object()
-	controller.listen_user_events()
+	service.start(redirect_output)
 elif args.stop:
 	RemoteInterface().stop_running_instance()
 elif args.status:
