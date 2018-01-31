@@ -36,7 +36,8 @@ class NavigatorService:
 		self.configurations = self.controller.configurations
 
 		if redirect_output:
-			self.redirect_output()
+			self.redirect_output(self.configurations.get_log_file())
+
 		self.configure_process()
 		self.export_bus_object()
 
@@ -105,9 +106,6 @@ class NavigatorService:
 			sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
 			sys.exit(1)
 
-	def redirect_output(self):
-		self.redirect_output(controller.configurations.get_log_file())
-
 	def redirect_output(self, logfile='/dev/null' ):
 		# redirect standard file descriptors
 		sys.stdout.flush()
@@ -116,7 +114,6 @@ class NavigatorService:
 			so = open(logfile, 'a+')
 			se = open(logfile, 'a+')
 		except PermissionError:
-			print("Sevice can't redirect its output to " + logfile)
 			so = open(os.devnull, 'a+')
 			se = open(os.devnull, 'a+')
 
