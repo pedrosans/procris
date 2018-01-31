@@ -106,6 +106,44 @@ class Windows():
 		self.active = next_window
 		self.staging = True
 
+	def decrease_width(self, keyval, time):
+		left, right = self.get_top_two_windows()
+		if left is self.active:
+			self.shift_center(0.4, left, right)
+		else:
+			self.shift_center(0.6, left, right)
+
+	def increase_width(self, keyval, time):
+		left, right = self.get_top_two_windows()
+		if left is self.active:
+			self.shift_center(0.6, left, right)
+		else:
+			self.shift_center(0.4, left, right)
+
+	def equalize(self, keyval, time):
+		left, right = self.get_top_two_windows()
+		self.shift_center(0.5, left, right)
+
+	def shift_center(self, new_center, left, right):
+		self.move_window(left, HORIZONTAL, 0, new_center)
+		self.move_window(right, HORIZONTAL, new_center, 1 - new_center)
+
+	def get_top_two_windows(self):
+		top = below = None
+		for w in reversed(self.screen.get_windows_stacked()):
+			if w in self.visibles:
+				if not top:
+					top = w
+					continue
+				else:
+					below = w
+					break
+
+		if top and below and below.get_geometry().xp < top.get_geometry().xp:
+			return below, top
+		else:
+			return top, below
+
 	def move_right(self, keyval, time):
 		self.move_active_window(HORIZONTAL, 0.5)
 
@@ -118,25 +156,11 @@ class Windows():
 	def move_down(self, keyval, time):
 		self.move_active_window(VERTICAL, 0.5)
 
-	def equalize(self, keyval, time):
-		left = None
-		right = None
-		for w in reversed(self.screen.get_windows_stacked()):
-			if w in self.visibles:
-				if not right:
-					right = w
-					continue
-				if not left:
-					left = w
-					break
-		if left and right:
-			self.move_window(left, HORIZONTAL, 0)
-			self.move_window(right, HORIZONTAL, 0.5)
-
+	#TODO rename to move_to_side
 	def move_active_window(self, axis, position):
-		self.move_window(self.active, axis, position)
+		self.move_window(self.active, axis, position, 0.5)
 
-	def move_window(self, window, axis, position):
+	def move_window(self, window, axis, position, proportion):
 		if window.is_maximized():
 			window.unmaximize()
 		if window.is_maximized_horizontally():
@@ -147,18 +171,23 @@ class Windows():
 		xp, yp, widthp, heightp = window.get_geometry()
 		if axis == HORIZONTAL:
 			xp = monitor_geo.x + monitor_geo.width * position
-			widthp = monitor_geo.width / 2
-			window.maximize_vertically()
+			yp = monitor_geo.y
+			widthp = monitor_geo.width * proportion
+			heightp = monitor_geo.height
+		#	window.maximize_vertically()
 		else:
+			xp = monitor_geo.x
 			yp = monitor_geo.y + monitor_geo.height * position
-			heightp = monitor_geo.height / 2
-			window.maximize_horizontally()
+			widthp = monitor_geo.width
+			heightp = monitor_geo.height * proportion
+		#	window.maximize_horizontally()
 
-		logging.debug("monitor: x=%d  w=%d y=%d  h=%d",  monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height)
-		logging.debug("window: x=%d y=%d width=%d heigh=%d", xp, yp, widthp, heightp)
+		#print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
+		#print("window: x={} y={} width={} heigh={}".format(xp, yp, widthp, heightp))
 
-		window.set_geometry(Wnck.WindowGravity.STATIC, axis.position_mask, xp, yp, widthp, heightp)
-		window.set_geometry(Wnck.WindowGravity.STATIC, axis.size_mask, xp, yp, widthp, heightp)
+		geometry_mask = (Wnck.WindowMoveResizeMask.Y | Wnck.WindowMoveResizeMask.HEIGHT
+						| Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.WIDTH )
+		window.set_geometry(Wnck.WindowGravity.STATIC, geometry_mask, xp, yp, widthp, heightp)
 
 		self.staging = True
 
