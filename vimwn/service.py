@@ -39,13 +39,14 @@ class NavigatorService:
 			self.redirect_output(self.configurations.get_log_file())
 
 		self.configure_process()
-		self.export_bus_object()
 
-		self.controller.listen_user_events()
+		listening = self.controller.listen_user_events()
 
-		NavigatorStatus(self.configurations, self).activate()
+		if listening:
+			self.export_bus_object()
+			NavigatorStatus(self.configurations, self).activate()
+			Gtk.main()
 
-		Gtk.main()
 		print("Ending vimwn service, pid: {}".format(os.getpid()))
 
 	def stop(self):

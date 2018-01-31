@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, signal, re, os
+import gi, signal, re, os, sys
 gi.require_version('Gtk', '3.0')
 gi.require_version("Keybinder", "3.0")
 from gi.repository import Gtk, Gdk, Keybinder
@@ -78,9 +78,10 @@ class Controller ():
 		for hotkey in hotkeys.split(","):
 			bound = Keybinder.bind(hotkey, self.handle_keybind, None)
 			if not bound:
-				logging.error("Could not bind the hotkey: " + hotkey)
-				exit(1)
+				print("Could not bind the hotkey: " + hotkey, file=sys.stderr)
+				return False
 		print("Listening keys: '{}' pid: {} ".format( hotkeys, os.getpid()))
+		return True
 
 	def handle_keybind(self, key, data):
 		self.show_ui(Keybinder.get_current_event_time())
