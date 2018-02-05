@@ -223,6 +223,8 @@ class Controller ():
 			self.show_error_message('No matching buffer for ' + window_title, time)
 
 	#TODO: remove duplicated tokenizer
+	#TODO: rename close to delete
+	#TODO: accept bdelete command withouth parameter
 	def close_indexed_buffer(self, cmd, time):
 		buffer_number = re.findall(r'\d+', cmd)[0]
 		index = int(buffer_number) - 1
