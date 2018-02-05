@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-
+#map <F2> :!sh -xc './bin/vimwn --open'<CR>
 import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango
@@ -49,15 +49,43 @@ class NavigatorWindow(Gtk.Window):
 		self.windows_list_box = Gtk.Box(homogeneous=False, spacing=0)
 		self.v_box.pack_start(self.windows_list_box, expand=True, fill=True, padding=0)
 
+		self.status_box = Gtk.Box(homogeneous=False, spacing=0)
+		self.status_box.set_name("status-line")
+		self.v_box.pack_start(self.status_box, expand=True, fill=True, padding=0)
+
 		self.entry = Gtk.Entry()
 		self.entry.set_name("command-input")
 		self.entry.set_overwrite_mode(True)
 		self.entry.connect("activate", self.controller.on_command, None)
-		self.v_box.pack_start(self.entry, expand=True, fill=True, padding=2)
+		self.v_box.pack_start(self.entry, expand=True, fill=True, padding=0)
 
 		self.connect("realize", self._on_window_realize)
 		#self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
 		self.connect("size-allocate", self.on_size)
+		#self.hint(['debug', 'debuggreedy', 'delcommand', 'delete'], 'delcommand')
+
+	def get_command(self):
+		return self.entry.get_text()[1:]
+
+	def set_command(self, cmd):
+		self.entry.set_text(':'+cmd)
+		self.entry.set_position(len(self.entry.get_text()))
+
+	def hint(self, hints, higlight):
+		self.clear_hints()
+		for hint in hints:
+			l = Gtk.Label(hint)
+			l.get_style_context().add_class('hint')
+			if hint is higlight:
+				l.set_name('hint-higlight')
+			self.status_box.pack_start(l, expand=False, fill=False, padding=2)
+			self.status_box.pack_start(Gtk.Box(), expand=False, fill=False, padding=8)
+		self.set_command(higlight)
+		self.status_box.pack_start(Gtk.Box(), expand=True, fill=True, padding=0)
+		self.v_box.show_all()
+
+	def clear_hints(self):
+		for c in self.status_box.get_children(): c.destroy()
 
 	def on_size(self, allocation, data):
 		self._move_to_preferred_position()
@@ -83,6 +111,7 @@ class NavigatorWindow(Gtk.Window):
 	def show( self, event_time ):
 		for c in self.output_box.get_children(): c.destroy()
 		for c in self.windows_list_box.get_children(): c.destroy()
+		self.clear_hints()
 
 		if self.windows.active:
 			self.populate_navigation_options()
@@ -110,6 +139,7 @@ class NavigatorWindow(Gtk.Window):
 
 			multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
 			navigation_hint = Gtk.Label("." if multiplier == 0 else str(multiplier) + "w")
+			#TODO rename to window-index
 			navigation_hint.get_style_context().add_class("navigation_hint")
 			column_box.pack_start(navigation_hint, expand=False, fill=False, padding=0)
 
@@ -144,7 +174,7 @@ class NavigatorWindow(Gtk.Window):
 			line.pack_start(label, expand=False, fill=False, padding=0)
 
 	def _render_command_line(self):
-		self.entry.set_text(" " * 80)
+		self.entry.set_text("")
 		self.entry.get_style_context().remove_class('error-message')
 		self.entry.get_style_context().add_class('input-ready')
 
@@ -216,6 +246,8 @@ CSS = b"""
 	transition-duration: initial;
 	transition-timing-function: initial;
 	transition-delay: initial;
+	padding: 0;
+	margin: 0;
 }
 #vimwn-title {
 	background: @bg_color;
@@ -245,9 +277,23 @@ CSS = b"""
 .active-window-label{
 	font-weight : bold;
 }
+#status-line {
+	background: lighter(@fg_color);
+	color: @bg_color;
+	font-family: monospace;
+}
+.hint {
+	padding: 2px;
+	margin: 0;
+}
+#hint-higlight {
+	background: darker(@fg_color);
+}
 #command-input {
 	border: none;
 	font-family: monospace;
+	padding: 2px;
+	margin: 0;
 }
 .input-ready{
 	background: @bg_color;

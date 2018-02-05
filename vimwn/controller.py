@@ -22,6 +22,9 @@ from vimwn.view import NavigatorWindow
 from vimwn.windows import Windows
 from vimwn.environment import Configurations
 
+KEY_FUNCTIONS = {}
+COMMANDS = []
+
 class Controller ():
 
 	def __init__(self):
@@ -31,40 +34,13 @@ class Controller ():
 		self.multiplier = ""
 		self.status_message = None
 		self.status_level = None
+		self.hinting = False
+		self.highlight_index = -1
 		self.windows = Windows(self)
 		self.view = NavigatorWindow(self, self.windows)
 		self.view.connect("key-press-event", self.on_key_press)
-		self.pending_action = None
-		self.key_functions = {
-				Gdk.KEY_Right : self.windows.navigate_right,
-				Gdk.KEY_l     : self.windows.navigate_right,
-				Gdk.KEY_L     : self.windows.move_right,
-				Gdk.KEY_Down  : self.windows.navigate_down,
-				Gdk.KEY_j     : self.windows.navigate_down,
-				Gdk.KEY_J     : self.windows.move_down,
-				Gdk.KEY_Left  : self.windows.navigate_left,
-				Gdk.KEY_h     : self.windows.navigate_left,
-				Gdk.KEY_H     : self.windows.move_left,
-				Gdk.KEY_Up    : self.windows.navigate_up,
-				Gdk.KEY_k     : self.windows.navigate_up,
-				Gdk.KEY_K     : self.windows.move_up,
-				Gdk.KEY_less   : self.windows.decrease_width,
-				Gdk.KEY_greater: self.windows.increase_width,
-				Gdk.KEY_equal : self.windows.equalize,
-				Gdk.KEY_w     : self.windows.cycle,
-				Gdk.KEY_o     : self.only_key_handler,
-				Gdk.KEY_colon : self.colon,
-				Gdk.KEY_Return: self.enter,
-				Gdk.KEY_Escape: self.escape
-				}
-		self.commands = [
-			{ 'pattern' : re.compile("^\s*(only|on)\s*$"), 'f' : self.only },
-			{ 'pattern' : re.compile("^\s*(buffers|ls)\s*$"), 'f' : self.buffers },
-			{ 'pattern' : re.compile("^\s*(bdelete|bd)\s*[0-9]+\s*$"), 'f' : self.close_indexed_buffer },
-			{ 'pattern' : re.compile("^\s*(bdelete|bd)\s+\w+\s*$"), 'f' : self.close_named_buffer },
-			{ 'pattern' : re.compile("^\s*(buffer|b)\s*[0-9]+\s*$"), 'f' : self.open_indexed_buffer },
-			{ 'pattern' : re.compile("^\s*(buffer|b)\s+\w+\s*$"), 'f' : self.open_named_buffer }
-		]
+		self.view.entry.connect("key-press-event", self.hint)
+		map_functions(self, self.windows)
 
 	def open(self):
 		self.view.connect("focus-out-event", Gtk.main_quit)
@@ -99,6 +75,10 @@ class Controller ():
 		self.multiplier = ""
 		self.status_message = None
 		self.status_level = None
+		self.hinting = False
+		self.highlight_index = -1
+		self.original_command = None
+		self.hints = []
 
 	def open_window(self, window, time):
 		window.activate_transient(time)
@@ -124,18 +104,54 @@ class Controller ():
 		if Gdk.keyval_name(event.keyval).isdigit():
 			self.multiplier = self.multiplier + Gdk.keyval_name(event.keyval)
 			return
-		if event.keyval in self.key_functions:
-			function = self.key_functions[event.keyval]
+		if event.keyval in KEY_FUNCTIONS:
+			function = KEY_FUNCTIONS[event.keyval]
 			if function is not None:
 				multiplier_int = int(self.multiplier) if self.multiplier else 1
 				for i in range(multiplier_int):
 					function(event.keyval, event.time)
 				self.windows.commit_navigation(event.time)
 
+	def hint(self, widget, event):
+		if event.keyval != Gdk.KEY_Tab:
+			if self.hinting:
+				self.view.clear_hints()
+			self.hinting = False
+			return False
+
+		#TODO extract methods
+		if not self.hinting:
+			self.hints = []
+			user_input = self.view.get_command().strip()
+			for command in COMMANDS:
+				if command.name.startswith(user_input) and not command.name in self.hints:
+					self.hints.append(command.name)
+			if len(self.hints) == 0:
+				return True
+			elif len(self.hints) == 1:
+				self.view.set_command(self.hints[0])
+				return True
+			else:
+				self.highlight_index = 0
+				self.original_command = self.view.get_command()
+				self.hinting = True
+		else:
+			if self.highlight_index == len(self.hints) - 1:
+				self.highlight_index = -1
+			else:
+				self.highlight_index += 1
+
+		if self.highlight_index > -1:
+			highlight = self.hints[self.highlight_index]
+		else:
+			highlight = self.original_command
+		self.view.hint(self.hints, highlight)
+		return True
+
 	def on_command(self, pane_owner, current):
 		if not self.reading_command:
 			return
-		cmd = self.view.entry.get_text()[1:]
+		cmd = self.view.get_command()
 		time = self.get_current_event_time()
 		command_function = self.find_command(cmd)
 		if command_function:
@@ -147,9 +163,9 @@ class Controller ():
 		"""
 		Returns matching command function if any
 		"""
-		for command in self.commands:
-			if command['pattern'].match(command_input):
-				return command['f']
+		for command in COMMANDS:
+			if command.pattern.match(command_input):
+				return command.function
 		return None
 
 	def colon(self, keyval, time):
@@ -174,6 +190,14 @@ class Controller ():
 			if self.windows.active != w:
 				w.minimize()
 		self.open_window(self.windows.active, time)
+
+	def centralize(self, cmd, time):
+		self.windows.centralize_active_window()
+		self.windows.commit_navigation(time)
+
+	def maximize(self, cmd, time):
+		self.windows.maximize_active_window()
+		self.windows.commit_navigation(time)
 
 	def buffers(self, cmd, time):
 		self.listing_windows = True
@@ -223,3 +247,41 @@ class Controller ():
 		self.status_level = 'error'
 		self.view.show(time)
 
+class Command:
+	def __init__(self, name, pattern, function):
+		self.name = name
+		self.pattern = re.compile(pattern)
+		self.function = function
+
+def map_functions(controller, windows):
+	if len(COMMANDS) > 0 or len(KEY_FUNCTIONS) > 0:
+		raise Exception('Functions were already mapped')
+	KEY_FUNCTIONS[Gdk.KEY_Right  ] = windows.navigate_right
+	KEY_FUNCTIONS[Gdk.KEY_l      ] = windows.navigate_right
+	KEY_FUNCTIONS[Gdk.KEY_L      ] = windows.move_right
+	KEY_FUNCTIONS[Gdk.KEY_Down   ] = windows.navigate_down
+	KEY_FUNCTIONS[Gdk.KEY_j      ] = windows.navigate_down
+	KEY_FUNCTIONS[Gdk.KEY_J      ] = windows.move_down
+	KEY_FUNCTIONS[Gdk.KEY_Left   ] = windows.navigate_left
+	KEY_FUNCTIONS[Gdk.KEY_h      ] = windows.navigate_left
+	KEY_FUNCTIONS[Gdk.KEY_H      ] = windows.move_left
+	KEY_FUNCTIONS[Gdk.KEY_Up     ] = windows.navigate_up
+	KEY_FUNCTIONS[Gdk.KEY_k      ] = windows.navigate_up
+	KEY_FUNCTIONS[Gdk.KEY_K      ] = windows.move_up
+	KEY_FUNCTIONS[Gdk.KEY_less   ] = windows.decrease_width
+	KEY_FUNCTIONS[Gdk.KEY_greater] = windows.increase_width
+	KEY_FUNCTIONS[Gdk.KEY_equal  ] = windows.equalize
+	KEY_FUNCTIONS[Gdk.KEY_w      ] = windows.cycle
+	KEY_FUNCTIONS[Gdk.KEY_o      ] = controller.only_key_handler
+	KEY_FUNCTIONS[Gdk.KEY_colon  ] = controller.colon
+	#KEY_FUNCTIONS[Gdk.KEY_Tab    ] = controller.hint
+	KEY_FUNCTIONS[Gdk.KEY_Return ] = controller.enter
+	KEY_FUNCTIONS[Gdk.KEY_Escape ] = controller.escape
+	COMMANDS.append(Command('only',       "^\s*(only|on)\s*$", controller.only ))
+	COMMANDS.append(Command('buffers',       "^\s*(buffers|ls)\s*$", controller.buffers ))
+	COMMANDS.append(Command('bdelete',       "^\s*(bdelete|bd)\s*[0-9]+\s*$", controller.close_indexed_buffer ))
+	COMMANDS.append(Command('bdelete',       "^\s*(bdelete|bd)\s+\w+\s*$", controller.close_named_buffer ))
+	COMMANDS.append(Command('buffer',       "^\s*(buffer|b)\s*[0-9]+\s*$", controller.open_indexed_buffer ))
+	COMMANDS.append(Command('buffer',       "^\s*(buffer|b)\s+\w+\s*$", controller.open_named_buffer ))
+	COMMANDS.append(Command('centralize', "^\s*(centralize|centralize)\s*$", controller.centralize ))
+	COMMANDS.append(Command('maximize', "^\s*(maximize|maximize)\s*$", controller.maximize ))

@@ -35,6 +35,7 @@ class NavigatorService:
 		self.controller = Controller()
 		self.configurations = self.controller.configurations
 
+		#redirect as early as possible
 		if redirect_output:
 			self.redirect_output(self.configurations.get_log_file())
 

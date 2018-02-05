@@ -125,8 +125,8 @@ class Windows():
 		self.shift_center(0.5, left, right)
 
 	def shift_center(self, new_center, left, right):
-		self.move_window(left, HORIZONTAL, 0, new_center)
-		self.move_window(right, HORIZONTAL, new_center, 1 - new_center)
+		self.move_on_axis(left, HORIZONTAL, 0, new_center)
+		self.move_on_axis(right, HORIZONTAL, new_center, 1 - new_center)
 
 	def get_top_two_windows(self):
 		top = below = None
@@ -144,46 +144,55 @@ class Windows():
 		else:
 			return top, below
 
+	def maximize_active_window(self):
+		self.active.maximize()
+		self.staging = True
+
 	def move_right(self, keyval, time):
-		self.move_active_window(HORIZONTAL, 0.5)
+		self.snap_active_window(HORIZONTAL, 0.5)
 
 	def move_left(self, keyval, time):
-		self.move_active_window(HORIZONTAL, 0)
+		self.snap_active_window(HORIZONTAL, 0)
 
 	def move_up(self, keyval, time):
-		self.move_active_window(VERTICAL, 0)
+		self.snap_active_window(VERTICAL, 0)
 
 	def move_down(self, keyval, time):
-		self.move_active_window(VERTICAL, 0.5)
+		self.snap_active_window(VERTICAL, 0.5)
 
-	#TODO rename to move_to_side
-	def move_active_window(self, axis, position):
-		self.move_window(self.active, axis, position, 0.5)
+	def snap_active_window(self, axis, position):
+		self.move_on_axis(self.active, axis, position, 0.5)
 
-	def move_window(self, window, axis, position, proportion):
+	def move_on_axis(self, window, axis, position, proportion):
+		if axis == HORIZONTAL:
+			self.resize(window, position, 0, proportion, 1)
+		else:
+			self.resize(window, 0, position, 1, proportion)
+
+	def centralize_active_window(self):
+		self.resize(self.active, 0.1, 0.1, 0.8, 0.8)
+
+	def resize(self, window, x, y, width, height):
+		"""
+		Moves the window base on the parameter geometry : screen ratio
+		"""
 		if window.is_maximized():
 			window.unmaximize()
 		if window.is_maximized_horizontally():
 			window.unmaximize_horizontally()
 		if window.is_maximized_vertically():
 			window.unmaximize_vertically()
+
 		monitor_geo = self.controller.view.get_monitor_geometry()
 		xp, yp, widthp, heightp = window.get_geometry()
-		if axis == HORIZONTAL:
-			xp = monitor_geo.x + monitor_geo.width * position
-			yp = monitor_geo.y
-			widthp = monitor_geo.width * proportion
-			heightp = monitor_geo.height
-		#	window.maximize_vertically()
-		else:
-			xp = monitor_geo.x
-			yp = monitor_geo.y + monitor_geo.height * position
-			widthp = monitor_geo.width
-			heightp = monitor_geo.height * proportion
-		#	window.maximize_horizontally()
 
-		#print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
-		#print("window: x={} y={} width={} heigh={}".format(xp, yp, widthp, heightp))
+		xp = monitor_geo.x + monitor_geo.width * x
+		yp = monitor_geo.y + monitor_geo.height * y
+		widthp = monitor_geo.width * width
+		heightp = monitor_geo.height * height
+
+		print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
+		print("window: x={} y={} width={} heigh={}".format(xp, yp, widthp, heightp))
 
 		geometry_mask = (Wnck.WindowMoveResizeMask.Y | Wnck.WindowMoveResizeMask.HEIGHT
 						| Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.WIDTH )
