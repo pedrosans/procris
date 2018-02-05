@@ -1,0 +1,38 @@
+#!/bin/bash
+#dependencies to package:
+#sudo apt-get install python3-stdeb
+#dependencies to upload:
+#sudo apt install devscripts
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+export PYTHONPATH="$(dirname $DIR)"
+SETUP_SCRIPT="$PYTHONPATH"/setup.py
+VERSION=$(sed -n "s/^\s*version='\([^']*\)'.*/\1/p" $SETUP_SCRIPT)
+LAST_VERSION=$(sed -n "s/^\s*last_version='\([^']*\)'.*/\1/p" $SETUP_SCRIPT)
+case "$1" in
+	delete)
+		rm -rf "$PYTHONPATH"/build "$PYTHONPATH"/deb_dist "$PYTHONPATH"/dist
+		rm "$PYTHONPATH"/vimwn-*.tar.gz "$PYTHONPATH"/installed_files.txt "$PYTHONPATH"/tags 2>/dev/null
+		;;
+	binaries)
+		"$DIR"/package delete && echo "Old package deleted"
+		echo "Packaging version $VERSION"
+		$SETUP_SCRIPT --command-packages=stdeb.command bdist_deb
+		;;
+	sources)
+		"$DIR"/package delete && echo "Old package deleted"
+		echo "Packaging sources version $VERSION"
+		$SETUP_SCRIPT --command-packages=stdeb.command sdist_dsc --forced-upstream-version $VERSION >/dev/null \
+		&& echo "New version is built" \
+		&& sed -i '15,16d' deb_dist/vimwn_$VERSION-1_source.changes \
+		&& CHANGES=$(git log master --oneline  --reverse --not $LAST_VERSION) \
+		&& xargs -I{} sed -i '15i\   * {}' deb_dist/vimwn_$VERSION-1_source.changes <<<"$CHANGES" \
+		&& echo "changes file is up to date, the package is ready to be signed/published"
+		;;
+	publish)
+		debsign -pgpg2 "$PYTHONPATH"/deb_dist/vimwn_$VERSION-1_source.changes && echo "Signed" \
+		&& cd "$PYTHONPATH"/deb_dist && dput ppa:pedrosans/vimwn vimwn_$VERSION-1_source.changes && echo "Published"
+		;;
+	*)
+		echo $"Usage: $0 {create|binaries|sources|publish}"
+		exit 1
+esac
