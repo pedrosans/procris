@@ -44,6 +44,7 @@ class Windows():
 		Wnck.set_client_type(Wnck.ClientType.PAGER)
 		self.active = None
 		self.staging = False
+		self.unity_wm = False
 		self.visibles =[]
 		self.buffers =[]
 
@@ -61,6 +62,8 @@ class Windows():
 
 		active_workspace = self.screen.get_active_workspace()
 		for wnck_window in self.screen.get_windows():
+			if wnck_window.get_name() == 'XdndCollectionWindowImp':
+				self.unity_wm = True
 			if wnck_window.is_skip_tasklist():
 				continue
 			in_active_workspace = wnck_window.is_in_viewport(active_workspace)
@@ -172,32 +175,57 @@ class Windows():
 	def centralize_active_window(self):
 		self.resize(self.active, 0.1, 0.1, 0.8, 0.8)
 
-	def resize(self, window, x, y, width, height):
+	def resize(self, window, x_ratio, y_ratio, width_ratio, height_ratio):
 		"""
 		Moves the window base on the parameter geometry : screen ratio
 		"""
+		was_maximized_horizontally = False
+		was_maximized_vertically = False
+		geometry_mask = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH
+		old_x, old_y, old_width, old_height = window.get_geometry()
+		monitor_geo = self.controller.view.get_monitor_geometry()
+
 		if window.is_maximized():
 			window.unmaximize()
 		if window.is_maximized_horizontally():
 			window.unmaximize_horizontally()
+			was_maximized_horizontally = True
 		if window.is_maximized_vertically():
 			window.unmaximize_vertically()
+			was_maximized_vertically = True
 
-		monitor_geo = self.controller.view.get_monitor_geometry()
-		xp, yp, widthp, heightp = window.get_geometry()
+		new_width = int(monitor_geo.width * width_ratio)
+		new_height = int(monitor_geo.height * height_ratio)
+		new_x = int(monitor_geo.x + monitor_geo.width * x_ratio)
+		new_y = int(monitor_geo.y + monitor_geo.height * y_ratio)
 
-		xp = monitor_geo.x + monitor_geo.width * x
-		yp = monitor_geo.y + monitor_geo.height * y
-		widthp = monitor_geo.width * width
-		heightp = monitor_geo.height * height
+		if not self.unity_wm:
+			geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.X
+			geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.Y
+		else:
+			if width_ratio == 1:
+				window.maximize_horizontally()
+			else:
+				if new_x != old_x or was_maximized_horizontally:
+					geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.X
+					if new_x == monitor_geo.x:
+						new_width -= 10
+			if height_ratio == 1:
+				window.maximize_vertically()
+			else:
+				if new_y != old_y or was_maximized_vertically:
+					geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.Y
+					if new_y == monitor_geo.y:
+						new_height -= 10
 
-		print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
-		print("window: x={} y={} width={} heigh={}".format(xp, yp, widthp, heightp))
+		#print("window: x={} y={} width={} heigh={}".format(new_x, new_y, new_width, new_height))
+		#print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
 
-		geometry_mask = (Wnck.WindowMoveResizeMask.Y | Wnck.WindowMoveResizeMask.HEIGHT
-						| Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.WIDTH )
-		window.set_geometry(Wnck.WindowGravity.STATIC, geometry_mask, xp, yp, widthp, heightp)
+		y_offset = (monitor_geo.width + monitor_geo.x) - (new_x + new_width)
+		if y_offset < 5:
+			new_width += y_offset
 
+		window.set_geometry(Wnck.WindowGravity.STATIC, geometry_mask, new_x, new_y, new_width, new_height)
 		self.staging = True
 
 	def navigate_right(self, keyval, time):
