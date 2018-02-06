@@ -16,12 +16,12 @@ case "$1" in
 	binaries)
 		"$DIR"/package delete && echo "Old package deleted"
 		echo "Packaging version $VERSION"
-		$SETUP_SCRIPT --command-packages=stdeb.command bdist_deb
+		$SETUP_SCRIPT --command-packages=stdeb.command bdist_deb 1>/dev/null && echo "Binaries packaged"
 		;;
 	sources)
 		"$DIR"/package delete && echo "Old package deleted"
 		echo "Packaging sources version $VERSION"
-		$SETUP_SCRIPT --command-packages=stdeb.command sdist_dsc --forced-upstream-version $VERSION >/dev/null \
+		$SETUP_SCRIPT --command-packages=stdeb.command sdist_dsc --forced-upstream-version $VERSION 1>/dev/null \
 		&& echo "New version is built" \
 		&& sed -i '15,16d' deb_dist/vimwn_$VERSION-1_source.changes \
 		&& CHANGES=$(git log master --oneline  --reverse --not $LAST_VERSION) \
