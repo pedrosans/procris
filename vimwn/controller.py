@@ -36,10 +36,11 @@ class Controller ():
 		self.status_level = None
 		self.hinting = False
 		self.highlight_index = -1
+		self.hints = []
 		self.windows = Windows(self)
 		self.view = NavigatorWindow(self, self.windows)
-		self.view.connect("key-press-event", self.on_key_press)
-		self.view.entry.connect("key-press-event", self.hint)
+		self.view.connect("key-press-event", self.on_window_key_press)
+		self.view.entry.connect("key-press-event", self.on_entry_key_press)
 		map_functions(self, self.windows)
 
 	def open(self):
@@ -96,11 +97,11 @@ class Controller ():
 			return Keybinder.get_current_event_time()
 		return 0
 
-	def on_key_press(self, widget, event):
+	def on_window_key_press(self, widget, event):
 		if event.keyval == Gdk.KEY_Escape:
 			self.escape(None, None)
 		if self.reading_command:
-			return
+			return False
 		if Gdk.keyval_name(event.keyval).isdigit():
 			self.multiplier = self.multiplier + Gdk.keyval_name(event.keyval)
 			return
@@ -112,20 +113,27 @@ class Controller ():
 					function(event.keyval, event.time)
 				self.windows.commit_navigation(event.time)
 
-	def hint(self, widget, event):
-		if event.keyval != Gdk.KEY_Tab:
+	def on_entry_key_press(self, widget, event):
+		if event.keyval == Gdk.KEY_Tab:
+			return self.hint()
+		else:
 			if self.hinting:
 				self.view.clear_hints()
 			self.hinting = False
 			return False
 
-		#TODO extract methods
-		if not self.hinting:
-			self.hints = []
-			user_input = self.view.get_command().strip()
-			for command in COMMANDS:
-				if command.name.startswith(user_input) and not command.name in self.hints:
-					self.hints.append(command.name)
+	def search_command(self, user_input):
+		names = []
+		for command in COMMANDS:
+			if command.name.startswith(user_input) and not command.name in names:
+				names.append(command.name)
+		return names
+
+	def hint(self):
+		if self.hinting:
+			return self.show_highlights()
+		else:
+			self.hints = self.search_command(self.view.get_command())
 			if len(self.hints) == 0:
 				return True
 			elif len(self.hints) == 1:
@@ -134,18 +142,14 @@ class Controller ():
 			else:
 				self.highlight_index = 0
 				self.original_command = self.view.get_command()
-				self.hinting = True
-		else:
-			if self.highlight_index == len(self.hints) - 1:
-				self.highlight_index = -1
-			else:
-				self.highlight_index += 1
+				return self.show_highlights()
 
-		if self.highlight_index > -1:
-			highlight = self.hints[self.highlight_index]
-		else:
-			highlight = self.original_command
+	def show_highlights(self):
+		self.hinting = True
+		i = self.highlight_index
+		highlight = self.hints[i] if i > -1 else self.original_command
 		self.view.hint(self.hints, highlight)
+		self.highlight_index = -1 if i == len(self.hints) -1 else i + 1
 		return True
 
 	def on_command(self, pane_owner, current):
