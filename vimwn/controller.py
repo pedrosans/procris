@@ -122,7 +122,7 @@ class Controller ():
 			self.hinting = False
 			return False
 
-	def search_command(self, user_input):
+	def query_commands(self, user_input):
 		names = []
 		for command in COMMANDS:
 			if command.name.startswith(user_input) and not command.name in names:
@@ -133,7 +133,7 @@ class Controller ():
 		if self.hinting:
 			return self.show_highlights()
 		else:
-			self.hints = self.search_command(self.view.get_command())
+			self.hints = self.query_commands(self.view.get_command())
 			if len(self.hints) == 0:
 				return True
 			elif len(self.hints) == 1:
@@ -229,6 +229,13 @@ class Controller ():
 	#TODO: remove duplicated tokenizer
 	#TODO: rename close to delete
 	#TODO: accept bdelete command withouth parameter
+	def close_current_buffer(self, cmd, time):
+		if self.windows.active:
+			self.windows.remove(self.windows.active, time)
+			self.refresh_view(time)
+		else:
+			self.show_error_message('There is no active window')
+
 	def close_indexed_buffer(self, cmd, time):
 		buffer_number = re.findall(r'\d+', cmd)[0]
 		index = int(buffer_number) - 1
@@ -246,6 +253,9 @@ class Controller ():
 			self.refresh_view(time)
 		else:
 			self.show_error_message('No matching buffer for ' + window_title, time)
+
+	def quit(self, keyval, time):
+		self.view.hide()
 
 	def show_error_message(self, message, time):
 		self.clear_command_ui_state()
@@ -285,9 +295,11 @@ def map_functions(controller, windows):
 	KEY_FUNCTIONS[Gdk.KEY_Escape ] = controller.escape
 	COMMANDS.append(Command('only',       "^\s*(only|on)\s*$", controller.only ))
 	COMMANDS.append(Command('buffers',       "^\s*(buffers|ls)\s*$", controller.buffers ))
+	COMMANDS.append(Command('bdelete',       "^\s*(bdelete|bd)\s*$", controller.close_current_buffer ))
 	COMMANDS.append(Command('bdelete',       "^\s*(bdelete|bd)\s*[0-9]+\s*$", controller.close_indexed_buffer ))
 	COMMANDS.append(Command('bdelete',       "^\s*(bdelete|bd)\s+\w+\s*$", controller.close_named_buffer ))
 	COMMANDS.append(Command('buffer',       "^\s*(buffer|b)\s*[0-9]+\s*$", controller.open_indexed_buffer ))
 	COMMANDS.append(Command('buffer',       "^\s*(buffer|b)\s+\w+\s*$", controller.open_named_buffer ))
 	COMMANDS.append(Command('centralize', "^\s*(centralize|centralize)\s*$", controller.centralize ))
 	COMMANDS.append(Command('maximize', "^\s*(maximize|maximize)\s*$", controller.maximize ))
+	COMMANDS.append(Command('quit',       "^\s*(quit|q)\s*$", controller.quit))
