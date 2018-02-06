@@ -211,7 +211,7 @@ class Controller ():
 		self.view.show(time)
 
 	def open_indexed_buffer(self, cmd, time):
-		buffer_number = re.findall(r'\d+', cmd)[0]
+		buffer_number = Command.extract_number_parameter(cmd)
 		index = int(buffer_number) - 1
 		if index < len(self.windows.buffers):
 			self.open_window(self.windows.buffers[index], time)
@@ -219,7 +219,7 @@ class Controller ():
 			self.show_error_message('Buffer {} does not exist'.format(buffer_number), time)
 
 	def open_named_buffer(self, cmd, time):
-		window_title = re.findall(r'\s+\w+', cmd.strip())[0].strip().lower()
+		window_title = Command.extract_text_parameter(cmd)
 		w = self.windows.find_by_name(window_title)
 		if w:
 			self.open_window(w, time)
@@ -228,7 +228,6 @@ class Controller ():
 
 	#TODO: remove duplicated tokenizer
 	#TODO: rename close to delete
-	#TODO: accept bdelete command withouth parameter
 	def close_current_buffer(self, cmd, time):
 		if self.windows.active:
 			self.windows.remove(self.windows.active, time)
@@ -237,7 +236,7 @@ class Controller ():
 			self.show_error_message('There is no active window')
 
 	def close_indexed_buffer(self, cmd, time):
-		buffer_number = re.findall(r'\d+', cmd)[0]
+		buffer_number = Command.extract_number_parameter(cmd)
 		index = int(buffer_number) - 1
 		if index < len(self.windows.buffers):
 			self.windows.remove(self.windows.buffers[index], time)
@@ -246,7 +245,7 @@ class Controller ():
 			self.show_error_message('Buffer {} does not exist'.format(buffer_number), time)
 
 	def close_named_buffer(self, cmd, time):
-		window_title = re.findall(r'\s+\w+', cmd.strip())[0].strip().lower()
+		window_title = Command.extract_text_parameter(cmd)
 		w = self.windows.find_by_name(window_title)
 		if w:
 			self.windows.remove(w, time)
@@ -264,10 +263,19 @@ class Controller ():
 		self.view.show(time)
 
 class Command:
+
 	def __init__(self, name, pattern, function):
 		self.name = name
 		self.pattern = re.compile(pattern)
 		self.function = function
+
+	@staticmethod
+	def extract_number_parameter(cmd):
+		return re.findall(r'\d+', cmd)[0]
+
+	@staticmethod
+	def extract_text_parameter(cmd):
+		return re.findall(r'\s+\w+', cmd.strip())[0].strip().lower()
 
 def map_functions(controller, windows):
 	if len(COMMANDS) > 0 or len(KEY_FUNCTIONS) > 0:
