@@ -212,14 +212,21 @@ class NavigatorWindow(Gtk.Window):
 					self.entry.set_position(-1)
 
 	def _on_window_realize(self, widget):
-		style_provider = Gtk.CssProvider()
-		style_provider.load_from_data(CSS)
-
+		gtk_3_18_style_provider = Gtk.CssProvider()
+		gtk_3_18_style_provider.load_from_data(GTK_3_18_CSS)
 		Gtk.StyleContext.add_provider_for_screen(
 			self.get_screen(),
-			style_provider,
+			gtk_3_18_style_provider,
 			Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
 		)
+		if Gtk.get_major_version() >= 3 and Gtk.get_minor_version() >= 20:
+			gtk_3_20_style_provider = Gtk.CssProvider()
+			gtk_3_20_style_provider.load_from_data(GTK_3_20_CSS)
+			Gtk.StyleContext.add_provider_for_screen(
+				self.get_screen(),
+				gtk_3_20_style_provider,
+				Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+			)
 
 
 
@@ -239,8 +246,8 @@ class WindowBtn(Gtk.Button):
 	def on_clicked(self, btn):
 		self.window.activate_transient(self.controller.get_current_event_time())
 
-
-CSS = b"""
+#	font-size: small;
+GTK_3_18_CSS = b"""
 * {
 	box-shadow: initial;
 	border-top-style: initial;
@@ -259,7 +266,6 @@ CSS = b"""
 	outline-width: initial;
 	outline-offset: initial;
 	font-family: monospace;
-	font-size: small;
 	transition-property: initial;
 	transition-duration: initial;
 	transition-timing-function: initial;
@@ -274,10 +280,10 @@ CSS = b"""
 	font-size: 10px;
 }
 .navigation_hint {
-	background: @bg_color;
-	font-family: sans;
-	font-size: 8px;
-	padding: 0;
+	border: none;
+	padding: 2px 0;
+	margin: 0;
+	font-family: monospace;
 }
 .window-btn{
 	padding: 4px;
@@ -296,13 +302,17 @@ CSS = b"""
 	font-weight : bold;
 }
 #status-line {
-	background: lighter(@fg_color);
-	color: @bg_color;
+	border: none;
 	font-family: monospace;
 }
-.hint {
-	padding: 2px;
+.status-text{
+	border: none;
+	padding: 2px 0;
 	margin: 0;
+}
+.hint-status-line {
+	background: lighter(@fg_color);
+	color: @bg_color;
 }
 #hint-higlight {
 	background: darker(@fg_color);
@@ -319,5 +329,10 @@ CSS = b"""
 .error-message{
 	background: red;
 	color: white;
+}
+"""
+GTK_3_20_CSS = b"""
+* {
+	min-height: initial;
 }
 """
