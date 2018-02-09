@@ -79,6 +79,13 @@ class Windows():
 				return w;
 		return None
 
+	def query_names(self, name_filter):
+		return list(
+				filter(
+					(lambda x : name_filter == None or x.lower().strip().startswith(name_filter.lower().strip()) ),  
+					map( (lambda x : x.get_name()), self.buffers ))
+				)
+
 	def _update_internal_state(self):
 		self.active = None
 		for w in reversed(self.screen.get_windows_stacked()):

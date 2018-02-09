@@ -20,6 +20,9 @@ import gi
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango
 
+COLUMNS = 100
+BUFFER_COLUMNS = COLUMNS - 5
+
 class NavigatorWindow(Gtk.Window):
 
 	def __init__(self, controller, windows):
@@ -63,7 +66,6 @@ class NavigatorWindow(Gtk.Window):
 		self.connect("realize", self._on_window_realize)
 		#self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
 		self.connect("size-allocate", self.on_size)
-		#self.hint(['debug', 'debuggreedy', 'delcommand', 'delete'], 'delcommand')
 
 	def get_command(self):
 		return self.entry.get_text()[1:]
@@ -72,21 +74,36 @@ class NavigatorWindow(Gtk.Window):
 		self.entry.set_text(':'+cmd)
 		self.entry.set_position(len(self.entry.get_text()))
 
-	def hint(self, hints, higlight):
-		self.clear_hints()
+	def hint(self, hints, higlight_index, placeholder):
+		self.status_box.get_style_context().add_class('hint-status-line')
+		for c in self.status_box.get_children(): c.destroy()
+		width = 0
 		for hint in hints:
-			l = Gtk.Label(hint)
-			l.get_style_context().add_class('hint')
-			if hint is higlight:
-				l.set_name('hint-higlight')
-			self.status_box.pack_start(l, expand=False, fill=False, padding=2)
-			self.status_box.pack_start(Gtk.Box(), expand=False, fill=False, padding=8)
-		self.set_command(higlight)
+			truncated_hint = (hint[:50] + '..') if len(hint) > 75 else hint
+			if width + len(hint) + 2 < COLUMNS:
+				self.add_status_text(truncated_hint, hints.index(hint) == higlight_index)
+				self.add_status_text('  ', False)
+				width += len(hint) + 2
+			else:
+				self.add_status_text('>', False)
+				break
+		self.set_command(placeholder)
 		self.status_box.pack_start(Gtk.Box(), expand=True, fill=True, padding=0)
 		self.v_box.show_all()
 
+	def add_status_text(self, text, highlight):
+		l = Gtk.Label(text)
+		l.get_style_context().add_class('status-text')
+		if highlight:
+			l.set_name('hint-higlight')
+		self.status_box.pack_start(l, expand=False, fill=False, padding=0)
+
 	def clear_hints(self):
+		self.status_box.get_style_context().remove_class('hint-status-line')
 		for c in self.status_box.get_children(): c.destroy()
+		if not self.controller.listing_windows:
+			self.add_status_text(' ', False)
+		self.v_box.show_all()
 
 	def on_size(self, allocation, data):
 		self._move_to_preferred_position()
@@ -113,6 +130,7 @@ class NavigatorWindow(Gtk.Window):
 		for c in self.output_box.get_children(): c.destroy()
 		for c in self.windows_list_box.get_children(): c.destroy()
 		self.clear_hints()
+		#self.hint(['debug', 'debuggreedy', 'delcommand', 'delete'], 1, 'b Term')
 
 		if self.windows.active:
 			self.populate_navigation_options()
@@ -159,14 +177,13 @@ class NavigatorWindow(Gtk.Window):
 			line.pack_start(icon, expand=False, fill=True, padding=0)
 
 			index = 1 + self.windows.buffers.index(window)
-			COLUMNS = 95
-			WINDOW_COLUMN = COLUMNS - 16
+			WINDOW_COLUMN = BUFFER_COLUMNS - 16
 			window_name = window.get_name().ljust(WINDOW_COLUMN)[:WINDOW_COLUMN]
 			name = '{:>2} '.format(index) + window_name + ' {:12}'.format(window.get_workspace().get_name().lower())
 
 			label = Gtk.Label(name)
 			label.set_valign(Gtk.Align.END)
-			label.set_max_width_chars(COLUMNS)
+			label.set_max_width_chars(BUFFER_COLUMNS)
 			label.get_layout().set_ellipsize(Pango.EllipsizeMode.END)
 			label.set_ellipsize(Pango.EllipsizeMode.END)
 			label.get_style_context().add_class("window-label")

@@ -17,10 +17,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, signal, re, os, sys
 gi.require_version('Gtk', '3.0')
 gi.require_version("Keybinder", "3.0")
-from gi.repository import Gtk, Gdk, Keybinder
+from gi.repository import Gtk, Gdk, Keybinder, GLib
 from vimwn.view import NavigatorWindow
 from vimwn.windows import Windows
 from vimwn.environment import Configurations
+from vimwn.applications import Applications
+from vimwn.status_line import StatusLine
 
 KEY_FUNCTIONS = {}
 COMMANDS = []
@@ -34,13 +36,12 @@ class Controller ():
 		self.multiplier = ""
 		self.status_message = None
 		self.status_level = None
-		self.hinting = False
-		self.highlight_index = -1
-		self.hints = []
+		self.applications = Applications()
 		self.windows = Windows(self)
 		self.view = NavigatorWindow(self, self.windows)
+		self.status_line = StatusLine(self)
 		self.view.connect("key-press-event", self.on_window_key_press)
-		self.view.entry.connect("key-press-event", self.on_entry_key_press)
+		self.view.entry.connect("key-press-event", self.status_line.on_entry_key_press)
 		map_functions(self, self.windows)
 
 	def open(self):
@@ -76,10 +77,6 @@ class Controller ():
 		self.multiplier = ""
 		self.status_message = None
 		self.status_level = None
-		self.hinting = False
-		self.highlight_index = -1
-		self.original_command = None
-		self.hints = []
 
 	def open_window(self, window, time):
 		window.activate_transient(time)
@@ -113,64 +110,28 @@ class Controller ():
 					function(event.keyval, event.time)
 				self.windows.commit_navigation(event.time)
 
-	def on_entry_key_press(self, widget, event):
-		if event.keyval == Gdk.KEY_Tab:
-			return self.hint()
+	def edit(self, cmd, time):
+		name = Command.extract_text_parameter(cmd)
+		possible_apps = self.applications.query_names(name)
+		if len(possible_apps) == 1:
+			try:
+				self.applications.launch_by_name(possible_apps[0])
+				self.view.hide()
+			except GLib.GError as exc:
+				self.show_error_message('Error launching ' + name, time)
 		else:
-			if self.hinting:
-				self.view.clear_hints()
-			self.hinting = False
-			return False
-
-	def query_commands(self, user_input):
-		names = []
-		for command in COMMANDS:
-			if command.name.startswith(user_input) and not command.name in names:
-				names.append(command.name)
-		return names
-
-	def hint(self):
-		if self.hinting:
-			return self.show_highlights()
-		else:
-			self.hints = self.query_commands(self.view.get_command())
-			if len(self.hints) == 0:
-				return True
-			elif len(self.hints) == 1:
-				self.view.set_command(self.hints[0])
-				return True
-			else:
-				self.highlight_index = 0
-				self.original_command = self.view.get_command()
-				return self.show_highlights()
-
-	def show_highlights(self):
-		self.hinting = True
-		i = self.highlight_index
-		highlight = self.hints[i] if i > -1 else self.original_command
-		self.view.hint(self.hints, highlight)
-		self.highlight_index = -1 if i == len(self.hints) -1 else i + 1
-		return True
+			self.show_error_message('No matching applicaiton for ' + name, time)
 
 	def on_command(self, pane_owner, current):
 		if not self.reading_command:
 			return
 		cmd = self.view.get_command()
 		time = self.get_current_event_time()
-		command_function = self.find_command(cmd)
-		if command_function:
-			command_function(cmd, time)
+		command = Command.find_command(cmd)
+		if command:
+			command.function(cmd, time)
 		else:
 			self.show_error_message('Not an editor command: ' + cmd, time)
-
-	def find_command(self, command_input):
-		"""
-		Returns matching command function if any
-		"""
-		for command in COMMANDS:
-			if command.pattern.match(command_input):
-				return command.function
-		return None
 
 	def colon(self, keyval, time):
 		self.reading_command = True
@@ -209,6 +170,9 @@ class Controller ():
 		self.status_message = 'Press ENTER or type command to continue'
 		self.status_level = 'info'
 		self.view.show(time)
+
+	def buffer(self, cmd, time):
+		print('??????????')
 
 	def open_indexed_buffer(self, cmd, time):
 		buffer_number = Command.extract_number_parameter(cmd)
@@ -270,12 +234,38 @@ class Command:
 		self.function = function
 
 	@staticmethod
+	def find_command(command_input):
+		"""
+		Returns matching command function if any
+		"""
+		for command in COMMANDS:
+			if command.pattern.match(command_input):
+				return command
+		return None
+
+	@staticmethod
+	def query_commands(user_input):
+		names = []
+		for command in COMMANDS:
+			if command.name.startswith(user_input) and not command.name in names:
+				names.append(command.name)
+		return names
+
+	@staticmethod
 	def extract_number_parameter(cmd):
 		return re.findall(r'\d+', cmd)[0]
 
 	@staticmethod
 	def extract_text_parameter(cmd):
-		return re.findall(r'\s+\w+', cmd.strip())[0].strip().lower()
+		tokens = re.findall(r'\s+\w+.*', cmd.strip())
+		if len(tokens) == 0:
+			return None
+		else:
+			return tokens[0].strip().lower()
+
+	@staticmethod
+	def extract_command_name(cmd):
+		return re.findall(r'\s*\w+\s*', cmd.strip())[0].strip().lower()
 
 def map_functions(controller, windows):
 	if len(COMMANDS) > 0 or len(KEY_FUNCTIONS) > 0:
@@ -302,12 +292,14 @@ def map_functions(controller, windows):
 	KEY_FUNCTIONS[Gdk.KEY_Return ] = controller.enter
 	KEY_FUNCTIONS[Gdk.KEY_Escape ] = controller.escape
 	COMMANDS.append(Command('only',       "^\s*(only|on)\s*$", controller.only ))
+	COMMANDS.append(Command('edit',       "^\s*(edit|e).*$", controller.edit ))
 	COMMANDS.append(Command('buffers',       "^\s*(buffers|ls)\s*$", controller.buffers ))
 	COMMANDS.append(Command('bdelete',       "^\s*(bdelete|bd)\s*$", controller.close_current_buffer ))
 	COMMANDS.append(Command('bdelete',       "^\s*(bdelete|bd)\s*[0-9]+\s*$", controller.close_indexed_buffer ))
 	COMMANDS.append(Command('bdelete',       "^\s*(bdelete|bd)\s+\w+\s*$", controller.close_named_buffer ))
+	COMMANDS.append(Command('buffer',       "^\s*(buffer|b)\s*$", controller.buffer ))
 	COMMANDS.append(Command('buffer',       "^\s*(buffer|b)\s*[0-9]+\s*$", controller.open_indexed_buffer ))
-	COMMANDS.append(Command('buffer',       "^\s*(buffer|b)\s+\w+\s*$", controller.open_named_buffer ))
+	COMMANDS.append(Command('buffer',       "^\s*(buffer|b)\s+\w+.*$", controller.open_named_buffer ))
 	COMMANDS.append(Command('centralize', "^\s*(centralize|centralize)\s*$", controller.centralize ))
 	COMMANDS.append(Command('maximize', "^\s*(maximize|maximize)\s*$", controller.maximize ))
 	COMMANDS.append(Command('quit',       "^\s*(quit|q)\s*$", controller.quit))
