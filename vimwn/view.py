@@ -60,7 +60,6 @@ class NavigatorWindow(Gtk.Window):
 		self.entry = Gtk.Entry()
 		self.entry.set_name("command-input")
 		self.entry.set_overwrite_mode(True)
-		self.entry.connect("activate", self.controller.on_command, None)
 		self.v_box.pack_start(self.entry, expand=True, fill=True, padding=0)
 
 		self.connect("realize", self._on_window_realize)

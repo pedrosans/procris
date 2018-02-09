@@ -42,6 +42,7 @@ class Controller ():
 		self.status_line = StatusLine(self)
 		self.view.connect("key-press-event", self.on_window_key_press)
 		self.view.entry.connect("key-press-event", self.status_line.on_entry_key_press)
+		self.view.entry.connect("activate", self.on_command, None)
 		map_functions(self, self.windows)
 		Command.map_commands(self, self.windows)
 
@@ -173,7 +174,12 @@ class Controller ():
 		self.view.show(time)
 
 	def buffer(self, cmd, time):
-		print('??????????')
+		"""
+		vim original behaviour is to take the focus away from the command entry,
+		but given this focus change can't be clearly signalized, just ignoring
+		the command will cause to focus to remain at the command entry, which
+		is a good alternative
+		"""
 
 	def open_indexed_buffer(self, cmd, time):
 		buffer_number = Command.extract_number_parameter(cmd)
