@@ -75,14 +75,17 @@ class Windows():
 
 	def find_by_name(self, window_title):
 		for w in self.buffers:
-			if window_title in w.get_name().lower():
+			if window_title.lower().strip() in w.get_name().lower():
 				return w;
 		return None
 
 	def query_names(self, name_filter):
 		return list(
 				filter(
-					(lambda x : name_filter == None or x.lower().strip().startswith(name_filter.lower().strip()) ),  
+					(lambda x :
+						name_filter == None
+						or x.lower().strip().startswith(name_filter.lower().strip())
+					),
 					map( (lambda x : x.get_name()), self.buffers ))
 				)
 

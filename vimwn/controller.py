@@ -23,9 +23,9 @@ from vimwn.windows import Windows
 from vimwn.environment import Configurations
 from vimwn.applications import Applications
 from vimwn.status_line import StatusLine
+from vimwn.command import Command
 
 KEY_FUNCTIONS = {}
-COMMANDS = []
 
 class Controller ():
 
@@ -43,6 +43,7 @@ class Controller ():
 		self.view.connect("key-press-event", self.on_window_key_press)
 		self.view.entry.connect("key-press-event", self.status_line.on_entry_key_press)
 		map_functions(self, self.windows)
+		Command.map_commands(self, self.windows)
 
 	def open(self):
 		self.view.connect("focus-out-event", Gtk.main_quit)
@@ -226,49 +227,8 @@ class Controller ():
 		self.status_level = 'error'
 		self.view.show(time)
 
-class Command:
-
-	def __init__(self, name, pattern, function):
-		self.name = name
-		self.pattern = re.compile(pattern)
-		self.function = function
-
-	@staticmethod
-	def find_command(command_input):
-		"""
-		Returns matching command function if any
-		"""
-		for command in COMMANDS:
-			if command.pattern.match(command_input):
-				return command
-		return None
-
-	@staticmethod
-	def query_commands(user_input):
-		names = []
-		for command in COMMANDS:
-			if command.name.startswith(user_input) and not command.name in names:
-				names.append(command.name)
-		return names
-
-	@staticmethod
-	def extract_number_parameter(cmd):
-		return re.findall(r'\d+', cmd)[0]
-
-	@staticmethod
-	def extract_text_parameter(cmd):
-		tokens = re.findall(r'\s+\w+.*', cmd.strip())
-		if len(tokens) == 0:
-			return None
-		else:
-			return tokens[0].strip().lower()
-
-	@staticmethod
-	def extract_command_name(cmd):
-		return re.findall(r'\s*\w+\s*', cmd.strip())[0].strip().lower()
-
 def map_functions(controller, windows):
-	if len(COMMANDS) > 0 or len(KEY_FUNCTIONS) > 0:
+	if len(KEY_FUNCTIONS) > 0:
 		raise Exception('Functions were already mapped')
 	KEY_FUNCTIONS[Gdk.KEY_Right  ] = windows.navigate_right
 	KEY_FUNCTIONS[Gdk.KEY_l      ] = windows.navigate_right
@@ -288,18 +248,5 @@ def map_functions(controller, windows):
 	KEY_FUNCTIONS[Gdk.KEY_w      ] = windows.cycle
 	KEY_FUNCTIONS[Gdk.KEY_o      ] = controller.only_key_handler
 	KEY_FUNCTIONS[Gdk.KEY_colon  ] = controller.colon
-	#KEY_FUNCTIONS[Gdk.KEY_Tab    ] = controller.hint
 	KEY_FUNCTIONS[Gdk.KEY_Return ] = controller.enter
 	KEY_FUNCTIONS[Gdk.KEY_Escape ] = controller.escape
-	COMMANDS.append(Command('only',       "^\s*(only|on)\s*$", controller.only ))
-	COMMANDS.append(Command('edit',       "^\s*(edit|e).*$", controller.edit ))
-	COMMANDS.append(Command('buffers',       "^\s*(buffers|ls)\s*$", controller.buffers ))
-	COMMANDS.append(Command('bdelete',       "^\s*(bdelete|bd)\s*$", controller.close_current_buffer ))
-	COMMANDS.append(Command('bdelete',       "^\s*(bdelete|bd)\s*[0-9]+\s*$", controller.close_indexed_buffer ))
-	COMMANDS.append(Command('bdelete',       "^\s*(bdelete|bd)\s+\w+\s*$", controller.close_named_buffer ))
-	COMMANDS.append(Command('buffer',       "^\s*(buffer|b)\s*$", controller.buffer ))
-	COMMANDS.append(Command('buffer',       "^\s*(buffer|b)\s*[0-9]+\s*$", controller.open_indexed_buffer ))
-	COMMANDS.append(Command('buffer',       "^\s*(buffer|b)\s+\w+.*$", controller.open_named_buffer ))
-	COMMANDS.append(Command('centralize', "^\s*(centralize|centralize)\s*$", controller.centralize ))
-	COMMANDS.append(Command('maximize', "^\s*(maximize|maximize)\s*$", controller.maximize ))
-	COMMANDS.append(Command('quit',       "^\s*(quit|q)\s*$", controller.quit))

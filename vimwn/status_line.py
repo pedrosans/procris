@@ -23,6 +23,7 @@ from vimwn.view import NavigatorWindow
 from vimwn.windows import Windows
 from vimwn.environment import Configurations
 from vimwn.applications import Applications
+from vimwn.command import Command
 
 class StatusLine ():
 
@@ -69,26 +70,17 @@ class StatusLine ():
 		if self.hinting:
 			return self.show_highlights(1)
 		else:
-			if self.view.get_command() == '':
-				return True
-			from vimwn.controller import Command
-			command = Command.find_command(self.view.get_command())
-			user_input = self.view.entry.get_text()
-			command_parameters = Command.extract_text_parameter(self.view.get_command())
-			if command and command.name == 'edit' and (command_parameters or user_input[-1] == ' '):
-				self.hinting_command_parameter = True
-				self.original_command_parameter = command_parameters
-				self.hints = self.applications.query_names(command_parameters)
-			elif command and command.name == 'buffer' and (command_parameters or user_input[-1] == ' '):
-				self.hinting_command_parameter = True
-				self.original_command_parameter = command_parameters
-				self.hints = self.windows.query_names(command_parameters)
+
+			self.original_command_parameter = Command.extract_text_parameter(self.view.get_command())
+			self.hinting_command_parameter = self.original_command_parameter != None
+
+			if self.hinting_command_parameter:
+				command = Command.find_command(self.view.get_command())
+				self.hints = command.hint_parameters(self.controller, self.original_command_parameter)
 			else:
-				self.hinting_command_parameter = False
-				self.original_command_parameter = None
 				self.hints = Command.query_commands(self.view.get_command())
 
-			if len(self.hints) == 0:
+			if not self.hints or len(self.hints) == 0:
 				return True
 			else:
 				self.highlight_index = -1
@@ -101,12 +93,14 @@ class StatusLine ():
 			self.highlight_index = -1
 		elif self.highlight_index < -1:
 			self.highlight_index = len(self.hints) - 1
+
 		i = self.highlight_index
+
 		if self.hinting_command_parameter:
 			hinted_parameter = self.hints[i] if i > -1 else self.original_command_parameter
 			placeholder = self.original_command
 			if hinted_parameter:
-				placeholder += ' ' + hinted_parameter
+				placeholder += hinted_parameter
 		else:
 			placeholder = self.hints[i] if i > -1 else self.original_command
 
