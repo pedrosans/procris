@@ -38,16 +38,14 @@ class Applications():
 				if desktop_info:
 					self.name_map[desktop_info['Name']] = desktop_info
 
+	def has_perfect_match(self, name):
+		return name in self.name_map.keys()
+
 	def query_names(self, name_filter):
-		keys = sorted(self.name_map.keys())
-		if not name_filter:
-			return keys
-		name_filter = name_filter.lower()
-		matches = []
-		for name in keys:
-			if name.lower().strip().startswith(name_filter):
-				matches.append(name)
-		return matches
+		matches = filter(
+				lambda x : name_filter.lower() in x.lower(),
+				self.name_map.keys())
+		return sorted(list(set(matches)))
 
 	def launch_by_name(self, name):
 		desktop_info = self.name_map[name]

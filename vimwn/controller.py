@@ -145,15 +145,27 @@ class Controller ():
 
 	def edit(self, cmd, time):
 		name = Command.extract_text_parameter(cmd)
+		if name == None or not name.strip():
+			self.view.hide()
+			return
+
+		app_name = None
+		if self.applications.has_perfect_match(name.strip()):
+			app_name = name.strip()
 		possible_apps = self.applications.query_names(name)
-		if len(possible_apps) == 1:
+		if not app_name and len(possible_apps) == 1:
+			app_name = possible_apps[0]
+
+		if app_name:
 			try:
-				self.applications.launch_by_name(possible_apps[0])
+				self.applications.launch_by_name(app_name)
 				self.view.hide()
 			except GLib.GError as exc:
 				self.show_error_message('Error launching ' + name, time)
+		elif len(possible_apps) == 0:
+			self.show_error_message('No matching application for ' + name, time)
 		else:
-			self.show_error_message('No matching applicaiton for ' + name, time)
+			self.show_error_message('More than one application matches: ' + name, time)
 
 	def colon(self, keyval, time):
 		self.reading_command = True
