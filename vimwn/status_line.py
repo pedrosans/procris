@@ -49,9 +49,9 @@ class StatusLine ():
 	def on_entry_key_press(self, widget, event):
 		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
 			if event.state & Gdk.ModifierType.SHIFT_MASK:
-				return self.show_highlights(-1)
+				return self.hint(-1)
 			else:
-				return self.hint()
+				return self.hint(1)
 		elif event.keyval == Gdk.KEY_Left:
 			return self.show_highlights(-1)
 		elif event.keyval == Gdk.KEY_Right:
@@ -66,11 +66,10 @@ class StatusLine ():
 			self.hinting = False
 			return False
 
-	def hint(self):
+	def hint(self, direction):
 		if self.hinting:
-			return self.show_highlights(1)
+			return self.show_highlights(direction)
 		else:
-
 			self.original_command_parameter = Command.extract_text_parameter(self.view.get_command())
 			self.hinting_command_parameter = self.original_command_parameter != None
 
@@ -85,7 +84,7 @@ class StatusLine ():
 			else:
 				self.highlight_index = -1
 				self.original_command = Command.extract_command_name(self.view.get_command())
-				return self.show_highlights(1)
+				return self.show_highlights(direction)
 
 	def show_highlights(self, direction):
 		self.highlight_index += direction

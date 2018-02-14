@@ -44,11 +44,11 @@ class Command:
 
 	@staticmethod
 	def query_commands(user_input):
-		names = []
-		for command in Command.COMMANDS:
-			if command.name.startswith(user_input.strip()) and not command.name in names:
-				names.append(command.name)
-		return names
+		matches = filter(
+				(lambda n : not user_input or n.startswith(user_input.strip())),
+				map((lambda c : c.name), Command.COMMANDS)
+			)
+		return sorted(list(set(matches)))
 
 	@staticmethod
 	def extract_number_parameter(cmd):
@@ -66,6 +66,10 @@ class Command:
 
 	@staticmethod
 	def extract_command_name(cmd):
+		if cmd == None:
+			return None
+		if not cmd.strip():
+			return cmd
 		return re.findall(r'\s*\w+\s*', cmd)[0]
 
 	@staticmethod
