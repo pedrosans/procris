@@ -41,7 +41,7 @@ class Controller ():
 		self.view = NavigatorWindow(self, self.windows)
 		self.status_line = StatusLine(self)
 		self.view.connect("key-press-event", self.on_window_key_press)
-		self.view.entry.connect("key-press-event", self.status_line.on_entry_key_press)
+		self.view.entry.connect("key-press-event", self.on_entry_key_press)
 		self.view.entry.connect("activate", self.on_command, None)
 		map_functions(self, self.windows)
 		Command.map_commands(self, self.windows)
@@ -75,6 +75,7 @@ class Controller ():
 		self.listing_windows = False
 
 	def clear_command_ui_state(self):
+		self.status_line.clear_state()
 		self.reading_command = False
 		self.multiplier = ""
 		self.status_message = None
@@ -112,17 +113,24 @@ class Controller ():
 					function(event.keyval, event.time)
 				self.windows.commit_navigation(event.time)
 
-	def edit(self, cmd, time):
-		name = Command.extract_text_parameter(cmd)
-		possible_apps = self.applications.query_names(name)
-		if len(possible_apps) == 1:
-			try:
-				self.applications.launch_by_name(possible_apps[0])
-				self.view.hide()
-			except GLib.GError as exc:
-				self.show_error_message('Error launching ' + name, time)
+
+	def on_entry_key_press(self, widget, event):
+		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
+			if event.state & Gdk.ModifierType.SHIFT_MASK:
+				return self.status_line.hint(-1)
+			else:
+				return self.status_line.hint(1)
+		elif event.keyval == Gdk.KEY_Left:
+			return self.status_line.show_highlights(-1)
+		elif event.keyval == Gdk.KEY_Right:
+			return self.status_line.show_highlights(1)
+		elif event.keyval in [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R]:
+			return False
+		elif event.keyval in [Gdk.KEY_Up, Gdk.KEY_Down]:
+			return True
 		else:
-			self.show_error_message('No matching applicaiton for ' + name, time)
+			self.status_line.clear_state()
+			return False
 
 	def on_command(self, pane_owner, current):
 		if not self.reading_command:
@@ -134,6 +142,18 @@ class Controller ():
 			command.function(cmd, time)
 		else:
 			self.show_error_message('Not an editor command: ' + cmd, time)
+
+	def edit(self, cmd, time):
+		name = Command.extract_text_parameter(cmd)
+		possible_apps = self.applications.query_names(name)
+		if len(possible_apps) == 1:
+			try:
+				self.applications.launch_by_name(possible_apps[0])
+				self.view.hide()
+			except GLib.GError as exc:
+				self.show_error_message('Error launching ' + name, time)
+		else:
+			self.show_error_message('No matching applicaiton for ' + name, time)
 
 	def colon(self, keyval, time):
 		self.reading_command = True

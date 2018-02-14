@@ -38,33 +38,14 @@ class StatusLine ():
 		self.hints = []
 
 	def clear_state(self):
+		if self.hinting:
+			self.view.clear_hints()
 		self.hinting = False
 		self.hinting_command_parameter = False
 		self.highlight_index = -1
 		self.original_command = None
 		self.original_command_parameter = None
 		self.hints = []
-
-	#TODO move to controller
-	def on_entry_key_press(self, widget, event):
-		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
-			if event.state & Gdk.ModifierType.SHIFT_MASK:
-				return self.hint(-1)
-			else:
-				return self.hint(1)
-		elif event.keyval == Gdk.KEY_Left:
-			return self.show_highlights(-1)
-		elif event.keyval == Gdk.KEY_Right:
-			return self.show_highlights(1)
-		elif event.keyval in [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R]:
-			return False
-		elif event.keyval in [Gdk.KEY_Up, Gdk.KEY_Down]:
-			return True
-		else:
-			if self.hinting:
-				self.view.clear_hints()
-			self.hinting = False
-			return False
 
 	def hint(self, direction):
 		if self.hinting:
