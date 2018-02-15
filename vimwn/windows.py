@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import gi, time, logging
+import gi, time, logging, os
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
 
@@ -47,6 +47,7 @@ class Windows():
 		self.unity_wm = False
 		self.visibles =[]
 		self.buffers =[]
+		self.read_itself = False
 
 	def remove(self, window, time):
 		window.close(time)
@@ -57,6 +58,7 @@ class Windows():
 	def read_screen(self):
 		del self.visibles[:]
 		del self.buffers[:]
+		self.read_itself = False
 		self.screen = Wnck.Screen.get_default()
 		self.screen.force_update()  #make sure we query X server
 
@@ -64,6 +66,8 @@ class Windows():
 		for wnck_window in self.screen.get_windows():
 			if wnck_window.get_name() == 'XdndCollectionWindowImp':
 				self.unity_wm = True
+			if wnck_window.get_pid() == os.getpid():
+				self.read_itself = True
 			if wnck_window.is_skip_tasklist():
 				continue
 			in_active_workspace = wnck_window.is_in_viewport(active_workspace)

@@ -52,7 +52,7 @@ class Controller ():
 		Gtk.main()
 
 	def listen_user_events(self):
-		self.view.connect("focus-out-event", self.hide_and_propagate_focus)
+		self.view.connect("focus-out-event", self.hide_ui)
 		Keybinder.init()
 		hotkeys = self.configurations.get_hotkeys()
 		for hotkey in hotkeys.split(","):
@@ -68,7 +68,16 @@ class Controller ():
 
 	def show_ui(self, time):
 		self.windows.read_screen()
-		self.view.show(time)
+		if self.windows.read_itself:
+			self.windows.cycle(None, None)
+			self.windows.commit_navigation(time)
+		else:
+			self.view.show(time)
+
+	def hide_ui(self, widget, event):
+		self.view.hide()
+		self.clear_state()
+		return True;
 
 	def clear_state(self):
 		self.clear_command_ui_state()
@@ -83,11 +92,6 @@ class Controller ():
 
 	def open_window(self, window, time):
 		window.activate_transient(time)
-
-	def hide_and_propagate_focus(self, widget, event):
-		self.view.hide()
-		self.clear_state()
-		return True;
 
 	def get_current_event_time(self):
 		gtk_event_time = Gtk.get_current_event_time()
