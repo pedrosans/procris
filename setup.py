@@ -10,6 +10,6 @@ setup(name='vimwn',
 	author_email='pedrosans@gmail.com',
 	url='https://github.com/pedrosans/vimwn',
 	classifiers=['License :: GPL3'],
-	packages=['vimwn'],
+	packages=['vimwn', 'kupfer'],
 	scripts=['bin/vimwn'],
 )

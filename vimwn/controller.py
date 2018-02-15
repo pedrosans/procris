@@ -51,6 +51,7 @@ class Controller ():
 		self.show_ui(0)
 		Gtk.main()
 
+	#TODO raise exception
 	def listen_user_events(self):
 		self.view.connect("focus-out-event", self.hide_ui)
 		Keybinder.init()
@@ -117,24 +118,26 @@ class Controller ():
 					function(event.keyval, event.time)
 				self.windows.commit_navigation(event.time)
 
-
 	def on_entry_key_press(self, widget, event):
 		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
 			if event.state & Gdk.ModifierType.SHIFT_MASK:
 				return self.status_line.hint(-1)
 			else:
 				return self.status_line.hint(1)
-		elif event.keyval == Gdk.KEY_Left:
-			return self.status_line.show_highlights(-1)
-		elif event.keyval == Gdk.KEY_Right:
-			return self.status_line.show_highlights(1)
-		elif event.keyval in [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R]:
+
+		if self.status_line.hinting:
+			if event.keyval in [Gdk.KEY_Left, Gdk.KEY_Up]:
+				return self.status_line.show_highlights(-1)
+			elif event.keyval in [Gdk.KEY_Right, Gdk.KEY_Down]:
+				return self.status_line.show_highlights(1)
+			else:
+				self.status_line.clear_state()
+				return False
+
+		if event.keyval in [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R]:
 			return False
 		elif event.keyval in [Gdk.KEY_Up, Gdk.KEY_Down]:
 			return True
-		else:
-			self.status_line.clear_state()
-			return False
 
 	def on_command(self, pane_owner, current):
 		if not self.reading_command:
