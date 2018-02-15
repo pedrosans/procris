@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 #map <F2> :!sh -xc './bin/vimwn --open'<CR>
 #TODO don't allow the entry to loose it focus
-import gi
+import gi, io
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango
 
@@ -211,21 +211,34 @@ class NavigatorWindow(Gtk.Window):
 					self.entry.set_position(-1)
 
 	def _on_window_realize(self, widget):
-		gtk_3_18_style_provider = Gtk.CssProvider()
-		gtk_3_18_style_provider.load_from_data(GTK_3_18_CSS)
-		Gtk.StyleContext.add_provider_for_screen(
-			self.get_screen(),
-			gtk_3_18_style_provider,
-			Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-		)
-		if Gtk.get_major_version() >= 3 and Gtk.get_minor_version() >= 20:
-			gtk_3_20_style_provider = Gtk.CssProvider()
-			gtk_3_20_style_provider.load_from_data(GTK_3_20_CSS)
+		css_file = self.controller.configurations.get_css_file()
+		print(css_file)
+		if css_file:
+			f = open(css_file, 'r')
+			s = f.read()
+			f.close()
+			css_provider = Gtk.CssProvider()
+			css_provider.load_from_data(bytes(s, 'utf-8'))
 			Gtk.StyleContext.add_provider_for_screen(
-				self.get_screen(),
-				gtk_3_20_style_provider,
+				self.get_screen(), css_provider,
 				Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
 			)
+		else:
+			gtk_3_18_style_provider = Gtk.CssProvider()
+			gtk_3_18_style_provider.load_from_data(GTK_3_18_CSS)
+			Gtk.StyleContext.add_provider_for_screen(
+				self.get_screen(),
+				gtk_3_18_style_provider,
+				Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+			)
+			if Gtk.get_major_version() >= 3 and Gtk.get_minor_version() >= 20:
+				gtk_3_20_style_provider = Gtk.CssProvider()
+				gtk_3_20_style_provider.load_from_data(GTK_3_20_CSS)
+				Gtk.StyleContext.add_provider_for_screen(
+					self.get_screen(),
+					gtk_3_20_style_provider,
+					Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
+				)
 
 
 

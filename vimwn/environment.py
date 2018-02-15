@@ -15,8 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import configparser
-import os
+import configparser, os
 from xdg import BaseDirectory as base
 from xdg import DesktopEntry as desktop
 from configparser import SafeConfigParser
@@ -75,6 +74,13 @@ class Configurations():
 
 	def get_width(self):
 		return self.parser.getint('interface', 'width')
+
+	def get_css_file(self):
+		try:
+			path = self.parser.get('interface', 'css_file')
+			return os.path.expanduser(path)
+		except configparser.NoOptionError:
+			return None
 
 	def get_log_file(self):
 		return self.parser.get('service', 'log_file')
