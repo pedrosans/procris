@@ -22,7 +22,10 @@ from kupfer import desktop_parse
 from kupfer import desktop_launch
 from configparser import SafeConfigParser
 
-APPS_GLOB = ["/usr/share/applications/*.desktop", os.path.expanduser('~/.local/share/applications')+'/*.desktop']
+APPS_GLOB = [
+		"/usr/share/applications/*.desktop",
+		"/var/lib/snapd/desktop/applications/*.desktop",
+		os.path.expanduser('~/.local/share/applications')+'/*.desktop' ]
 
 class Applications():
 
