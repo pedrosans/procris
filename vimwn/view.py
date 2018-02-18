@@ -100,11 +100,18 @@ class NavigatorWindow(Gtk.Window):
 			l.set_name('hint-higlight')
 		self.status_box.pack_start(l, expand=False, fill=False, padding=0)
 
+	def add_status_icon(self, window):
+		icon = Gtk.Image()
+		icon.set_from_pixbuf( window.get_mini_icon() )
+		#icon.set_valign(Gtk.Align.START)
+		self.status_box.pack_start(icon, expand=False, fill=False, padding=0)
+
 	def clear_hints(self):
 		self.status_box.get_style_context().remove_class('hint-status-line')
 		for c in self.status_box.get_children(): c.destroy()
-		if not self.single_line_view and not self.controller.listing_windows:
-			self.add_status_text(' ', False)
+		#if not self.single_line_view and not self.controller.listing_windows:
+		self.add_status_text(' ', False)
+		#self.status_box.show_all()
 		self.v_box.show_all()
 		#self.hint(['debug', 'debuggreedy', 'delcommand', 'delete'], 1, 'b Term')
 
@@ -140,8 +147,13 @@ class NavigatorWindow(Gtk.Window):
 		for c in self.windows_list_box.get_children(): c.destroy()
 		self.clear_hints()
 
-		if not self.single_line_view and self.windows.active:
-			self.populate_navigation_options()
+		#TODO test if single line view
+		if self.windows.active:
+			if self.single_line_view:
+				self.list_navigation_windows()
+			else:
+				self.populate_navigation_options()
+
 		if self.controller.listing_windows:
 			self.list_windows(event_time)
 
@@ -151,6 +163,27 @@ class NavigatorWindow(Gtk.Window):
 		self.stick()
 		self.present_with_time(event_time)
 		self.get_window().focus(event_time)
+
+	def list_navigation_windows(self):
+		if self.controller.reading_command:
+			return
+		self.status_box.get_style_context().add_class('hint-status-line')
+		for c in self.status_box.get_children(): c.destroy()
+
+		start_position = self.windows.x_line.index(self.windows.active)
+		length = len(self.windows.x_line)
+		for window in self.windows.x_line:
+			name = window.get_name()
+			name = truncated_hint = (name[:15] + '...') if len(name) > 18 else name
+
+			multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
+			nav_index = "" if multiplier == 0 else str(multiplier) + "w - "
+			nav_index += '' + name
+			self.add_status_icon(window)
+			self.add_status_text(' ', False)
+			self.add_status_text(nav_index, multiplier == 0)
+			self.add_status_text('  ', False)
+
 
 	def populate_navigation_options(self):
 		line = Gtk.HBox(homogeneous=False, spacing=0);
@@ -221,7 +254,7 @@ class NavigatorWindow(Gtk.Window):
 
 	def _on_window_realize(self, widget):
 		css_file = self.controller.configurations.get_css_file()
-		if css_file:
+		if css_file and False:
 			f = open(css_file, 'r')
 			s = f.read()
 			f.close()
