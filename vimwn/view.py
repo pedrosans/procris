@@ -212,7 +212,6 @@ class NavigatorWindow(Gtk.Window):
 
 	def _on_window_realize(self, widget):
 		css_file = self.controller.configurations.get_css_file()
-		print(css_file)
 		if css_file:
 			f = open(css_file, 'r')
 			s = f.read()

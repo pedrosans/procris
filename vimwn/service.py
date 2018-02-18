@@ -41,12 +41,10 @@ class NavigatorService:
 
 		self.configure_process()
 
-		listening = self.controller.listen_user_events()
-
-		if listening:
-			self.export_bus_object()
-			NavigatorStatus(self.configurations, self).activate()
-			Gtk.main()
+		self.controller.listen_user_events()
+		self.export_bus_object()
+		NavigatorStatus(self.configurations, self).activate()
+		Gtk.main()
 
 		print("Ending vimwn service, pid: {}".format(os.getpid()))
 

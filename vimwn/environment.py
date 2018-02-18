@@ -47,8 +47,8 @@ class Configurations():
 		if not self.parser.has_section('interface'):
 			self.parser.add_section('interface')
 			need_write = True
-		if not self.parser.has_option('interface', 'hotkeys'):
-			self.parser.set('interface', 'hotkeys', DEFAULT_HOTKEYS)
+		if not self.parser.has_option('interface', 'prefix_key'):
+			self.parser.set('interface', 'prefix_key', DEFAULT_HOTKEYS)
 			need_write = True
 		if not self.parser.has_option('interface', 'list_workspaces'):
 			self.parser.set('interface', 'list_workspaces', DEFAULT_LIST_WORKSPACES)
@@ -66,8 +66,14 @@ class Configurations():
 	def is_list_workspaces(self):
 		return self.parser.getboolean('interface', 'list_workspaces')
 
-	def get_hotkeys(self):
-		return self.parser.get('interface', 'hotkeys')
+	def get_prefix_key(self):
+		return self.parser.get('interface', 'prefix_key')
+
+	def get_command_prefix_key(self):
+		try:
+			return self.parser.get('interface', 'command_prefix_key')
+		except configparser.NoOptionError:
+			return None
 
 	def get_position(self):
 		return self.parser.get('interface', 'position')

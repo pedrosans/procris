@@ -51,21 +51,29 @@ class Controller ():
 		self.show_ui(0)
 		Gtk.main()
 
-	#TODO raise exception
 	def listen_user_events(self):
-		self.view.connect("focus-out-event", self.hide_ui)
+		normal_prefix = self.configurations.get_prefix_key()
+		command_prefix = self.configurations.get_command_prefix_key()
 		Keybinder.init()
-		hotkeys = self.configurations.get_hotkeys()
-		for hotkey in hotkeys.split(","):
-			bound = Keybinder.bind(hotkey, self.handle_keybind, None)
-			if not bound:
-				print("Could not bind the hotkey: " + hotkey, file=sys.stderr)
-				return False
-		print("Listening keys: '{}' pid: {} ".format( hotkeys, os.getpid()))
-		return True
 
-	def handle_keybind(self, key, data):
+		for hotkey in normal_prefix.split(","):
+			if not Keybinder.bind(hotkey, self.handle_prefix_key, None):
+				raise Exception("Could not bind the hotkey: " + hotkey, file=sys.stderr)
+
+		if not Keybinder.bind(command_prefix, self.handle_command_prefix_key, None):
+			raise Exception("Could not bind the command prefix key: " + command_prefix, file=sys.stderr)
+
+		self.view.connect("focus-out-event", self.hide_ui)
+		print("Listening keys: '{}', '{}' pid: {} ".format(normal_prefix, command_prefix, os.getpid()))
+
+	def handle_prefix_key(self, key, data):
 		self.show_ui(Keybinder.get_current_event_time())
+
+	def handle_command_prefix_key(self, key, data):
+		self.reading_command = True
+		self.show_ui(Keybinder.get_current_event_time())
+		self.view.set_command('')
+		self.status_line.auto_hint()
 
 	def show_ui(self, time):
 		self.windows.read_screen()
