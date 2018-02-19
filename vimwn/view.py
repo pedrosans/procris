@@ -20,13 +20,13 @@ import gi, io
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango
 
-COLUMNS = 100
-BUFFER_COLUMNS = COLUMNS - 5
 
 class NavigatorWindow(Gtk.Window):
 
 	def __init__(self, controller, windows):
 		Gtk.Window.__init__(self, title="vimwn")
+
+		self.columns = 100
 
 		self.controller = controller
 		self.windows = windows
@@ -55,8 +55,7 @@ class NavigatorWindow(Gtk.Window):
 		self.windows_list_box = Gtk.Box(homogeneous=False, spacing=0)
 		self.v_box.pack_start(self.windows_list_box, expand=True, fill=True, padding=0)
 
-		self.status_box = Gtk.Box(homogeneous=False, spacing=0)
-		self.status_box.set_name("status-line")
+		self.status_box = StatusBox()
 		self.v_box.pack_start(self.status_box, expand=True, fill=True, padding=0)
 
 		self.entry = Gtk.Entry()
@@ -68,6 +67,11 @@ class NavigatorWindow(Gtk.Window):
 		#self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
 		self.connect("size-allocate", self.on_size)
 
+	def hint(self, hints, higlight_index, placeholder):
+		self.status_box.show(hints, higlight_index)
+		if placeholder:
+			self.set_command(placeholder)
+
 	def get_command(self):
 		return self.entry.get_text()[1:]
 
@@ -75,45 +79,30 @@ class NavigatorWindow(Gtk.Window):
 		self.entry.set_text(':'+cmd)
 		self.entry.set_position(len(self.entry.get_text()))
 
-	def hint(self, hints, higlight_index, placeholder):
-		self.status_box.get_style_context().add_class('hint-status-line')
+	def clear_state(self):
+		width_config = self.controller.configurations.get_width()
+		if '100%' == width_config:
+			self.window_width = self.get_monitor_geometry().width
+		else:
+			self.window_width = int(width_config)
+		self.set_size_request(self.window_width, -1)
+
+		for c in self.output_box.get_children(): c.destroy()
 		for c in self.status_box.get_children(): c.destroy()
-		width = 0
-		for hint in hints:
-			truncated_hint = (hint[:50] + '..') if len(hint) > 75 else hint
-			if width + len(hint) + 2 < COLUMNS:
-				self.add_status_text(truncated_hint, hints.index(hint) == higlight_index)
-				self.add_status_text('  ', False)
-				width += len(hint) + 2
-			else:
-				self.add_status_text('>', False)
-				break
-		if placeholder:
-			self.set_command(placeholder)
-		self.status_box.pack_start(Gtk.Box(), expand=True, fill=True, padding=0)
-		self.v_box.show_all()
+		for c in self.windows_list_box.get_children(): c.destroy()
 
-	def add_status_text(self, text, highlight):
-		l = Gtk.Label(text)
-		l.get_style_context().add_class('status-text')
-		if highlight:
-			l.set_name('hint-higlight')
-		self.status_box.pack_start(l, expand=False, fill=False, padding=0)
-
-	def add_status_icon(self, window):
-		icon = Gtk.Image()
-		icon.set_from_pixbuf( window.get_mini_icon() )
-		#icon.set_valign(Gtk.Align.START)
-		self.status_box.pack_start(icon, expand=False, fill=False, padding=0)
-
-	def clear_hints(self):
+		#TODO remove hint related style
 		self.status_box.get_style_context().remove_class('hint-status-line')
-		for c in self.status_box.get_children(): c.destroy()
-		#if not self.single_line_view and not self.controller.listing_windows:
-		self.add_status_text(' ', False)
-		#self.status_box.show_all()
+		if not self.controller.listing_windows:
+			self.status_box.add_status_text(' ', False)
 		self.v_box.show_all()
-		#self.hint(['debug', 'debuggreedy', 'delcommand', 'delete'], 1, 'b Term')
+
+	def calculate_width(self):
+		layout = self.entry.create_pango_layout("W")
+		layout.set_font_description(self.entry.get_style_context().get_font(Gtk.StateFlags.NORMAL))
+		char_size = layout.get_pixel_extents().logical_rect.width
+		self.columns = int(self.window_width / char_size)
+		self.status_box.page_size = self.columns
 
 	def on_size(self, allocation, data):
 		self._move_to_preferred_position()
@@ -137,22 +126,7 @@ class NavigatorWindow(Gtk.Window):
 		return screen.get_monitor_workarea(monitor_nr)
 
 	def show( self, event_time ):
-		if self.single_line_view:
-			geo = self.get_monitor_geometry()
-			self.set_size_request(geo.width, -1)
-		else:
-			self.set_size_request(self.controller.configurations.get_width(), -1)
-
-		for c in self.output_box.get_children(): c.destroy()
-		for c in self.windows_list_box.get_children(): c.destroy()
-		self.clear_hints()
-
-		#TODO test if single line view
-		if self.windows.active:
-			if self.single_line_view:
-				self.list_navigation_windows()
-			else:
-				self.populate_navigation_options()
+		self.clear_state()
 
 		if self.controller.listing_windows:
 			self.list_windows(event_time)
@@ -162,6 +136,15 @@ class NavigatorWindow(Gtk.Window):
 		self.v_box.show_all()
 		self.stick()
 		self.present_with_time(event_time)
+		self.calculate_width()
+
+		if self.windows.active:
+			if self.single_line_view:
+				self.list_navigation_windows()
+			else:
+				self.populate_navigation_options()
+
+		self.v_box.show_all()
 		self.get_window().focus(event_time)
 
 	def list_navigation_windows(self):
@@ -179,10 +162,10 @@ class NavigatorWindow(Gtk.Window):
 			multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
 			nav_index = "" if multiplier == 0 else str(multiplier) + "w - "
 			nav_index += '' + name
-			self.add_status_icon(window)
-			self.add_status_text(' ', False)
-			self.add_status_text(nav_index, multiplier == 0)
-			self.add_status_text('  ', False)
+			self.status_box.add_status_icon(window, multiplier == 0)
+			self.status_box.add_status_text(' ', multiplier == 0)
+			self.status_box.add_status_text(nav_index, multiplier == 0)
+			self.status_box.add_status_text('  ', False)
 
 
 	def populate_navigation_options(self):
@@ -199,13 +182,13 @@ class NavigatorWindow(Gtk.Window):
 
 			multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
 			navigation_hint = Gtk.Label("." if multiplier == 0 else str(multiplier) + "w")
-			#TODO rename to window-index
-			navigation_hint.get_style_context().add_class("navigation_hint")
+			navigation_hint.get_style_context().add_class('window-relative-number')
 			column_box.pack_start(navigation_hint, expand=False, fill=False, padding=0)
 
 			line.pack_start(column_box, expand=False, fill=False, padding=4)
 
 	def list_windows(self, time):
+		buffer_columns = self.columns - 5
 		lines = Gtk.VBox();
 		self.windows_list_box.pack_start(lines, expand=True, fill=True, padding=10)
 		for window in self.windows.buffers:
@@ -218,13 +201,13 @@ class NavigatorWindow(Gtk.Window):
 			line.pack_start(icon, expand=False, fill=True, padding=0)
 
 			index = 1 + self.windows.buffers.index(window)
-			WINDOW_COLUMN = BUFFER_COLUMNS - 16
+			WINDOW_COLUMN = buffer_columns - 16
 			window_name = window.get_name().ljust(WINDOW_COLUMN)[:WINDOW_COLUMN]
 			name = '{:>2} '.format(index) + window_name + ' {:12}'.format(window.get_workspace().get_name().lower())
 
 			label = Gtk.Label(name)
 			label.set_valign(Gtk.Align.END)
-			label.set_max_width_chars(BUFFER_COLUMNS)
+			label.set_max_width_chars(buffer_columns)
 			label.get_layout().set_ellipsize(Pango.EllipsizeMode.END)
 			label.set_ellipsize(Pango.EllipsizeMode.END)
 			label.get_style_context().add_class("window-label")
@@ -281,8 +264,6 @@ class NavigatorWindow(Gtk.Window):
 					Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
 				)
 
-
-
 class WindowBtn(Gtk.Button):
 	def __init__(self, controller, window):
 		Gtk.Button.__init__(self)
@@ -298,6 +279,43 @@ class WindowBtn(Gtk.Button):
 
 	def on_clicked(self, btn):
 		self.window.activate_transient(self.controller.get_current_event_time())
+
+class StatusBox(Gtk.Box):
+
+	def __init__(self):
+		Gtk.Box.__init__(self, homogeneous=False, spacing=0)
+		self.set_name("status-line")
+		self.page_size = -1
+
+	def add_status_text(self, text, highlight):
+		l = Gtk.Label(text)
+		l.get_style_context().add_class('status-text')
+		if highlight:
+			l.get_style_context().add_class('hint-highlight')
+		self.pack_start(l, expand=False, fill=False, padding=0)
+
+	def add_status_icon(self, window, highlight):
+		icon = Gtk.Image()
+		icon.set_from_pixbuf( window.get_mini_icon() )
+		if highlight:
+			icon.get_style_context().add_class('hint-highlight')
+		self.pack_start(icon, expand=False, fill=False, padding=0)
+
+	def show(self, hints, higlight_index):
+		self.get_style_context().add_class('hint-status-line')
+		for c in self.get_children(): c.destroy()
+		width = 0
+		for hint in hints:
+			truncated_hint = (hint[:50] + '..') if len(hint) > 75 else hint
+			if width + len(hint) + 2 < self.page_size:
+				self.add_status_text(truncated_hint, hints.index(hint) == higlight_index)
+				self.add_status_text('  ', False)
+				width += len(hint) + 2
+			else:
+				self.add_status_text('>', False)
+				break
+		self.pack_start(Gtk.Box(), expand=True, fill=True, padding=0)
+		self.show_all()
 
 #	font-size: small;
 GTK_3_18_CSS = b"""
@@ -332,7 +350,10 @@ GTK_3_18_CSS = b"""
 	font-family: sans;
 	font-size: 10px;
 }
-.navigation_hint {
+
+/* WINDOW BUTTON */
+
+.window-relative-number {
 	border: none;
 	padding: 2px 0;
 	margin: 0;
@@ -349,11 +370,17 @@ GTK_3_18_CSS = b"""
 }
 .active-btn{
 }
+
+/* BUFFERS COMMAND LISTING */
+
 .window-label{
 }
 .active-window-label{
 	font-weight : bold;
 }
+
+/* COMMAND LINE STYLE */
+
 #status-line {
 	border: none;
 	font-family: monospace;
@@ -367,7 +394,7 @@ GTK_3_18_CSS = b"""
 	background: lighter(@fg_color);
 	color: @bg_color;
 }
-#hint-higlight {
+.hint-highlight {
 	background: darker(@fg_color);
 }
 #command-input {

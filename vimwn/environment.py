@@ -78,8 +78,9 @@ class Configurations():
 	def get_position(self):
 		return self.parser.get('interface', 'position')
 
+	#TODO how to avoid to need to scape %
 	def get_width(self):
-		return self.parser.getint('interface', 'width')
+		return self.parser.get('interface', 'width')
 
 	def get_css_file(self):
 		try:
