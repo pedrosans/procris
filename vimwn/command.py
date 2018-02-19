@@ -21,10 +21,11 @@ class Command:
 
 	COMMANDS = []
 
-	def __init__(self, name, pattern, function):
+	def __init__(self, name, pattern, test_parameter_partial_match, function):
 		self.name = name
 		self.pattern = re.compile(pattern)
 		self.function = function
+		self.test_parameter_partial_match = test_parameter_partial_match
 
 	def hint_parameters(self, controller, command_parameters):
 		if self.name == 'edit':
@@ -73,23 +74,23 @@ class Command:
 		return re.findall(r'\s*\w+\s*', cmd)[0]
 
 	@staticmethod
-	def map_name_to_function(name, pattern, function):
-		Command.COMMANDS.append(Command(name, pattern, function))
+	def map_name_to_function(name, pattern, test_parameter_partial_match, function):
+		Command.COMMANDS.append(Command(name, pattern, test_parameter_partial_match, function))
 
 	@staticmethod
 	def map_commands(controller, windows):
 		if len(Command.COMMANDS) > 0:
 			raise Exception('Commands were already mapped')
-		Command.map_name_to_function('only',       "^\s*(only|on)\s*$", controller.only )
-		Command.map_name_to_function('edit',       "^\s*(edit|e).*$", controller.edit )
-		Command.map_name_to_function('buffers',       "^\s*(buffers|ls)\s*$", controller.buffers )
-		Command.map_name_to_function('bdelete',       "^\s*(bdelete|bd)\s*$", controller.close_current_buffer )
-		Command.map_name_to_function('bdelete',       "^\s*(bdelete|bd)\s*[0-9]+\s*$", controller.close_indexed_buffer )
-		Command.map_name_to_function('bdelete',       "^\s*(bdelete|bd)\s+\w+\s*$", controller.close_named_buffer )
-		Command.map_name_to_function('buffer',       "^\s*(buffer|b)\s*$", controller.buffer )
-		Command.map_name_to_function('buffer',       "^\s*(buffer|b)\s*[0-9]+\s*$", controller.open_indexed_buffer )
-		Command.map_name_to_function('buffer',       "^\s*(buffer|b)\s+\w+.*$", controller.open_named_buffer )
-		Command.map_name_to_function('centralize', "^\s*(centralize|centralize)\s*$", controller.centralize )
-		Command.map_name_to_function('maximize', "^\s*(maximize|maximize)\s*$", controller.maximize )
-		Command.map_name_to_function('quit',       "^\s*(quit|q)\s*$", controller.quit)
+		Command.map_name_to_function('only',       "^\s*(only|on)\s*$",					False,	controller.only )
+		Command.map_name_to_function('edit',       "^\s*(edit|e).*$",					False,	controller.edit )
+		Command.map_name_to_function('buffers',    "^\s*(buffers|ls)\s*$",				False,	controller.buffers )
+		Command.map_name_to_function('bdelete',    "^\s*(bdelete|bd)\s*$",				True,	controller.close_current_buffer )
+		Command.map_name_to_function('bdelete',    "^\s*(bdelete|bd)\s*[0-9]+\s*$",		True,	controller.close_indexed_buffer )
+		Command.map_name_to_function('bdelete',    "^\s*(bdelete|bd)\s+\w+\s*$",		True,	controller.close_named_buffer )
+		Command.map_name_to_function('buffer',     "^\s*(buffer|b)\s*$",				True,	controller.buffer )
+		Command.map_name_to_function('buffer',     "^\s*(buffer|b)\s*[0-9]+\s*$",		True,	controller.open_indexed_buffer )
+		Command.map_name_to_function('buffer',     "^\s*(buffer|b)\s+\w+.*$",			True,	controller.open_named_buffer )
+		Command.map_name_to_function('centralize', "^\s*(centralize|centralize)\s*$",	False,	controller.centralize )
+		Command.map_name_to_function('maximize',   "^\s*(maximize|maximize)\s*$",		False,	controller.maximize )
+		Command.map_name_to_function('quit',       "^\s*(quit|q)\s*$",					False,	controller.quit)
 

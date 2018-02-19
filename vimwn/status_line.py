@@ -36,6 +36,8 @@ class StatusLine ():
 		self.hinting_command_parameter = False
 		self.highlight_index = -1
 		self.hints = []
+		self.auto_hinting = False
+		self.auto_hints = []
 
 	def clear_state(self):
 		if self.hinting:
@@ -46,6 +48,34 @@ class StatusLine ():
 		self.original_command = None
 		self.original_command_parameter = None
 		self.hints = []
+		self.auto_hinting = False
+		self.auto_hints = []
+
+	def auto_hint(self):
+		if self.auto_hinting:
+			self.clear_state()
+
+		if self.hinting:
+			return
+
+		command = None
+		command_input = self.view.get_command()
+
+		if self.hinting_command_parameter:
+			command = Command.find_command(self.view.get_command())
+			self.auto_hints = command.hint_parameters(self.controller, self.original_command_parameter)
+		else:
+			self.auto_hints = Command.query_commands(self.view.get_command())
+
+		if self.auto_hints and len(self.auto_hints) > 0:
+			selection = -1
+			if (self.view.get_command()
+					and self.view.get_command().strip()
+					and command
+					and command.test_parameter_partial_match):
+				selection = 0
+			self.view.hint(self.auto_hints, selection, None)
+			self.auto_hinting = True
 
 	def hint(self, direction):
 		if self.hinting:

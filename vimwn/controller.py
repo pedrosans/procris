@@ -41,6 +41,7 @@ class Controller ():
 		self.view = NavigatorWindow(self, self.windows)
 		self.status_line = StatusLine(self)
 		self.view.connect("key-press-event", self.on_window_key_press)
+		self.view.entry.connect("key-release-event", self.on_entry_key_release)
 		self.view.entry.connect("key-press-event", self.on_entry_key_press)
 		self.view.entry.connect("activate", self.on_command, None)
 		map_functions(self, self.windows)
@@ -126,6 +127,11 @@ class Controller ():
 					function(event.keyval, event.time)
 				self.windows.commit_navigation(event.time)
 
+	#TODO no auto hints for commands to prevent the 'b' <> 'bdelete' misslead
+	def on_entry_key_release(self, widget, event):
+		self.status_line.auto_hint()
+
+	#TODO if auto hingint, left/right should navigate
 	def on_entry_key_press(self, widget, event):
 		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
 			if event.state & Gdk.ModifierType.SHIFT_MASK:
@@ -153,6 +159,11 @@ class Controller ():
 		cmd = self.view.get_command()
 		time = self.get_current_event_time()
 		command = Command.find_command(cmd)
+
+		if not command and self.status_line.auto_hinting and len(self.status_line.auto_hints) > 0:
+			cmd = self.status_line.auto_hints[0]
+			command = Command.find_command(cmd)
+
 		if command:
 			command.function(cmd, time)
 		else:

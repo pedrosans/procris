@@ -30,7 +30,8 @@ class NavigatorWindow(Gtk.Window):
 
 		self.controller = controller
 		self.windows = windows
-		self.set_size_request(self.controller.configurations.get_width(), -1)
+		self.single_line_view = True
+		self.show_app_name = False
 
 		self.set_keep_above(True)
 		self.set_skip_taskbar_hint(True)
@@ -42,10 +43,11 @@ class NavigatorWindow(Gtk.Window):
 		self.v_box = Gtk.VBox()
 		self.add(self.v_box)
 
-		title = Gtk.Label("vimwn ")
-		title.set_name("vimwn-title")
-		title.set_halign(Gtk.Align.END)
-		self.v_box.pack_start(title, expand=False, fill=False, padding=2)
+		if self.show_app_name:
+			title = Gtk.Label("vimwn ")
+			title.set_name("vimwn-title")
+			title.set_halign(Gtk.Align.END)
+			self.v_box.pack_start(title, expand=False, fill=False, padding=2)
 
 		self.output_box = Gtk.Box(homogeneous=False, spacing=0)
 		self.v_box.pack_start(self.output_box, expand=True, fill=True, padding=0)
@@ -86,7 +88,8 @@ class NavigatorWindow(Gtk.Window):
 			else:
 				self.add_status_text('>', False)
 				break
-		self.set_command(placeholder)
+		if placeholder:
+			self.set_command(placeholder)
 		self.status_box.pack_start(Gtk.Box(), expand=True, fill=True, padding=0)
 		self.v_box.show_all()
 
@@ -100,9 +103,10 @@ class NavigatorWindow(Gtk.Window):
 	def clear_hints(self):
 		self.status_box.get_style_context().remove_class('hint-status-line')
 		for c in self.status_box.get_children(): c.destroy()
-		if not self.controller.listing_windows:
+		if not self.single_line_view and not self.controller.listing_windows:
 			self.add_status_text(' ', False)
 		self.v_box.show_all()
+		#self.hint(['debug', 'debuggreedy', 'delcommand', 'delete'], 1, 'b Term')
 
 	def on_size(self, allocation, data):
 		self._move_to_preferred_position()
@@ -126,12 +130,17 @@ class NavigatorWindow(Gtk.Window):
 		return screen.get_monitor_workarea(monitor_nr)
 
 	def show( self, event_time ):
+		if self.single_line_view:
+			geo = self.get_monitor_geometry()
+			self.set_size_request(geo.width, -1)
+		else:
+			self.set_size_request(self.controller.configurations.get_width(), -1)
+
 		for c in self.output_box.get_children(): c.destroy()
 		for c in self.windows_list_box.get_children(): c.destroy()
 		self.clear_hints()
-		#self.hint(['debug', 'debuggreedy', 'delcommand', 'delete'], 1, 'b Term')
 
-		if self.windows.active:
+		if not self.single_line_view and self.windows.active:
 			self.populate_navigation_options()
 		if self.controller.listing_windows:
 			self.list_windows(event_time)
