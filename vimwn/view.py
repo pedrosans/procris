@@ -165,7 +165,7 @@ class NavigatorWindow(Gtk.Window):
 		self.get_window().focus(event_time)
 
 	def list_navigation_windows(self):
-		if self.controller.reading_command:
+		if self.controller.reading_command or self.controller.listing_windows:
 			return
 		self.status_box.get_style_context().add_class('hint-status-line')
 		for c in self.status_box.get_children(): c.destroy()
