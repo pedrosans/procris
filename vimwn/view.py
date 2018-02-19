@@ -59,7 +59,7 @@ class NavigatorWindow(Gtk.Window):
 		self.v_box.pack_start(self.status_box, expand=True, fill=True, padding=0)
 
 		self.entry = Gtk.Entry()
-		self.entry.set_name("command-input")
+		self.entry.get_style_context().add_class('command-input')
 		self.entry.set_overwrite_mode(True)
 		self.v_box.pack_start(self.entry, expand=True, fill=True, padding=0)
 
@@ -197,8 +197,9 @@ class NavigatorWindow(Gtk.Window):
 
 			icon = Gtk.Image()
 			icon.set_from_pixbuf( window.get_mini_icon() )
-			icon.set_valign(Gtk.Align.START)
-			line.pack_start(icon, expand=False, fill=True, padding=0)
+			icon.get_style_context().add_class('application-icon')
+			#icon.set_valign(Gtk.Align.START)
+			line.pack_start(icon, expand=False, fill=True, padding=1)
 
 			index = 1 + self.windows.buffers.index(window)
 			WINDOW_COLUMN = buffer_columns - 16
@@ -210,9 +211,9 @@ class NavigatorWindow(Gtk.Window):
 			label.set_max_width_chars(buffer_columns)
 			label.get_layout().set_ellipsize(Pango.EllipsizeMode.END)
 			label.set_ellipsize(Pango.EllipsizeMode.END)
-			label.get_style_context().add_class("window-label")
+			label.get_style_context().add_class('buffer-description')
 			if self.windows.active == window:
-				label.get_style_context().add_class("active-window-label")
+				label.get_style_context().add_class('active-buffer-description')
 			line.pack_start(label, expand=False, fill=False, padding=0)
 
 	def _render_command_line(self):
@@ -237,7 +238,7 @@ class NavigatorWindow(Gtk.Window):
 
 	def _on_window_realize(self, widget):
 		css_file = self.controller.configurations.get_css_file()
-		if css_file and False:
+		if css_file:
 			f = open(css_file, 'r')
 			s = f.read()
 			f.close()
@@ -273,8 +274,6 @@ class WindowBtn(Gtk.Button):
 		icon = Gtk.Image()
 		icon.set_from_pixbuf( window.get_icon() )
 		self.add(icon)
-		if window is controller.windows.active:
-			self.get_style_context().add_class("active-btn")
 		self.connect("clicked", self.on_clicked)
 
 	def on_clicked(self, btn):
@@ -306,7 +305,8 @@ class StatusBox(Gtk.Box):
 		if self.page_items + 2 > self.page_size:
 			return
 		icon = Gtk.Image()
-		icon.get_style_context().add_class('status-icon')
+		icon.get_style_context().add_class('application-icon')
+		icon.get_style_context().add_class('status-application-icon')
 		icon.set_from_pixbuf( window.get_mini_icon() )
 		if highlight:
 			icon.get_style_context().add_class('hint-highlight')
@@ -327,7 +327,6 @@ class StatusBox(Gtk.Box):
 				break
 		self.show_all()
 
-#	font-size: small;
 GTK_3_18_CSS = b"""
 * {
 	box-shadow: initial;
@@ -346,13 +345,19 @@ GTK_3_18_CSS = b"""
 	outline-style: initial;
 	outline-width: initial;
 	outline-offset: initial;
-	font-family: monospace;
 	transition-property: initial;
 	transition-duration: initial;
 	transition-timing-function: initial;
 	transition-delay: initial;
 	padding: 0;
 	margin: 0;
+	background: @fg_color;
+	color: @bg_color;
+	font-family: 'DroidSansMono Nerd Font Mono', monospace;
+}
+.application-icon{
+	padding: 0 1px;
+	border: none;
 }
 #vimwn-title {
 	background: @bg_color;
@@ -362,59 +367,45 @@ GTK_3_18_CSS = b"""
 }
 
 /* WINDOW BUTTON */
-
 .window-relative-number {
 	border: none;
 	padding: 2px 0;
-	margin: 0;
-	font-family: monospace;
 }
 .window-btn{
 	padding: 4px;
 	border: 1px solid transparent;
 	border-radius: 4px;
-	background: @bg_color;
-}
-.window-btn:hover {
-	background: @selected_bg_color;
-}
-.active-btn{
 }
 
-/* BUFFERS COMMAND LISTING */
-
-.window-label{
+/* BUFFERS LIST */
+.buffer-description{
 }
-.active-window-label{
-	font-weight : bold;
+.active-buffer-description{
 }
 
-/* COMMAND LINE STYLE */
-
-#status-line {
+/* STATUS LINE STYLE */
+.status-line {
 	border: none;
-	font-family: monospace;
+	background: lighter(@fg_color);
 }
 .status-text{
 	border: none;
 	padding: 2px 0;
-	margin: 0;
-}
-.hint-status-line {
 	background: lighter(@fg_color);
-	color: @bg_color;
+}
+.status-application-icon {
+	background: lighter(@fg_color);
 }
 .hint-highlight {
 	background: darker(@fg_color);
 }
-#command-input {
+
+/* COMMAND LINE STYLE */
+.command-input {
 	border: none;
-	font-family: monospace;
 	padding: 2px;
-	margin: 0;
 }
 .input-ready{
-	background: @bg_color;
 }
 .error-message{
 	background: red;
