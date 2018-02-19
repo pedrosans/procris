@@ -64,8 +64,22 @@ class NavigatorWindow(Gtk.Window):
 		self.v_box.pack_start(self.entry, expand=True, fill=True, padding=0)
 
 		self.connect("realize", self._on_window_realize)
-		#self.set_position(Gtk.WindowPosition.CENTER_ALWAYS)
-		self.connect("size-allocate", self.on_size)
+		self.connect("size-allocate", self._move_to_preferred_position)
+
+	def _move_to_preferred_position(self, allocation, data):
+		geo = self.get_monitor_geometry()
+		wid, hei = self.get_size()
+		midx = geo.x + geo.width / 2 - wid / 2
+		if self.controller.configurations.get_position() == 'top':
+			self.set_gravity(Gdk.Gravity.NORTH_WEST)
+			midy = geo.y
+		elif self.controller.configurations.get_position() == 'center':
+			self.set_gravity(Gdk.Gravity.SOUTH_WEST)
+			midy = geo.y + geo.height / 2
+		else:
+			self.set_gravity(Gdk.Gravity.SOUTH_WEST)
+			midy = geo.y + geo.height
+		self.move(midx, midy)
 
 	def hint(self, hints, higlight_index, placeholder):
 		self.status_box.show(hints, higlight_index)
@@ -103,21 +117,6 @@ class NavigatorWindow(Gtk.Window):
 		char_size = layout.get_pixel_extents().logical_rect.width
 		self.columns = int(self.window_width / char_size)
 		self.status_box.page_size = self.columns
-
-	def on_size(self, allocation, data):
-		self._move_to_preferred_position()
-
-	def _move_to_preferred_position(self):
-		geo = self.get_monitor_geometry()
-		wid, hei = self.get_size()
-		midx = geo.x + geo.width / 2 - wid / 2
-		if self.controller.configurations.get_position() == 'center':
-			midy = geo.y + geo.height / 2- hei
-		elif self.controller.configurations.get_position() == 'top':
-			midy = geo.y
-		else:
-			midy = geo.y + geo.height - hei
-		self.move(midx, midy)
 
 	def get_monitor_geometry(self):
 		display = self.get_display()
