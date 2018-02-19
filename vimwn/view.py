@@ -188,9 +188,10 @@ class NavigatorWindow(Gtk.Window):
 			line.pack_start(column_box, expand=False, fill=False, padding=4)
 
 	def list_windows(self, time):
-		buffer_columns = self.columns - 5
+		buffer_columns = self.columns - 4
 		lines = Gtk.VBox();
 		self.windows_list_box.pack_start(lines, expand=True, fill=True, padding=10)
+		top, below = self.windows.get_top_two_windows()
 		for window in self.windows.buffers:
 			line = Gtk.HBox(homogeneous=False, spacing=0)
 			lines.pack_start(line, expand=False, fill=True, padding=1)
@@ -202,9 +203,15 @@ class NavigatorWindow(Gtk.Window):
 			line.pack_start(icon, expand=False, fill=True, padding=1)
 
 			index = 1 + self.windows.buffers.index(window)
-			WINDOW_COLUMN = buffer_columns - 16
-			window_name = window.get_name().ljust(WINDOW_COLUMN)[:WINDOW_COLUMN]
-			name = '{:>2} '.format(index) + window_name + ' {:12}'.format(window.get_workspace().get_name().lower())
+			WINDOW_COLUMN = buffer_columns - 19
+			window_name = window.get_name()
+			window_name = window_name.ljust(WINDOW_COLUMN)[:WINDOW_COLUMN]
+			flags = ''
+			if window is top:
+				flags += 'a'
+			elif window is below:
+				flags = '#'
+			name = '{:>2} {:2} {} {:12}'.format(index, flags, window_name, window.get_workspace().get_name().lower())
 
 			label = Gtk.Label(name)
 			label.set_valign(Gtk.Align.END)
