@@ -27,7 +27,7 @@ class NavigatorWindow(Gtk.Window):
 
 		self.controller = controller
 		self.windows = windows
-		self.single_line_view = True
+		self.single_line_view = self.controller.configurations.is_compact_interface()
 		self.show_app_name = False
 
 		self.set_keep_above(True)
@@ -200,8 +200,7 @@ class NavigatorWindow(Gtk.Window):
 			icon = Gtk.Image()
 			icon.set_from_pixbuf( window.get_mini_icon() )
 			icon.get_style_context().add_class('application-icon')
-			#icon.set_valign(Gtk.Align.START)
-			line.pack_start(icon, expand=False, fill=True, padding=1)
+			line.pack_start(icon, expand=False, fill=True, padding=0)
 
 			index = 1 + self.windows.buffers.index(window)
 			WINDOW_COLUMN = buffer_columns - 19

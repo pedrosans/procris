@@ -66,6 +66,12 @@ class Configurations():
 	def is_list_workspaces(self):
 		return self.parser.getboolean('interface', 'list_workspaces')
 
+	def is_compact_interface(self):
+		try:
+			return self.parser.getboolean('interface', 'compact')
+		except configparser.NoOptionError:
+			return False
+
 	def get_prefix_key(self):
 		return self.parser.get('interface', 'prefix_key')
 
