@@ -18,8 +18,8 @@ import os, glob, gi, configparser
 import xdg.DesktopEntry
 import xdg.Exceptions
 from gi.repository import GLib
-from kupfer import desktop_parse
-from kupfer import desktop_launch
+from vimwn import desktop_parse
+from vimwn import desktop_launch
 from configparser import SafeConfigParser
 
 APPS_GLOB = [
