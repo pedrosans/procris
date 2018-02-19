@@ -18,6 +18,7 @@ import gi, io
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango
 
+#TODO show 'no name' active buffer if no active window at the buffers list
 class NavigatorWindow(Gtk.Window):
 
 	def __init__(self, controller, windows):
@@ -40,12 +41,6 @@ class NavigatorWindow(Gtk.Window):
 		self.v_box = Gtk.VBox()
 		self.add(self.v_box)
 
-		if self.show_app_name:
-			title = Gtk.Label("vimwn ")
-			title.set_name("vimwn-title")
-			title.set_halign(Gtk.Align.END)
-			self.v_box.pack_start(title, expand=False, fill=False, padding=2)
-
 		self.output_box = Gtk.Box(homogeneous=False, spacing=0)
 		self.v_box.pack_start(self.output_box, expand=True, fill=True, padding=0)
 
@@ -63,25 +58,25 @@ class NavigatorWindow(Gtk.Window):
 		self.connect("realize", self._on_window_realize)
 		self.connect("size-allocate", self._move_to_preferred_position)
 
-	def _move_to_preferred_position(self, allocation, data):
-		geo = self.get_monitor_geometry()
-		wid, hei = self.get_size()
-		midx = geo.x + geo.width / 2 - wid / 2
-		if self.controller.configurations.get_position() == 'top':
-			self.set_gravity(Gdk.Gravity.NORTH_WEST)
-			midy = geo.y
-		elif self.controller.configurations.get_position() == 'center':
-			self.set_gravity(Gdk.Gravity.SOUTH_WEST)
-			midy = geo.y + geo.height / 2
-		else:
-			self.set_gravity(Gdk.Gravity.SOUTH_WEST)
-			midy = geo.y + geo.height
-		self.move(midx, midy)
-
-	def hint(self, hints, higlight_index, placeholder):
+	def hint(self, hints, higlight_index, comple_command):
+		"""
+		Show hints of a command or paramter based on the
+		hints array, plus auto complete the current input
+		if any comple command
+		"""
 		self.status_box.show(hints, higlight_index)
-		if placeholder:
-			self.set_command(placeholder)
+		if comple_command:
+			self.set_command(comple_command)
+
+	def clear_hints_state(self):
+		"""
+		Clear the status line and renders it again, so
+		any change in the hints listing can be shown
+		"""
+		self.status_box.clear_status_line()
+		if not self.controller.listing_windows:
+			self.status_box.add_status_text(' ', False)
+		self.status_box.show_all()
 
 	def get_command(self):
 		return self.entry.get_text()[1:]
@@ -90,59 +85,30 @@ class NavigatorWindow(Gtk.Window):
 		self.entry.set_text(':'+cmd)
 		self.entry.set_position(len(self.entry.get_text()))
 
-	def clear_state(self):
-		width_config = self.controller.configurations.get_width()
-		if '100%' == width_config:
-			self.window_width = self.get_monitor_geometry().width
-		else:
-			self.window_width = int(width_config)
-		self.set_size_request(self.window_width, -1)
-
-		for c in self.output_box.get_children(): c.destroy()
-		for c in self.windows_list_box.get_children(): c.destroy()
-		self.clear_hints_state()
-
-		self.v_box.show_all()
-
-	def clear_hints_state(self):
-		self.status_box.clear_state()
-		if not self.controller.listing_windows:
-			self.status_box.add_status_text(' ', False)
-		self.v_box.show_all()
-
-	def calculate_width(self):
-		layout = self.entry.create_pango_layout("W")
-		layout.set_font_description(self.entry.get_style_context().get_font(Gtk.StateFlags.NORMAL))
-		char_size = layout.get_pixel_extents().logical_rect.width
-		self.columns = int(self.window_width / char_size)
-		self.status_box.page_size = self.columns
-
 	def get_monitor_geometry(self):
 		display = self.get_display()
 		screen, x, y, modifiers = display.get_pointer()
 		monitor_nr = screen.get_monitor_at_point(x, y)
 		return screen.get_monitor_workarea(monitor_nr)
 
-	def show( self, event_time ):
-		self.clear_state()
+	def show(self, event_time ):
+		for c in self.output_box.get_children(): c.destroy()
+		for c in self.windows_list_box.get_children(): c.destroy()
+
+		self.present_with_time(event_time)
+		self._calculate_width()
+		self.clear_hints_state()
 
 		if self.controller.listing_windows:
 			self.list_windows(event_time)
 
 		self._render_command_line()
 
-		self.v_box.show_all()
-		self.stick()
-		self.present_with_time(event_time)
-		self.calculate_width()
-
 		if self.windows.active:
 			if self.single_line_view:
 				self.list_navigation_windows()
 			else:
 				self.populate_navigation_options()
-		else:
-			self.status_box.add_status_text(' ', False)
 
 		self.v_box.show_all()
 		self.get_window().focus(event_time)
@@ -155,22 +121,11 @@ class NavigatorWindow(Gtk.Window):
 			name = window.get_name()
 			name = truncated_hint = (name[:8] + '..') if len(name) > 10 else name
 			if window is not self.windows.active:
-				name = self.navigation_index(window) + ' ' + name
+				name = self._navigation_index(window) + ' ' + name
 			active = window is self.windows.active
 			self.status_box.add_status_icon(window, active)
 			self.status_box.add_status_text(name, active)
 			self.status_box.add_status_text(' ', False)
-
-	def navigation_index(self, window):
-		length = len(self.windows.x_line)
-		start_position = self.windows.x_line.index(self.windows.active)
-		multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
-		if multiplier == 0:
-			return ''
-		if multiplier == 1:
-			return 'w'
-		else:
-			return str(multiplier) + 'w'
 
 	def populate_navigation_options(self):
 		line = Gtk.HBox(homogeneous=False, spacing=0);
@@ -182,7 +137,7 @@ class NavigatorWindow(Gtk.Window):
 			column_box.set_valign(Gtk.Align.CENTER)
 			column_box.pack_start(WindowBtn(self.controller, window), expand=False, fill=False, padding=2)
 
-			navigation_hint = Gtk.Label(self.navigation_index(window))
+			navigation_hint = Gtk.Label(self._navigation_index(window))
 			navigation_hint.get_style_context().add_class('window-relative-number')
 			column_box.pack_start(navigation_hint, expand=False, fill=False, padding=0)
 
@@ -208,7 +163,7 @@ class NavigatorWindow(Gtk.Window):
 			window_name = window_name.ljust(WINDOW_COLUMN)[:WINDOW_COLUMN]
 			flags = ''
 			if window is top:
-				flags += 'a'
+				flags += '%a'
 			elif window is below:
 				flags = '#'
 			name = '{:>2} {:2} {} {:12}'.format(index, flags, window_name, window.get_workspace().get_name().lower())
@@ -243,6 +198,46 @@ class NavigatorWindow(Gtk.Window):
 				else:
 					self.entry.set_position(-1)
 
+	def _navigation_index(self, window):
+		length = len(self.windows.x_line)
+		start_position = self.windows.x_line.index(self.windows.active)
+		multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
+		if multiplier == 0:
+			return ''
+		if multiplier == 1:
+			return 'w'
+		else:
+			return str(multiplier) + 'w'
+
+	def _calculate_width(self):
+		width_config = self.controller.configurations.get_width()
+		if '100%' == width_config:
+			self.window_width = self.get_monitor_geometry().width
+		else:
+			self.window_width = int(width_config)
+		self.set_size_request(self.window_width, -1)
+
+		layout = self.entry.create_pango_layout("W")
+		layout.set_font_description(self.entry.get_style_context().get_font(Gtk.StateFlags.NORMAL))
+		char_size = layout.get_pixel_extents().logical_rect.width
+		self.columns = int(self.window_width / char_size)
+		self.status_box.page_size = self.columns
+
+	def _move_to_preferred_position(self, allocation, data):
+		geo = self.get_monitor_geometry()
+		wid, hei = self.get_size()
+		midx = geo.x + geo.width / 2 - wid / 2
+		if self.controller.configurations.get_position() == 'top':
+			self.set_gravity(Gdk.Gravity.NORTH_WEST)
+			midy = geo.y
+		elif self.controller.configurations.get_position() == 'center':
+			self.set_gravity(Gdk.Gravity.SOUTH_WEST)
+			midy = geo.y + geo.height / 2
+		else:
+			self.set_gravity(Gdk.Gravity.SOUTH_WEST)
+			midy = geo.y + geo.height
+		self.move(midx, midy)
+
 	def _on_window_realize(self, widget):
 		css_file = self.controller.configurations.get_css_file()
 		if css_file:
@@ -274,6 +269,7 @@ class WindowBtn(Gtk.Button):
 	def on_clicked(self, btn):
 		self.window.activate_transient(self.controller.get_current_event_time())
 
+#TODO rename to status line
 class StatusBox(Gtk.Box):
 
 	def __init__(self):
@@ -282,7 +278,7 @@ class StatusBox(Gtk.Box):
 		self.page_size = -1
 		self.page_items = 0
 
-	def clear_state(self):
+	def clear_status_line(self):
 		self.page_items = 0
 		for c in self.get_children(): c.destroy()
 
@@ -309,7 +305,7 @@ class StatusBox(Gtk.Box):
 		self.page_items += 2
 
 	def show(self, hints, higlight_index):
-		self.clear_state()
+		self.clear_status_line()
 		width = 0
 		for hint in hints:
 			truncated_hint = (hint[:50] + '..') if len(hint) > 75 else hint
@@ -353,12 +349,6 @@ GTK_3_18_CSS = b"""
 .application-icon{
 	padding: 0 1px;
 	border: none;
-}
-#vimwn-title {
-	background: @bg_color;
-	font-weight : bold;
-	font-family: sans;
-	font-size: 10px;
 }
 
 /* WINDOW BUTTON */
