@@ -62,8 +62,10 @@ class Controller ():
 			if not Keybinder.bind(hotkey, self.handle_prefix_key, None):
 				raise Exception("Could not bind the hotkey: " + hotkey, file=sys.stderr)
 
-		if not Keybinder.bind(command_prefix, self.handle_command_prefix_key, None):
-			raise Exception("Could not bind the command prefix key: " + command_prefix, file=sys.stderr)
+		if command_prefix:
+			bound = Keybinder.bind(command_prefix, self.handle_command_prefix_key, None)
+			if not bound:
+				raise Exception("Could not bind the command prefix key: " + command_prefix, file=sys.stderr)
 
 		self.view.connect("focus-out-event", self.hide_ui)
 		print("Listening keys: '{}', '{}' pid: {} ".format(normal_prefix, command_prefix, os.getpid()))
