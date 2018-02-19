@@ -27,6 +27,7 @@ from vimwn.command import Command
 
 KEY_FUNCTIONS = {}
 
+#TODO chain commands
 class Controller ():
 
 	def __init__(self):

@@ -14,12 +14,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-#map <F2> :!sh -xc './bin/vimwn --open'<CR>
-#TODO don't allow the entry to loose it focus
 import gi, io
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango
-
 
 class NavigatorWindow(Gtk.Window):
 
@@ -144,6 +141,8 @@ class NavigatorWindow(Gtk.Window):
 				self.list_navigation_windows()
 			else:
 				self.populate_navigation_options()
+		else:
+			self.status_box.add_status_text(' ', False)
 
 		self.v_box.show_all()
 		self.get_window().focus(event_time)
@@ -152,49 +151,51 @@ class NavigatorWindow(Gtk.Window):
 		if self.controller.reading_command or self.controller.listing_windows:
 			return
 		for c in self.status_box.get_children(): c.destroy()
-
-		start_position = self.windows.x_line.index(self.windows.active)
-		length = len(self.windows.x_line)
 		for window in self.windows.x_line:
 			name = window.get_name()
 			name = truncated_hint = (name[:8] + '..') if len(name) > 10 else name
-
-			multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
-			nav_index = "" if multiplier == 0 else str(multiplier) + "w "
-			nav_index += '' + name
-			self.status_box.add_status_icon(window, multiplier == 0)
-			self.status_box.add_status_text(' ', multiplier == 0)
-			self.status_box.add_status_text(nav_index, multiplier == 0)
+			if window is not self.windows.active:
+				name = self.navigation_index(window) + ' ' + name
+			active = window is self.windows.active
+			self.status_box.add_status_icon(window, active)
+			self.status_box.add_status_text(name, active)
 			self.status_box.add_status_text(' ', False)
 
+	def navigation_index(self, window):
+		length = len(self.windows.x_line)
+		start_position = self.windows.x_line.index(self.windows.active)
+		multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
+		if multiplier == 0:
+			return ''
+		if multiplier == 1:
+			return 'w'
+		else:
+			return str(multiplier) + 'w'
 
 	def populate_navigation_options(self):
 		line = Gtk.HBox(homogeneous=False, spacing=0);
 		line.set_halign(Gtk.Align.CENTER)
 		self.output_box.pack_start(line, expand=True, fill=True, padding=0)
 
-		start_position = self.windows.x_line.index(self.windows.active)
-		length = len(self.windows.x_line)
 		for window in self.windows.x_line:
 			column_box = Gtk.VBox(homogeneous=False, spacing=0)
 			column_box.set_valign(Gtk.Align.CENTER)
 			column_box.pack_start(WindowBtn(self.controller, window), expand=False, fill=False, padding=2)
 
-			multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
-			navigation_hint = Gtk.Label("." if multiplier == 0 else str(multiplier) + "w")
+			navigation_hint = Gtk.Label(self.navigation_index(window))
 			navigation_hint.get_style_context().add_class('window-relative-number')
 			column_box.pack_start(navigation_hint, expand=False, fill=False, padding=0)
 
 			line.pack_start(column_box, expand=False, fill=False, padding=4)
 
 	def list_windows(self, time):
-		buffer_columns = self.columns - 4
+		buffer_columns = self.columns - 3
 		lines = Gtk.VBox();
-		self.windows_list_box.pack_start(lines, expand=True, fill=True, padding=10)
+		self.windows_list_box.pack_start(lines, expand=True, fill=True, padding=0)
 		top, below = self.windows.get_top_two_windows()
 		for window in self.windows.buffers:
 			line = Gtk.HBox(homogeneous=False, spacing=0)
-			lines.pack_start(line, expand=False, fill=True, padding=1)
+			lines.pack_start(line, expand=False, fill=True, padding=0)
 
 			icon = Gtk.Image()
 			icon.set_from_pixbuf( window.get_mini_icon() )
@@ -248,29 +249,17 @@ class NavigatorWindow(Gtk.Window):
 		if css_file:
 			f = open(css_file, 'r')
 			s = f.read()
+			self.apply_css(bytes(s, 'utf-8'))
 			f.close()
-			css_provider = Gtk.CssProvider()
-			css_provider.load_from_data(bytes(s, 'utf-8'))
-			Gtk.StyleContext.add_provider_for_screen(
-				self.get_screen(), css_provider,
-				Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-			)
 		else:
-			gtk_3_18_style_provider = Gtk.CssProvider()
-			gtk_3_18_style_provider.load_from_data(GTK_3_18_CSS)
-			Gtk.StyleContext.add_provider_for_screen(
-				self.get_screen(),
-				gtk_3_18_style_provider,
-				Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-			)
+			self.apply_css(GTK_3_18_CSS)
 			if Gtk.get_major_version() >= 3 and Gtk.get_minor_version() >= 20:
-				gtk_3_20_style_provider = Gtk.CssProvider()
-				gtk_3_20_style_provider.load_from_data(GTK_3_20_CSS)
-				Gtk.StyleContext.add_provider_for_screen(
-					self.get_screen(),
-					gtk_3_20_style_provider,
-					Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION
-				)
+				self.apply_css(GTK_3_20_CSS)
+
+	def apply_css(self, css):
+		provider = Gtk.CssProvider()
+		provider.load_from_data(css)
+		Gtk.StyleContext.add_provider_for_screen(self.get_screen(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
 class WindowBtn(Gtk.Button):
 	def __init__(self, controller, window):
