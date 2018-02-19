@@ -102,11 +102,13 @@ class NavigatorWindow(Gtk.Window):
 		self.set_size_request(self.window_width, -1)
 
 		for c in self.output_box.get_children(): c.destroy()
-		for c in self.status_box.get_children(): c.destroy()
 		for c in self.windows_list_box.get_children(): c.destroy()
+		self.clear_hints_state()
 
-		#TODO remove hint related style
-		self.status_box.get_style_context().remove_class('hint-status-line')
+		self.v_box.show_all()
+
+	def clear_hints_state(self):
+		self.status_box.clear_state()
 		if not self.controller.listing_windows:
 			self.status_box.add_status_text(' ', False)
 		self.v_box.show_all()
@@ -149,22 +151,21 @@ class NavigatorWindow(Gtk.Window):
 	def list_navigation_windows(self):
 		if self.controller.reading_command or self.controller.listing_windows:
 			return
-		self.status_box.get_style_context().add_class('hint-status-line')
 		for c in self.status_box.get_children(): c.destroy()
 
 		start_position = self.windows.x_line.index(self.windows.active)
 		length = len(self.windows.x_line)
 		for window in self.windows.x_line:
 			name = window.get_name()
-			name = truncated_hint = (name[:15] + '...') if len(name) > 18 else name
+			name = truncated_hint = (name[:8] + '..') if len(name) > 10 else name
 
 			multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
-			nav_index = "" if multiplier == 0 else str(multiplier) + "w - "
+			nav_index = "" if multiplier == 0 else str(multiplier) + "w "
 			nav_index += '' + name
 			self.status_box.add_status_icon(window, multiplier == 0)
 			self.status_box.add_status_text(' ', multiplier == 0)
 			self.status_box.add_status_text(nav_index, multiplier == 0)
-			self.status_box.add_status_text('  ', False)
+			self.status_box.add_status_text(' ', False)
 
 
 	def populate_navigation_options(self):
@@ -283,26 +284,37 @@ class StatusBox(Gtk.Box):
 
 	def __init__(self):
 		Gtk.Box.__init__(self, homogeneous=False, spacing=0)
-		self.set_name("status-line")
+		self.get_style_context().add_class('status-line')
 		self.page_size = -1
+		self.page_items = 0
+
+	def clear_state(self):
+		self.page_items = 0
+		for c in self.get_children(): c.destroy()
 
 	def add_status_text(self, text, highlight):
+		if self.page_items + len(text) > self.page_size:
+			return
 		l = Gtk.Label(text)
 		l.get_style_context().add_class('status-text')
 		if highlight:
 			l.get_style_context().add_class('hint-highlight')
 		self.pack_start(l, expand=False, fill=False, padding=0)
+		self.page_items += len(text)
 
 	def add_status_icon(self, window, highlight):
+		if self.page_items + 2 > self.page_size:
+			return
 		icon = Gtk.Image()
+		icon.get_style_context().add_class('status-icon')
 		icon.set_from_pixbuf( window.get_mini_icon() )
 		if highlight:
 			icon.get_style_context().add_class('hint-highlight')
 		self.pack_start(icon, expand=False, fill=False, padding=0)
+		self.page_items += 2
 
 	def show(self, hints, higlight_index):
-		self.get_style_context().add_class('hint-status-line')
-		for c in self.get_children(): c.destroy()
+		self.clear_state()
 		width = 0
 		for hint in hints:
 			truncated_hint = (hint[:50] + '..') if len(hint) > 75 else hint
@@ -313,7 +325,6 @@ class StatusBox(Gtk.Box):
 			else:
 				self.add_status_text('>', False)
 				break
-		self.pack_start(Gtk.Box(), expand=True, fill=True, padding=0)
 		self.show_all()
 
 #	font-size: small;

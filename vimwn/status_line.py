@@ -40,7 +40,7 @@ class StatusLine ():
 
 	def clear_state(self):
 		if self.hinting or self.auto_hinting:
-			self.view.clear_hints()
+			self.view.clear_hints_state()
 		self.hinting = False
 		self.hinting_command_parameter = False
 		self.highlight_index = -1
@@ -50,6 +50,7 @@ class StatusLine ():
 		self.auto_hinting = False
 		self.auto_hints = []
 
+	#TODO move the view calls to controller
 	def auto_hint(self):
 		if self.hinting:
 			return
