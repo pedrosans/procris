@@ -23,8 +23,9 @@ from configparser import SafeConfigParser
 VIMWN_DESKTOP='vimwn.desktop'
 VIMWN_PACKAGE='vimwn'
 DEFAULT_LOG_FILE='/var/log/vimwn.log'
-DEFAULT_HOTKEYS='<ctrl>q'
+DEFAULT_PREFIX_KEY='<ctrl>q'
 DEFAULT_LIST_WORKSPACES='true'
+DEFAULT_COMPACT_OPTION='false'
 DEFAULT_POSITION='bottom'
 DEFAULT_WIDTH='800'
 
@@ -48,7 +49,10 @@ class Configurations():
 			self.parser.add_section('interface')
 			need_write = True
 		if not self.parser.has_option('interface', 'prefix_key'):
-			self.parser.set('interface', 'prefix_key', DEFAULT_HOTKEYS)
+			self.parser.set('interface', 'prefix_key', DEFAULT_PREFIX_KEY)
+			need_write = True
+		if not self.parser.has_option('interface', 'compact'):
+			self.parser.set('interface', 'compact', DEFAULT_COMPACT_OPTION)
 			need_write = True
 		if not self.parser.has_option('interface', 'list_workspaces'):
 			self.parser.set('interface', 'list_workspaces', DEFAULT_LIST_WORKSPACES)
