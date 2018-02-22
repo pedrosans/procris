@@ -33,6 +33,7 @@ class Controller ():
 	def __init__(self):
 		self.configurations = Configurations()
 		self.reading_command = False
+		self.reading_multiple_commands = False
 		self.listing_windows = False
 		self.multiplier = ""
 		self.status_message = '^W'
@@ -99,6 +100,7 @@ class Controller ():
 	def clear_command_ui_state(self):
 		self.status_line.clear_state()
 		self.reading_command = False
+		self.reading_multiple_commands = False
 		self.multiplier = ""
 		self.status_message = None
 		self.status_level = None
@@ -134,18 +136,18 @@ class Controller ():
 	#TODO no auto hints for commands to prevent the 'b' <> 'bdelete' misslead
 	def on_entry_key_release(self, widget, event):
 		if self.view.entry.get_text().strip():
-			self.status_line.auto_hint()
+			self.status_line.auto_hint(self.view.get_command())
 		else:
 			self.clear_command_ui_state()
 			self.view.show(event.time)
 
-	#TODO if auto hingint, left/right should navigate
 	def on_entry_key_press(self, widget, event):
+		text = self.view.get_command()
 		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
 			if event.state & Gdk.ModifierType.SHIFT_MASK:
-				return self.status_line.hint(-1)
+				return self.status_line.hint(text, -1)
 			else:
-				return self.status_line.hint(1)
+				return self.status_line.hint(text, 1)
 
 		if self.status_line.hinting:
 			if event.keyval in [Gdk.KEY_Left, Gdk.KEY_Up]:
@@ -164,17 +166,22 @@ class Controller ():
 	def on_command(self, pane_owner, current):
 		if not self.reading_command:
 			return
+
 		cmd = self.view.get_command()
+
+		if Command.has_multiple_commands(cmd):
+			self.reading_multiple_commands = True
+			#TODO iterate multiple commands
+
 		time = self.get_current_event_time()
 		command = Command.find_command(cmd)
-		has_auto_hint = self.status_line.auto_hinting and len(self.status_line.auto_hints) > 0
+		has_auto_hint = (
+				self.status_line.auto_hinting
+				and len(self.status_line.auto_hints) > 0 )
 
-		if has_auto_hint:
-			if not command:
-				cmd = self.status_line.auto_hints[0]
-				command = Command.find_command(cmd)
-			elif self.status_line.hinting_command_parameter:
-				cmd = command.name + ' ' + self.status_line.auto_hints[0]
+		if has_auto_hint and not command:
+			cmd = self.status_line.auto_hints[0]
+			command = Command.find_command(cmd)
 
 		if command:
 			command.function(cmd, time)

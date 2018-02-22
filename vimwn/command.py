@@ -20,6 +20,7 @@ import re
 class Command:
 
 	COMMANDS = []
+	MULTIPLE_COMMANDS_PATTERN = re.compile(r'.*[^\\]\|.*')
 
 	def __init__(self, name, pattern, test_parameter_partial_match, function):
 		self.name = name
@@ -32,6 +33,10 @@ class Command:
 			return controller.applications.query_names(command_parameters)
 		elif self.name in ['buffer']:
 			return controller.windows.query_names(command_parameters)
+
+	@staticmethod
+	def has_multiple_commands(command_input):
+		return Command.MULTIPLE_COMMANDS_PATTERN.match(command_input)
 
 	@staticmethod
 	def find_command(command_input):
