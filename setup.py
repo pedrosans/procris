@@ -12,4 +12,7 @@ setup(name='vimwn',
 	classifiers=['License :: GPL3'],
 	packages=['vimwn'],
 	scripts=['bin/vimwn'],
+	data_files=[
+		('/usr/share/bash-completion/completions/', ['data/completion/vimwn']),
+	],
 )
