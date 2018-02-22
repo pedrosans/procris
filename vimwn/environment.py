@@ -35,7 +35,7 @@ class Configurations():
 		autostart_dir = base.save_config_path("autostart")
 		self.autostart_file = os.path.join(autostart_dir, VIMWN_DESKTOP)
 
-		self.parser = SafeConfigParser()
+		self.parser = SafeConfigParser(interpolation=None)
 		self.parser.read(self.get_config_file())
 		need_write = False
 		if not self.parser.has_section('service'):

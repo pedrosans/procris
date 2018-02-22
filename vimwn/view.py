@@ -57,6 +57,7 @@ class NavigatorWindow(Gtk.Window):
 
 		self.connect("realize", self._on_window_realize)
 		self.connect("size-allocate", self._move_to_preferred_position)
+		self.set_gravity(Gdk.Gravity.NORTH_WEST)
 
 	def hint(self, hints, higlight_index, comple_command):
 		"""
@@ -119,9 +120,10 @@ class NavigatorWindow(Gtk.Window):
 		for c in self.status_box.get_children(): c.destroy()
 		for window in self.windows.x_line:
 			name = window.get_name()
-			name = truncated_hint = (name[:8] + '..') if len(name) > 10 else name
+			name = ' ' + ((name[:8] + '..') if len(name) > 10 else name)
+			name = self._navigation_index(window) + name
 			if window is not self.windows.active:
-				name = self._navigation_index(window) + ' ' + name
+				name = ' ' + name
 			active = window is self.windows.active
 			self.status_box.add_status_icon(window, active)
 			self.status_box.add_status_text(name, active)
@@ -144,7 +146,7 @@ class NavigatorWindow(Gtk.Window):
 			line.pack_start(column_box, expand=False, fill=False, padding=4)
 
 	def list_windows(self, time):
-		buffer_columns = self.columns - 3
+		buffer_columns = min(100, self.columns - 3)
 		lines = Gtk.VBox();
 		self.windows_list_box.pack_start(lines, expand=True, fill=True, padding=0)
 		top, below = self.windows.get_top_two_windows()
@@ -157,15 +159,14 @@ class NavigatorWindow(Gtk.Window):
 			icon.get_style_context().add_class('application-icon')
 			line.pack_start(icon, expand=False, fill=True, padding=0)
 
-			index = 1 + self.windows.buffers.index(window)
-			WINDOW_COLUMN = buffer_columns - 19
-			window_name = window.get_name()
-			window_name = window_name.ljust(WINDOW_COLUMN)[:WINDOW_COLUMN]
 			flags = ''
 			if window is top:
 				flags += '%a'
 			elif window is below:
 				flags = '#'
+			index = 1 + self.windows.buffers.index(window)
+			description_columns = buffer_columns - 19
+			window_name = window.get_name().ljust(description_columns)[:description_columns]
 			name = '{:>2} {:2} {} {:12}'.format(index, flags, window_name, window.get_workspace().get_name().lower())
 
 			label = Gtk.Label(name)
@@ -228,14 +229,12 @@ class NavigatorWindow(Gtk.Window):
 		wid, hei = self.get_size()
 		midx = geo.x + geo.width / 2 - wid / 2
 		if self.controller.configurations.get_position() == 'top':
-			self.set_gravity(Gdk.Gravity.NORTH_WEST)
 			midy = geo.y
 		elif self.controller.configurations.get_position() == 'center':
-			self.set_gravity(Gdk.Gravity.SOUTH_WEST)
-			midy = geo.y + geo.height / 2
+			midy = geo.y + geo.height / 2 - hei
 		else:
-			self.set_gravity(Gdk.Gravity.SOUTH_WEST)
-			midy = geo.y + geo.height
+			midy = geo.y + geo.height - hei
+		#print('m1: h {} y {} hei {}'.format(geo.height, geo.y, hei))
 		self.move(midx, midy)
 
 	def _on_window_realize(self, widget):
@@ -344,7 +343,7 @@ GTK_3_18_CSS = b"""
 	margin: 0;
 	background: @fg_color;
 	color: @bg_color;
-	font-family: 'DroidSansMono Nerd Font Mono', monospace;
+	font-family: monospace;
 }
 .application-icon{
 	padding: 0 1px;
