@@ -28,6 +28,7 @@ DEFAULT_LIST_WORKSPACES='true'
 DEFAULT_COMPACT_OPTION='false'
 DEFAULT_POSITION='bottom'
 DEFAULT_WIDTH='800'
+DEFAULT_AUTO_HINT='true'
 
 class Configurations():
 
@@ -63,6 +64,9 @@ class Configurations():
 		if not self.parser.has_option('interface', 'width'):
 			self.parser.set('interface', 'width', DEFAULT_WIDTH)
 			need_write = True
+		if not self.parser.has_option('interface', 'auto_hint'):
+			self.parser.set('interface', 'auto_hint', DEFAULT_AUTO_HINT)
+			need_write = True
 		if need_write:
 			with open(self.get_config_file(), 'w') as f:
 				self.parser.write(f)
@@ -91,6 +95,12 @@ class Configurations():
 	#TODO how to avoid to need to scape %
 	def get_width(self):
 		return self.parser.get('interface', 'width')
+
+	def is_auto_hint(self):
+		try:
+			return self.parser.getboolean('interface', 'auto_hint')
+		except configparser.NoOptionError:
+			return True
 
 	def get_css_file(self):
 		try:

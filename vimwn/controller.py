@@ -32,12 +32,6 @@ class Controller ():
 
 	def __init__(self):
 		self.configurations = Configurations()
-		self.reading_command = False
-		self.reading_multiple_commands = False
-		self.listing_windows = False
-		self.multiplier = ""
-		self.status_message = '^W'
-		self.status_level = None
 		self.applications = Applications()
 		self.windows = Windows(self)
 		self.view = NavigatorWindow(self, self.windows)
@@ -48,6 +42,7 @@ class Controller ():
 		self.view.entry.connect("activate", self.on_command, None)
 		map_functions(self, self.windows)
 		Command.map_commands(self, self.windows)
+		self.clear_state()
 
 	def open(self):
 		self.view.connect("focus-out-event", Gtk.main_quit)
@@ -134,33 +129,50 @@ class Controller ():
 				self.windows.commit_navigation(event.time)
 
 	#TODO no auto hints for commands to prevent the 'b' <> 'bdelete' misslead
+	#TODO no auto hint if a command is alreay a match
 	def on_entry_key_release(self, widget, event):
+		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
+			return True
 		if self.view.entry.get_text().strip():
-			self.status_line.auto_hint(self.view.get_command())
+			if not self.view.get_command().strip():
+				self.status_line.clear_state()
+				self.view.clear_hints_state()
+			elif self.configurations.is_auto_hint():
+				self.status_line.auto_hint(self.view.get_command())
+			else:
+				self.status_line.clear_state()
+				self.view.clear_hints_state()
+				return False
 		else:
 			self.clear_command_ui_state()
 			self.view.show(event.time)
 
 	def on_entry_key_press(self, widget, event):
-		text = self.view.get_command()
-		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
-			if event.state & Gdk.ModifierType.SHIFT_MASK:
-				return self.status_line.hint(text, -1)
-			else:
-				return self.status_line.hint(text, 1)
+		if event.keyval in [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R, Gdk.KEY_Return]:
+			return False
+		elif event.keyval in [Gdk.KEY_Up, Gdk.KEY_Down]:
+			return True
 
 		if self.status_line.hinting:
 			if event.keyval in [Gdk.KEY_Left, Gdk.KEY_Up]:
-				return self.status_line.show_highlights(-1)
+				self.status_line.show_highlights(-1)
+				return True
 			elif event.keyval in [Gdk.KEY_Right, Gdk.KEY_Down]:
-				return self.status_line.show_highlights(1)
-			else:
-				self.status_line.clear_state()
-				return False
+				self.status_line.show_highlights(1)
+				return True
+			elif event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
+				if event.state & Gdk.ModifierType.SHIFT_MASK:
+					self.status_line.show_highlights(-1)
+				else:
+					self.status_line.show_highlights(1)
+				return True
 
-		if event.keyval in [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R]:
-			return False
-		elif event.keyval in [Gdk.KEY_Up, Gdk.KEY_Down]:
+		text = self.view.get_command()
+		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
+			if event.state & Gdk.ModifierType.SHIFT_MASK:
+				self.status_line.hint(text, -1)
+			else:
+				self.status_line.hint(text, 1)
 			return True
 
 	def on_command(self, pane_owner, current):
@@ -176,8 +188,8 @@ class Controller ():
 		time = self.get_current_event_time()
 		command = Command.find_command(cmd)
 		has_auto_hint = (
-				self.status_line.auto_hinting
-				and len(self.status_line.auto_hints) > 0 )
+				self.status_line.hinting
+				and len(self.status_line.hints) > 0 )
 
 		if has_auto_hint and not command:
 			cmd = self.status_line.auto_hints[0]
