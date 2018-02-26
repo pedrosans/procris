@@ -22,9 +22,9 @@ from vimwn.service import NavigatorService
 from vimwn.service import RemoteInterface
 
 parser = argparse.ArgumentParser()
-parser.add_argument("--redirect-output",	action='store_true', help="true if the str and error output should be redirected to a configured log file")
 commands_parser = parser.add_subparsers(help='vimwn sub-commands help', dest='action')
-commands_parser.add_parser('start',	help='Start vimwn service')
+start_parser = commands_parser.add_parser('start',	help='Start vimwn service')
+start_parser.add_argument("--redirect-output",	action='store_true', help="true if the str and error output should be redirected to a configured log file")
 commands_parser.add_parser('stop',	help='Stop the running vimwn service if any')
 commands_parser.add_parser('status',help='Show the status of vimwn service')
 commands_parser.add_parser('open',	help='Open vimwn main window for an one-time action')
