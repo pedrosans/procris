@@ -86,11 +86,11 @@ sudo apt-get install vimwn
 
 ## Commmand line interface
 
-`vimwn --start`: start vimwn as a daemon process
+`vimwn start`: start vimwn as a daemon process
 
-`vimwn --status`: show vimwn daemon process status
+`vimwn status`: show vimwn daemon process status
 
-`vimwn --stop`: stop vimwn daemom process
+`vimwn stop`: stop vimwn daemom process
 
 `vimwn --help`: show command line interface help
 
@@ -103,29 +103,34 @@ Vimwn's configuration file is located at:
 
 And has the followin properties:
 
-Section `[service]`:
+#### Section `service`:
 
-`log_file`: Location were the standard and error output will be redirected for
+`log_file`: Location for standard and error output, `~/.vimwn/vimwn.log` by default.
 
-Section `[interface]`:
+#### Section `interface`:
 
-`hotkeys`: Comma separated list for prefix keybindings
+`prefix_key`: Comma separated list for prefix keybindings
 
-`list_workspaces`: Indicates that the `:buffers` command should output the listed window workspace
+`command_prefix_key`: Same as `prefix_key`, but opens vimwn UI in command line mode
+
+`list_workspaces`: If `:buffers` command should list the window workspace
+
+`auto_hint`: Automatic list of command options on the status line
 
 `position`: The vertical aligment of the interface, possible values are: `top`, `center` and `bottom`
 
-`width`: The width of the interface
+`width`: The width of the interface in pixels or `100%` if the UI should span the entire screen
 
-Example of vimwn configured to mimic vim's ctrl-w mapping:
+Example:
 
 ```
 [service]
-log_file = /home/myuser/.vimwn/log
+log_file = ~/.vimwn/vimwn.log
 
 [interface]
-hotkeys = <ctrl>q,<ctrl>w
+prefix_key = <ctrl>q,<ctrl>w
+auto_hint = true
 list_workspaces = true
-position = top
-width = 700
+position = bottom
+width = 800
 ```
