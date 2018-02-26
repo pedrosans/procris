@@ -113,7 +113,7 @@ class NavigatorService:
 		try:
 			so = open(logfile, 'a+')
 			se = open(logfile, 'a+')
-		except PermissionError:
+		except:
 			so = open(os.devnull, 'a+')
 			se = open(os.devnull, 'a+')
 
