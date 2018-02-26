@@ -14,5 +14,6 @@ setup(name='vimwn',
 	scripts=['bin/vimwn'],
 	data_files=[
 		('/usr/share/bash-completion/completions/', ['data/completion/vimwn']),
+		('/usr/share/applications/', ['data/vimwn.desktop']),
 	],
 )
