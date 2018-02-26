@@ -158,16 +158,16 @@ class Controller ():
 
 		if self.status_line.hinting:
 			if event.keyval in [Gdk.KEY_Left, Gdk.KEY_Up]:
-				self.status_line.show_highlights(-1)
+				self.show_highlights(-1)
 				return True
 			elif event.keyval in [Gdk.KEY_Right, Gdk.KEY_Down]:
-				self.status_line.show_highlights(1)
+				self.show_highlights(1)
 				return True
 			elif event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
 				if event.state & Gdk.ModifierType.SHIFT_MASK:
-					self.status_line.show_highlights(-1)
+					self.show_highlights(-1)
 				else:
-					self.status_line.show_highlights(1)
+					self.show_highlights(1)
 				return True
 
 		if event.keyval in [Gdk.KEY_Up, Gdk.KEY_Down]:
@@ -177,9 +177,21 @@ class Controller ():
 		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
 			if event.state & Gdk.ModifierType.SHIFT_MASK:
 				self.status_line.hint(text, -1)
+				self.show_highlights(-1)
 			else:
 				self.status_line.hint(text, 1)
+				self.show_highlights(1)
 			return True
+
+	def show_highlights(self, direction):
+		self.status_line.cycle(direction)
+		if len(self.status_line.hints) == 1:
+			self.view.clear_hints_state()
+			self.view.set_command(self.status_line.get_highlighted_hint())
+		elif len(self.status_line.hints) > 1:
+			self.view.hint(self.status_line.hints,
+					self.status_line.highlight_index,
+					self.status_line.get_highlighted_hint())
 
 	def on_command(self, pane_owner, current):
 		if not self.reading_command:

@@ -49,7 +49,7 @@ class StatusLine ():
 		if not self.hints or len(self.hints) == 0:
 			return
 
-		self.show_highlights(direction)
+		self.hinting = len(self.hints) > 1
 
 	def setup_hints(self, command_input):
 		self.highlight_index = -1
@@ -73,19 +73,12 @@ class StatusLine ():
 		else:
 			return self.hints[i] if i > -1 else self.original_command
 
-	#TODO remove view call
-	def show_highlights(self, direction):
+	def cycle(self, direction):
 		if len(self.hints) == 1:
 			self.highlight_index = 0
-			self.view.clear_hints_state()
-			self.view.set_command(self.get_highlighted_hint())
 			return
-
 		self.highlight_index += direction
 		if self.highlight_index == len(self.hints):
 			self.highlight_index = -1
 		elif self.highlight_index < -1:
 			self.highlight_index = len(self.hints) - 1
-
-		self.view.hint(self.hints, self.highlight_index, self.get_highlighted_hint())
-		self.hinting = True
