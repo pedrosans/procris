@@ -22,7 +22,7 @@ from configparser import SafeConfigParser
 
 VIMWN_DESKTOP='vimwn.desktop'
 VIMWN_PACKAGE='vimwn'
-DEFAULT_LOG_FILE='/var/log/vimwn.log'
+DEFAULT_LOG_FILE='~/.vimwn/vimwn.log'
 DEFAULT_PREFIX_KEY='<ctrl>q'
 DEFAULT_LIST_WORKSPACES='true'
 DEFAULT_COMPACT_OPTION='false'
@@ -110,7 +110,11 @@ class Configurations():
 			return None
 
 	def get_log_file(self):
-		return self.parser.get('service', 'log_file')
+		try:
+			path = self.parser.get('service', 'log_file')
+			return os.path.expanduser(path)
+		except configparser.NoOptionError:
+			return None
 
 	def get_config_file(self):
 		d = base.load_first_config(VIMWN_PACKAGE)
