@@ -196,22 +196,22 @@ class Controller ():
 		text = self.view.get_command()
 		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
 			if event.state & Gdk.ModifierType.SHIFT_MASK:
-				self.status_line.hint(text, -1)
+				self.status_line.hint(text)
 				self.show_highlights(-1)
 			else:
-				self.status_line.hint(text, 1)
+				self.status_line.hint(text)
 				self.show_highlights(1)
 			return True
 
 	def show_highlights(self, direction):
+		if not self.status_line.hinting:
+			return
 		self.status_line.cycle(direction)
 		if len(self.status_line.hints) == 1:
 			self.view.clear_hints_state()
-			self.view.set_command(self.status_line.get_highlighted_hint())
 		elif len(self.status_line.hints) > 1:
-			self.view.hint(self.status_line.hints,
-					self.status_line.highlight_index,
-					self.status_line.get_highlighted_hint())
+			self.view.hint(self.status_line.hints, self.status_line.highlight_index)
+		self.view.set_command(self.status_line.get_highlighted_hint())
 
 	def on_command(self, pane_owner, current):
 		if not self.reading_command:
@@ -247,7 +247,7 @@ class Controller ():
 		app_name = None
 		if self.applications.has_perfect_match(name.strip()):
 			app_name = name.strip()
-		possible_apps = self.applications.query_names(name)
+		possible_apps = self.applications.query_names(name.strip())
 		if not app_name and len(possible_apps) == 1:
 			app_name = possible_apps[0]
 

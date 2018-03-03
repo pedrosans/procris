@@ -84,11 +84,11 @@ class Windows():
 		return None
 
 	def query_names(self, name_filter):
-		return list(
-				filter(
-					(lambda x :
-						not name_filter or name_filter.lower().strip() in x.lower().strip()),
-					map( (lambda x : x.get_name()), self.buffers )))
+		striped = name_filter.lower().lstrip()
+		names = map(lambda x : x.get_name(), self.buffers )
+		names = filter(lambda x :striped in x.lower().strip(), names)
+		names = filter(lambda x : striped != x.lower().strip(), names)
+		return sorted(list(names), key=str.lower)
 
 	def _update_internal_state(self):
 		self.active = None

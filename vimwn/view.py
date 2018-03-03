@@ -60,15 +60,13 @@ class NavigatorWindow(Gtk.Window):
 		self.set_gravity(Gdk.Gravity.NORTH_WEST)
 		self.set_size_request(0, 0)
 
-	def hint(self, hints, higlight_index, comple_command):
+	def hint(self, hints, higlight_index):
 		"""
 		Show hints of a command or paramter based on the
 		hints array, plus auto complete the current input
 		if any comple command
 		"""
 		self.status_box.show(hints, higlight_index)
-		if comple_command:
-			self.set_command(comple_command)
 
 	def clear_hints_state(self):
 		"""

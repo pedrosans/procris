@@ -24,7 +24,6 @@ class StatusLine ():
 
 	def __init__(self, controller):
 		self.controller = controller
-		self.view = controller.view
 
 	def clear_state(self):
 		self.hinting = False
@@ -71,6 +70,7 @@ class StatusLine ():
 		else:
 			self.terminal_command = self.terminal_command_spacer = self.terminal_command_parameter = ''
 
+	#TODO rename to get selected
 	def get_highlighted_hint(self):
 		i = self.highlight_index
 		if self.terminal_command_spacer:

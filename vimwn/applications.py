@@ -45,10 +45,10 @@ class Applications():
 		return name in self.name_map.keys()
 
 	def query_names(self, name_filter):
-		matches = filter(
-				lambda x : name_filter.lower() in x.lower(),
-				self.name_map.keys())
-		return sorted(list(set(matches)))
+		striped = name_filter.lower().lstrip()
+		matches = filter( lambda x : striped in x.lower().strip(), self.name_map.keys())
+		matches = filter( lambda x : striped != x.lower().strip(), matches)
+		return sorted(list(set(matches)), key=str.lower)
 
 	def launch_by_name(self, name):
 		desktop_info = self.name_map[name]

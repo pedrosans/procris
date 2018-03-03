@@ -54,9 +54,10 @@ class Command:
 	def query_vim_commands(user_input):
 		striped = user_input.lstrip()
 		matches = filter(
-				(lambda n : not user_input or n.startswith(user_input.strip())),
+				(lambda n : not user_input or n.startswith(striped)),
 				map((lambda c : c.name), Command.COMMANDS)
 			)
+		matches = filter(lambda x : x != striped, matches)
 		return sorted(list(set(matches)))
 
 	@staticmethod
