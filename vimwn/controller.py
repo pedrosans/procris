@@ -305,25 +305,28 @@ class Controller ():
 			self.show_error_message('No matching buffer for ' + window_title, time)
 
 	#TODO: remove duplicated tokenizer
-	#TODO: rename close to delete
 	#TODO: close vimwn ui after the command?
-	def close_current_buffer(self, cmd, time):
+	def delete_current_buffer(self, cmd, time):
 		if self.windows.active:
 			self.windows.remove(self.windows.active, time)
 			self.refresh_view(time)
 		else:
 			self.show_error_message('There is no active window')
 
-	def close_indexed_buffer(self, cmd, time):
-		buffer_number = Command.extract_number_parameter(cmd)
-		index = int(buffer_number) - 1
-		if index < len(self.windows.buffers):
-			self.windows.remove(self.windows.buffers[index], time)
+	def delete_indexed_buffer(self, cmd, time):
+		to_delete = []
+		for number in re.findall(r'\d+', cmd):
+			index = int(number) - 1
+			if index < len(self.windows.buffers):
+				to_delete.append(self.windows.buffers[index])
+			else:
+				self.show_error_message('No buffers were deleted', time)
+				return
+		for window in to_delete:
+			self.windows.remove(window, time)
 			self.refresh_view(time)
-		else:
-			self.show_error_message('Buffer {} does not exist'.format(buffer_number), time)
 
-	def close_named_buffer(self, cmd, time):
+	def delete_named_buffer(self, cmd, time):
 		window_title = Command.extract_text_parameter(cmd)
 		w = self.windows.find_by_name(window_title)
 		if w:
