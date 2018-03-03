@@ -58,6 +58,7 @@ class NavigatorWindow(Gtk.Window):
 		self.connect("realize", self._on_window_realize)
 		self.connect("size-allocate", self._move_to_preferred_position)
 		self.set_gravity(Gdk.Gravity.NORTH_WEST)
+		self.set_size_request(0, 0)
 
 	def hint(self, hints, higlight_index, comple_command):
 		"""
