@@ -22,6 +22,7 @@ from vimwn.view import NavigatorWindow
 from vimwn.windows import Windows
 from vimwn.environment import Configurations
 from vimwn.applications import Applications
+from vimwn.terminal import Terminal
 from vimwn.status_line import StatusLine
 from vimwn.command import Command
 
@@ -33,6 +34,7 @@ class Controller ():
 	def __init__(self):
 		self.configurations = Configurations()
 		self.applications = Applications()
+		self.terminal = Terminal()
 		self.windows = Windows(self)
 		self.view = NavigatorWindow(self, self.windows)
 		self.status_line = StatusLine(self)
@@ -148,19 +150,27 @@ class Controller ():
 				Gdk.KEY_Right, Gdk.KEY_Down
 				]:
 			return False
-		if self.view.entry.get_text().strip():
-			if not self.view.get_command().strip():
-				self.status_line.clear_state()
-				self.view.clear_hints_state()
-			elif self.configurations.is_auto_hint():
-				self.status_line.auto_hint(self.view.get_command())
-			else:
-				self.status_line.clear_state()
-				self.view.clear_hints_state()
-				return False
-		else:
+
+		if not self.view.entry.get_text().strip():
 			self.clear_command_ui_state()
 			self.view.show(event.time)
+			return False
+
+		if not self.view.get_command().strip():
+			self.status_line.clear_state()
+			self.view.clear_hints_state()
+			return False
+
+		if self.configurations.is_auto_hint():
+			self.status_line.auto_hint(self.view.get_command())
+			if self.status_line.hinting:
+				self.view.hint(self.status_line.hints, -1)
+			else:
+				self.view.clear_hints_state()
+		else:
+			self.status_line.clear_state()
+			self.view.clear_hints_state()
+			return False
 
 	def on_entry_key_press(self, widget, event):
 		if event.keyval in [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R, Gdk.KEY_Return]:
@@ -214,14 +224,14 @@ class Controller ():
 			#TODO iterate multiple commands
 
 		time = self.get_current_event_time()
-		command = Command.find_command(cmd)
+		command = Command.get_matching_command(cmd)
 		has_auto_hint = (
 				self.status_line.hinting
 				and len(self.status_line.hints) > 0 )
 
 		if has_auto_hint and not command:
 			cmd = self.status_line.auto_hints[0]
-			command = Command.find_command(cmd)
+			command = Command.get_matching_command(cmd)
 
 		if command:
 			command.function(cmd, time)
@@ -251,6 +261,12 @@ class Controller ():
 			self.show_error_message('No matching application for ' + name, time)
 		else:
 			self.show_error_message('More than one application matches: ' + name, time)
+
+	def bang(self, cmd, time):
+		vim_cmd = Command.extract_vim_command(cmd)
+		cmd = cmd.replace(vim_cmd, '', 1)
+		self.terminal.execute(cmd)
+		self.view.hide()
 
 	def colon(self, keyval, time):
 		self.reading_command = True

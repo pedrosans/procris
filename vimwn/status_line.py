@@ -18,8 +18,6 @@ import gi, signal, re, os, sys
 gi.require_version('Gtk', '3.0')
 gi.require_version("Keybinder", "3.0")
 from gi.repository import Gtk, Gdk, Keybinder, GLib
-from vimwn.view import NavigatorWindow
-from vimwn.environment import Configurations
 from vimwn.command import Command
 
 class StatusLine ():
@@ -31,47 +29,60 @@ class StatusLine ():
 	def clear_state(self):
 		self.hinting = False
 		self.highlight_index = -1
-		self.original_command = None
-		self.original_command_parameter = None
+		self.vim_command = None
+		self.vim_command_parameter = None
+		self.terminal_command = None
+		self.terminal_command_spacer = None
+		self.terminal_command_parameter = None
 		self.hints = []
 
 	def auto_hint(self, text):
-		self.setup_hints(text)
-		if self.hints and len(self.hints) > 0:
-			self.view.hint(self.hints, -1, None)
-			self.hinting = True
-		else:
-			self.hinting = False
-
-	def hint(self, text, direction):
-		self.setup_hints(text)
-
-		if not self.hints or len(self.hints) == 0:
-			return
-
-		self.hinting = len(self.hints) > 1
-
-	def setup_hints(self, command_input):
 		self.highlight_index = -1
-		self.original_command = Command.extract_command_name(command_input)
-		self.original_command_parameter = Command.extract_text_parameter(command_input)
-		if self.original_command_parameter == None:
-			self.hints = Command.query_commands(command_input)
+		self.parse_input(text)
+		self.hints = self.list_hints(text)
+		self.hinting = self.hints and len(self.hints) > 0
+
+	def hint(self, text):
+		self.highlight_index = -1
+		self.parse_input(text)
+		self.hints = self.list_hints(text)
+		self.hinting = self.hints and len(self.hints) > 1
+
+	def list_hints(self, text):
+		self.vim_command = Command.extract_vim_command(text)
+		command = Command.get_matching_command(text)
+		if not self.vim_command_spacer and (not command or command.name != '!'):
+			return Command.query_vim_commands(text)
+		if not command:
+			return None
+		if self.vim_command_spacer or command.name == '!':
+			return command.hint_vim_command_parameter(self.controller, self.vim_command_parameter)
+
+	def parse_input(self, text):
+		self.vim_command = Command.extract_vim_command(text)
+		parameter_text = text.replace(self.vim_command, '', 1)
+		self.vim_command_spacer = re.match(r'^\s*', parameter_text).group()
+		self.vim_command_parameter = parameter_text.replace(self.vim_command_spacer, '', 1)
+		if self.vim_command == '!':
+			self.terminal_command = Command.extract_terminal_command(self.vim_command_parameter)
+			parameter_text = self.vim_command_parameter.replace(self.terminal_command, '', 1)
+			self.terminal_command_spacer = re.match(r'^\s*', parameter_text).group()
+			self.terminal_command_parameter = parameter_text.replace(self.terminal_command_spacer, '', 1)
 		else:
-			#TODO rename to find by text pattern
-			command = Command.find_command(command_input)
-			if command:
-				self.hints = command.hint_parameters(self.controller, self.original_command_parameter)
-			else:
-				self.hints = None
+			self.terminal_command = self.terminal_command_spacer = self.terminal_command_parameter = ''
 
 	def get_highlighted_hint(self):
 		i = self.highlight_index
-		if self.original_command_parameter != None:
-			hinted_parameter = self.hints[i] if i > -1 else self.original_command_parameter
-			return self.original_command + hinted_parameter
+		if self.terminal_command_spacer:
+			return self.vim_command + self.vim_command_spacer + self.terminal_command + self.terminal_command_spacer + (
+					self.hints[i] if i > -1 else
+					self.terminal_command_parameter)
+		elif self.vim_command_spacer:
+			return self.vim_command + self.vim_command_spacer + (
+					self.hints[i] if i > -1 else
+					self.vim_command_parameter)
 		else:
-			return self.hints[i] if i > -1 else self.original_command
+			return self.hints[i] if i > -1 else self.vim_command
 
 	def cycle(self, direction):
 		if len(self.hints) == 1:
