@@ -57,7 +57,6 @@ class NavigatorWindow(Gtk.Window):
 
 		self.connect("realize", self._on_window_realize)
 		self.connect("size-allocate", self._move_to_preferred_position)
-		self.set_gravity(Gdk.Gravity.NORTH_WEST)
 		self.set_size_request(0, 0)
 
 	def hint(self, hints, higlight_index):
@@ -92,6 +91,10 @@ class NavigatorWindow(Gtk.Window):
 		return screen.get_monitor_workarea(monitor_nr)
 
 	def show(self, event_time ):
+		if self.windows.unity_wm:
+			self.set_gravity(Gdk.Gravity.SOUTH_WEST)
+		else:
+			self.set_gravity(Gdk.Gravity.NORTH_WEST)
 		for c in self.output_box.get_children(): c.destroy()
 		for c in self.windows_list_box.get_children(): c.destroy()
 
@@ -228,12 +231,13 @@ class NavigatorWindow(Gtk.Window):
 		geo = self.get_monitor_geometry()
 		wid, hei = self.get_size()
 		midx = geo.x + geo.width / 2 - wid / 2
+		height_compensation = hei if self.get_gravity() == Gdk.Gravity.NORTH_WEST else 0
 		if self.controller.configurations.get_position() == 'top':
 			midy = geo.y
 		elif self.controller.configurations.get_position() == 'center':
-			midy = geo.y + geo.height / 2 - hei
+			midy = geo.y + geo.height / 2 - height_compensation
 		else:
-			midy = geo.y + geo.height - hei
+			midy = geo.y + geo.height - height_compensation
 		#print('m1: h {} y {} hei {}'.format(geo.height, geo.y, hei))
 		self.move(midx, midy)
 
