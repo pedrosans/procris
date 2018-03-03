@@ -139,8 +139,10 @@ class Windows():
 		self.shift_center(0.5, left, right)
 
 	def shift_center(self, new_center, left, right):
-		self.move_on_axis(left, HORIZONTAL, 0, new_center)
-		self.move_on_axis(right, HORIZONTAL, new_center, 1 - new_center)
+		if left:
+			self.move_on_axis(left, HORIZONTAL, 0, new_center)
+		if right:
+			self.move_on_axis(right, HORIZONTAL, new_center, 1 - new_center)
 
 	def get_top_two_windows(self):
 		top = below = None

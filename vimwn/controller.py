@@ -73,7 +73,8 @@ class Controller ():
 		self.reading_command = True
 		self.show_ui(Keybinder.get_current_event_time())
 		self.view.set_command('')
-		self.status_line.auto_hint()
+		#if self.configurations.is_auto_hint():
+		#	self.status_line.auto_hint('')
 
 	def show_ui(self, time):
 		self.windows.read_screen()
@@ -117,7 +118,8 @@ class Controller ():
 			self.escape(None, None)
 		if self.reading_command:
 			return False
-		if Gdk.keyval_name(event.keyval).isdigit():
+		gdk_key = Gdk.keyval_name(event.keyval)
+		if gdk_key and gdk_key.isdigit():
 			self.multiplier = self.multiplier + Gdk.keyval_name(event.keyval)
 			return
 		if event.keyval in KEY_FUNCTIONS:

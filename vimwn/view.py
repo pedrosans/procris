@@ -121,11 +121,12 @@ class NavigatorWindow(Gtk.Window):
 		for window in self.windows.x_line:
 			name = window.get_name()
 			name = ' ' + ((name[:8] + '..') if len(name) > 10 else name)
-			name = self._navigation_index(window) + name
+			position = self._navigation_index(window)
 			if window is not self.windows.active:
-				name = ' ' + name
+				position = ' ' + position
 			active = window is self.windows.active
 			self.status_box.add_status_icon(window, active)
+			self.status_box.add_status_text(position, active)
 			self.status_box.add_status_text(name, active)
 			self.status_box.add_status_text(' ', False)
 
