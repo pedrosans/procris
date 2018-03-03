@@ -89,6 +89,14 @@ class Controller ():
 		self.clear_state()
 		return True;
 
+	#TODO rename to refresh_ui
+	def refresh_view(self, time):
+		"""
+		Repaints the UI at its default state
+		"""
+		self.clear_state()
+		self.view.show (time)
+
 	def clear_state(self):
 		self.clear_command_ui_state()
 		self.listing_windows = False
@@ -251,10 +259,6 @@ class Controller ():
 	def enter(self, keyval, time):
 		self.refresh_view(time)
 
-	def refresh_view(self, time):
-		self.clear_state()
-		self.view.show (time)
-
 	def escape(self, keyval, time):
 		self.view.hide()
 
@@ -311,7 +315,7 @@ class Controller ():
 	def delete_current_buffer(self, cmd, time):
 		if self.windows.active:
 			self.windows.remove(self.windows.active, time)
-			self.refresh_view(time)
+			self.view.hide()
 		else:
 			self.show_error_message('There is no active window')
 
@@ -326,14 +330,14 @@ class Controller ():
 				return
 		for window in to_delete:
 			self.windows.remove(window, time)
-			self.refresh_view(time)
+			self.view.hide()
 
 	def delete_named_buffer(self, cmd, time):
 		window_title = Command.extract_text_parameter(cmd)
 		w = self.windows.find_by_name(window_title)
 		if w:
 			self.windows.remove(w, time)
-			self.refresh_view(time)
+			self.view.hide()
 		else:
 			self.show_error_message('No matching buffer for ' + window_title, time)
 
