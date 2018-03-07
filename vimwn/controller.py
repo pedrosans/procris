@@ -164,7 +164,10 @@ class Controller ():
 		if self.configurations.is_auto_hint():
 			self.status_line.auto_hint(self.view.get_command())
 			if self.status_line.hinting:
-				self.view.hint(self.status_line.hints, -1)
+				index = -1
+				if self.configurations.is_auto_select_first_hint():
+					index = 0
+				self.view.hint(self.status_line.hints, index)
 			else:
 				self.view.clear_hints_state()
 		else:
@@ -219,19 +222,19 @@ class Controller ():
 
 		cmd = self.view.get_command()
 
+		if (self.configurations.is_auto_select_first_hint()
+				and self.status_line.highlight_index == -1
+				and self.status_line.hinting
+				and len(self.status_line.hints) > 0 ):
+			self.status_line.highlight_index = 0
+			cmd = self.status_line.get_highlighted_hint()
+
 		if Command.has_multiple_commands(cmd):
 			self.reading_multiple_commands = True
 			#TODO iterate multiple commands
 
 		time = self.get_current_event_time()
 		command = Command.get_matching_command(cmd)
-		has_auto_hint = (
-				self.status_line.hinting
-				and len(self.status_line.hints) > 0 )
-
-		if has_auto_hint and not command:
-			cmd = self.status_line.auto_hints[0]
-			command = Command.get_matching_command(cmd)
 
 		if command:
 			command.function(cmd, time)
