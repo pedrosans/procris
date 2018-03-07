@@ -39,15 +39,24 @@ class Applications():
 					#TODO print
 					continue
 				if desktop_info:
-					self.name_map[desktop_info['Name']] = desktop_info
+					name = desktop_info['Name'].strip()
+					name = name.strip().replace('\xad', '')
+					self.name_map[name] = desktop_info
 
 	def has_perfect_match(self, name):
 		return name in self.name_map.keys()
 
-	def query_names(self, name_filter):
-		striped = name_filter.lower().lstrip()
-		matches = filter( lambda x : striped in x.lower().strip(), self.name_map.keys())
-		matches = filter( lambda x : striped != x.lower().strip(), matches)
+	def find_by_name(self, name_filter):
+		striped = name_filter.lower().strip()
+		for app_name in self.name_map.keys():
+			if striped == app_name.strip().lower():
+				return app_name;
+		return None
+
+	def list_completions(self, name_filter):
+		lower = name_filter.lower()
+		matches = filter( lambda x : lower in x.lower(), self.name_map.keys())
+		matches = filter( lambda x : lower != x.lower(), matches)
 		return sorted(list(set(matches)), key=str.lower)
 
 	def launch_by_name(self, name):

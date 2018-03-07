@@ -30,9 +30,9 @@ class Command:
 
 	def hint_vim_command_parameter(self, controller, command_parameters):
 		if self.name == 'edit':
-			return controller.applications.query_names(command_parameters)
+			return controller.applications.list_completions(command_parameters)
 		elif self.name in ['buffer']:
-			return controller.windows.query_names(command_parameters)
+			return controller.windows.list_completions(command_parameters)
 		elif self.name == '!':
 			return controller.terminal.list_completions(command_parameters)
 

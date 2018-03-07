@@ -83,11 +83,11 @@ class Windows():
 				return w;
 		return None
 
-	def query_names(self, name_filter):
-		striped = name_filter.lower().lstrip()
-		names = map(lambda x : x.get_name(), self.buffers )
-		names = filter(lambda x :striped in x.lower().strip(), names)
-		names = filter(lambda x : striped != x.lower().strip(), names)
+	def list_completions(self, name_filter):
+		striped = name_filter.lower()
+		names = map(lambda x : x.get_name().strip(), self.buffers )
+		names = filter(lambda x :striped in x.lower(), names)
+		names = filter(lambda x : striped != x.lower(), names)
 		return sorted(list(names), key=str.lower)
 
 	def _update_internal_state(self):

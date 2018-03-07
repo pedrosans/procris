@@ -250,9 +250,10 @@ class Controller ():
 		app_name = None
 		if self.applications.has_perfect_match(name.strip()):
 			app_name = name.strip()
-		possible_apps = self.applications.query_names(name.strip())
-		if not app_name and len(possible_apps) == 1:
-			app_name = possible_apps[0]
+
+		possible_apps = self.applications.find_by_name(name)
+		if possible_apps:
+			app_name = possible_apps
 
 		if app_name:
 			try:
