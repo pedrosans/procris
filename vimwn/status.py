@@ -21,7 +21,12 @@ gi.require_version('AppIndicator3', '0.1')
 from gi.repository import Gtk
 from gi.repository import AppIndicator3
 
-ICONNAME = "gvim"
+ICONNAME = "vimwn"
+class NavigatorStatus():
+
+	def __init__(self, configurations, service):
+		self.configurations = configurations
+		self.service = service
 class NavigatorStatus():
 
 	def __init__(self, configurations, service):

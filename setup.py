@@ -15,5 +15,9 @@ setup(name='vimwn',
 	data_files=[
 		('/usr/share/bash-completion/completions/', ['data/completion/vimwn']),
 		('/usr/share/applications/', ['data/vimwn.desktop']),
+		('/usr/share/icons/hicolor/48x48/apps', ['data/icon/48x48/vimwn.png']),
+		('/usr/share/icons/hicolor/256x256/apps', ['data/icon/256x256/vimwn.png']),
+		('/usr/share/icons/ubuntu-mono-dark/scalable/apps', ['data/icon/256x256/light/vimwn.png']),
+		('/usr/share/icons/ubuntu-mono-light/scalable/apps', ['data/icon/256x256/dark/vimwn.png']),
 	],
 )

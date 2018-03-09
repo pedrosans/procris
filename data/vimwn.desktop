@@ -1,5 +1,5 @@
 [Desktop Entry]
 Type=Application
 Name=Start vimwn service
-Icon=gvim
+Icon=vimwn
 Exec=vimwn start --redirect-output
