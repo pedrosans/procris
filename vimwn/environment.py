@@ -138,5 +138,7 @@ class Configurations():
 	def set_autostart(self, auto_start):
 		dfile = desktop.DesktopEntry(self.autostart_file)
 		dfile.set("X-GNOME-Autostart-enabled", str(auto_start).lower())
+		dfile.set("Name", "Vimwn")
+		dfile.set("Icon", "vimwn")
 		dfile.set("Exec", "vimwn start --redirect-output")
 		dfile.write(filename=self.autostart_file)
