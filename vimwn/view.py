@@ -231,13 +231,15 @@ class NavigatorWindow(Gtk.Window):
 		geo = self.get_monitor_geometry()
 		wid, hei = self.get_size()
 		midx = geo.x + geo.width / 2 - wid / 2
-		height_compensation = hei if self.get_gravity() == Gdk.Gravity.NORTH_WEST else 0
 		if self.controller.configurations.get_position() == 'top':
 			midy = geo.y
 		elif self.controller.configurations.get_position() == 'center':
-			midy = geo.y + geo.height / 2 - height_compensation
+			midy = geo.y + geo.height / 2 - hei
 		else:
-			midy = geo.y + geo.height - height_compensation
+			midy = geo.y + geo.height - hei
+
+		if self.get_gravity() == Gdk.Gravity.SOUTH_WEST:
+			midy += hei
 		#print('m1: h {} y {} hei {}'.format(geo.height, geo.y, hei))
 		self.move(midx, midy)
 
