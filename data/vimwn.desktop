@@ -1,5 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Start vimwn service
+Name=Vimwn
 Icon=vimwn
 Exec=vimwn start --redirect-output
+Categories=Utility;
