@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import gi, time, logging, os
 gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck
+from gi.repository import Wnck, GdkX11, Gdk
 
 def get_x(window):
 	return window.get_geometry().xp
@@ -48,6 +48,8 @@ class Windows():
 		self.visibles =[]
 		self.buffers =[]
 		self.read_itself = False
+		self.window_handlers = {}
+		self.window_original_decoration = {}
 
 	def remove(self, window, time):
 		window.close(time)
@@ -239,7 +241,37 @@ class Windows():
 			new_width += y_offset
 
 		window.set_geometry(Wnck.WindowGravity.STATIC, geometry_mask, new_x, new_y, new_width, new_height)
+
+		if height_ratio == 1 and self.controller.configurations.is_remove_window_border_if_vertically_maximized():
+			window.maximize_vertically()
+			gdk_window = self.get_gdk_window(window.get_xid())
+			is_decorated, decorations = gdk_window.get_decorations()
+			gdk_window.set_decorations(Gdk.WMDecoration.MENU | Gdk.WMDecoration.BORDER | Gdk.WMDecoration.MINIMIZE | Gdk.WMDecoration.RESIZEH | Gdk.WMDecoration.MAXIMIZE)
+			self.window_original_decoration[window.get_xid()] = decorations
+			handler_id = window.connect("state-changed", self.user_function)
+			self.window_handlers[window.get_xid()] = handler_id
+
 		self.staging = True
+
+	def user_function( self, window, changed_mask, new_state ):
+		if window.is_maximized_vertically():
+			window.maximize_vertically()
+			print('m1')
+			return
+		gdk_window = self.get_gdk_window(window.get_xid())
+		original_decorations = self.window_original_decoration[window.get_xid()]
+		if original_decorations:
+			gdk_window.set_decorations(self.window_original_decoration[window.get_xid()])
+		else:
+			gdk_window.set_decorations(Gdk.WMDecoration.ALL)
+		window.disconnect(self.window_handlers[window.get_xid()])
+		print('m2: ' + str(changed_mask))
+		print('m2: ' + str(self.window_original_decoration[window.get_xid()]))
+
+	def get_gdk_window(self, pid):
+		gdkdisplay = GdkX11.X11Display.get_default()
+		gdkwindow  = GdkX11.X11Window.foreign_new_for_display(gdkdisplay, pid)
+		return gdkwindow
 
 	def navigate_right(self, keyval, time):
 		self.navigate(self.x_line, 1, HORIZONTAL, time)

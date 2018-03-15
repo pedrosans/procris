@@ -70,6 +70,9 @@ class Configurations():
 		if not self.parser.has_option('interface', 'auto_select_first_hint'):
 			self.parser.set('interface', 'auto_select_first_hint', 'false')
 			need_write = True
+		if not self.parser.has_option('interface', 'remove_window_border_if_vertically_maximized'):
+			self.parser.set('interface', 'remove_window_border_if_vertically_maximized', 'false')
+			need_write = True
 		if need_write:
 			with open(self.get_config_file(), 'w') as f:
 				self.parser.write(f)
@@ -108,6 +111,12 @@ class Configurations():
 	def is_auto_select_first_hint(self):
 		try:
 			return self.parser.getboolean('interface', 'auto_select_first_hint')
+		except configparser.NoOptionError:
+			return True
+
+	def is_remove_window_border_if_vertically_maximized(self):
+		try:
+			return self.parser.getboolean('interface', 'remove_window_border_if_vertically_maximized')
 		except configparser.NoOptionError:
 			return True
 
