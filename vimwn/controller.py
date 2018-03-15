@@ -332,6 +332,9 @@ class Controller ():
 
 	#TODO: remove duplicated tokenizer
 	#TODO: close vimwn ui after the command?
+	def quit_current_window(self, keyval, time):
+		self.delete_current_buffer(None, time)
+
 	def delete_current_buffer(self, cmd, time):
 		if self.windows.active:
 			self.windows.remove(self.windows.active, time)
@@ -389,6 +392,7 @@ def map_functions(controller, windows):
 	KEY_FUNCTIONS[Gdk.KEY_greater] = windows.increase_width
 	KEY_FUNCTIONS[Gdk.KEY_equal  ] = windows.equalize
 	KEY_FUNCTIONS[Gdk.KEY_w      ] = windows.cycle
+	KEY_FUNCTIONS[Gdk.KEY_q      ] = controller.quit_current_window
 	KEY_FUNCTIONS[Gdk.KEY_o      ] = controller.only_key_handler
 	KEY_FUNCTIONS[Gdk.KEY_colon  ] = controller.colon
 	KEY_FUNCTIONS[Gdk.KEY_Return ] = controller.enter
