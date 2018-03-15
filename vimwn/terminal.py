@@ -23,12 +23,22 @@ COMMANDS_GLOB = [ "/usr/bin/*", "/snap/bin/*", os.path.expanduser('~/.local/bin'
 class Terminal():
 
 	def __init__(self):
+		self.aliases_map = {}
+		self.read_aliases()
 		self.name_map= {}
 		for commands_glob in COMMANDS_GLOB:
 			for c in glob.glob(commands_glob):
 				segs = c.split('/')
 				name = segs[-1]
 				self.name_map[name] = c
+
+	def read_aliases(self):
+		proc = subprocess.Popen(LIST_ALIASE, executable='bash', shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+		result = proc.communicate()[0].decode('utf-8')
+		for alias_line in result.splitlines():
+			name = re.search(r'^\s*alias\s(.*?)\s*=', alias_line).group(1)
+			cmd = re.search(r'=\s*\'(.*?)\'', alias_line).group(1)
+			self.aliases_map[name] = cmd
 
 	def has_perfect_match(self, name):
 		return name in self.name_map.keys()
@@ -70,6 +80,10 @@ class Terminal():
 	def execute(self, cmd):
 		subprocess.Popen(shlex.split(cmd))
 
+LIST_ALIASE = """
+source $HOME/.bash_aliases 2>/dev/null
+alias
+"""
 #
 # Author: Brian Beffa <brbsix@gmail.com>
 # Original source: https://brbsix.github.io/2015/11/29/accessing-tab-completion-programmatically-in-bash/

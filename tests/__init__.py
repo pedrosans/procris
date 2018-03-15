@@ -1,8 +1,9 @@
 import unittest
 from unittest import TestSuite
 from tests.hint import HintTestCase
+from tests.terminal import TerminalTestCase
 
-test_cases = (HintTestCase,)
+test_cases = (HintTestCase,TerminalTestCase,)
 
 def load_tests(loader, tests, pattern):
     suite = TestSuite()
