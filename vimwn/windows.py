@@ -49,7 +49,7 @@ class Windows():
 		self.buffers =[]
 		self.read_itself = False
 		self.window_handlers = {}
-		self.window_original_decoration = {}
+		self.window_original_decorations = {}
 
 	def remove(self, window, time):
 		window.close(time)
@@ -61,6 +61,7 @@ class Windows():
 		del self.visibles[:]
 		del self.buffers[:]
 		self.read_itself = False
+		#TODO is needed?
 		self.screen = Wnck.Screen.get_default()
 		self.screen.force_update()  #make sure we query X server
 
@@ -205,7 +206,24 @@ class Windows():
 		if window.is_maximized_horizontally():
 			window.unmaximize_horizontally()
 			was_maximized_horizontally = True
-		if window.is_maximized_vertically():
+
+		is_save_vertical_space = self.controller.configurations.is_save_vertical_space()
+
+		if (is_save_vertical_space and height_ratio == 1 and not window.get_xid() in self.window_handlers):
+			window.maximize_vertically()
+			gdk_window = self.get_gdk_window(window.get_xid())
+			is_decorated, decorations = gdk_window.get_decorations()
+			gdk_window.set_decorations(0)
+			old_x, old_y, old_width, old_height = window.get_client_window_geometry()
+			if is_decorated:
+				self.window_original_decorations[window.get_xid()] = decorations
+			else:
+				self.window_original_decorations[window.get_xid()] = None
+			handler_id = window.connect("state-changed", self._restore_decorations)
+			self.window_handlers[window.get_xid()] = handler_id
+
+		if ( window.is_maximized_vertically()
+				and (height_ratio < 1 or ( not is_save_vertical_space and not self.unity_wm))):
 			window.unmaximize_vertically()
 			was_maximized_vertically = True
 
@@ -242,31 +260,19 @@ class Windows():
 
 		window.set_geometry(Wnck.WindowGravity.STATIC, geometry_mask, new_x, new_y, new_width, new_height)
 
-		if height_ratio == 1 and self.controller.configurations.is_remove_window_border_if_vertically_maximized():
-			window.maximize_vertically()
-			gdk_window = self.get_gdk_window(window.get_xid())
-			is_decorated, decorations = gdk_window.get_decorations()
-			gdk_window.set_decorations(Gdk.WMDecoration.MENU | Gdk.WMDecoration.BORDER | Gdk.WMDecoration.MINIMIZE | Gdk.WMDecoration.RESIZEH | Gdk.WMDecoration.MAXIMIZE)
-			self.window_original_decoration[window.get_xid()] = decorations
-			handler_id = window.connect("state-changed", self.user_function)
-			self.window_handlers[window.get_xid()] = handler_id
-
 		self.staging = True
 
-	def user_function( self, window, changed_mask, new_state ):
+	def _restore_decorations( self, window, changed_mask, new_state ):
 		if window.is_maximized_vertically():
-			window.maximize_vertically()
-			print('m1')
 			return
 		gdk_window = self.get_gdk_window(window.get_xid())
-		original_decorations = self.window_original_decoration[window.get_xid()]
-		if original_decorations:
-			gdk_window.set_decorations(self.window_original_decoration[window.get_xid()])
+		original_decorations = self.window_original_decorations[window.get_xid()]
+		if original_decorations != None:
+			gdk_window.set_decorations(original_decorations)
 		else:
 			gdk_window.set_decorations(Gdk.WMDecoration.ALL)
 		window.disconnect(self.window_handlers[window.get_xid()])
-		print('m2: ' + str(changed_mask))
-		print('m2: ' + str(self.window_original_decoration[window.get_xid()]))
+		del self.window_handlers[window.get_xid()]
 
 	def get_gdk_window(self, pid):
 		gdkdisplay = GdkX11.X11Display.get_default()
