@@ -79,5 +79,15 @@ class HintTestCase(unittest.TestCase):
 
 		self.bang_command.hint_vim_command_parameter.assert_called_once_with(self.controller, 'foo')
 
+	def test_bang_vim_command_is_mounted(self) :
+		Command.get_matching_command.return_value = self.bang_command
+		self.bang_command.hint_vim_command_parameter = MagicMock()
+		self.bang_command.hint_vim_command_parameter.return_value = ['foobar']
+
+		self.status_line.auto_hint('!foo')
+		self.status_line.highlight_index = 0
+		self.assertEqual(self.status_line.get_highlighted_hint(), '!foobar')
+
+
 if __name__ == '__main__':
 	unittest.main()

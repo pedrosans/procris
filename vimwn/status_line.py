@@ -70,14 +70,14 @@ class StatusLine ():
 		else:
 			self.terminal_command = self.terminal_command_spacer = self.terminal_command_parameter = ''
 
-	#TODO rename to get selected
+	#TODO rename to get selected or mount
 	def get_highlighted_hint(self):
 		i = self.highlight_index
 		if self.terminal_command_spacer:
 			return self.vim_command + self.vim_command_spacer + self.terminal_command + self.terminal_command_spacer + (
 					self.hints[i] if i > -1 else
 					self.terminal_command_parameter)
-		elif self.vim_command_spacer:
+		elif self.vim_command_spacer or (self.vim_command == '!' and len(self.terminal_command) > 0):
 			return self.vim_command + self.vim_command_spacer + (
 					self.hints[i] if i > -1 else
 					self.vim_command_parameter)
