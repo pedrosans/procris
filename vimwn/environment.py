@@ -73,6 +73,9 @@ class Configurations():
 		if not self.parser.has_option('interface', 'save_vertical_space'):
 			self.parser.set('interface', 'save_vertical_space', 'false')
 			need_write = True
+		if not self.parser.has_option('interface', 'icon'):
+			self.parser.set('interface', 'icon', 'default')
+			need_write = True
 		if need_write:
 			with open(self.get_config_file(), 'w') as f:
 				self.parser.write(f)
@@ -119,6 +122,17 @@ class Configurations():
 			return self.parser.getboolean('interface', 'save_vertical_space')
 		except configparser.NoOptionError:
 			return True
+
+	def get_icon(self):
+		try:
+			return self.parser.get('interface', 'icon')
+		except configparser.NoOptionError:
+			return None
+
+	def set_icon(self, icon):
+		self.parser.set('interface', 'icon', icon)
+		with open(self.get_config_file(), 'w') as f:
+			self.parser.write(f)
 
 	def get_css_file(self):
 		try:

@@ -21,12 +21,7 @@ gi.require_version('AppIndicator3', '0.1')
 from gi.repository import Gtk
 from gi.repository import AppIndicator3
 
-ICONNAME = "vimwn"
-class NavigatorStatus():
 
-	def __init__(self, configurations, service):
-		self.configurations = configurations
-		self.service = service
 class NavigatorStatus():
 
 	def __init__(self, configurations, service):
@@ -40,15 +35,53 @@ class NavigatorStatus():
 		self.autostart_item.show()
 		self.menu.append(self.autostart_item)
 
+		self._add_appearance_menu()
+
 		quit_item = Gtk.MenuItem(label="Quit")
 		quit_item.connect("activate", self._quit)
 		quit_item.show()
 		self.menu.append(quit_item)
 
+	def _add_appearance_menu(self):
+		self.appearance_menu = Gtk.Menu()
+		appearance_menu_item = Gtk.MenuItem(label="Appearance")
+		appearance_menu_item.show()
+		appearance_menu_item.set_submenu(self.appearance_menu)
+		self.menu.append(appearance_menu_item)
+		self._add_icon_option("Dark icon")
+		self._add_icon_option("Light icon")
+		self._add_icon_option("Default icon")
+
+	def _add_icon_option(self, option):
+		icon_item = Gtk.MenuItem(label=option)
+		icon_item.connect("activate", self._change_icon)
+		icon_item.show()
+		self.appearance_menu.append(icon_item)
+
+	def _change_icon(self, data):
+		if data.get_label() == "Dark icon":
+			self.configurations.set_icon('dark')
+		elif data.get_label() == "Light icon":
+			self.configurations.set_icon('light')
+		else:
+			self.configurations.set_icon('default')
+		self._update_icon()
+
+	def _update_icon(self):
+		iconname = self.configurations.get_icon()
+		if iconname == "dark":
+			self.ind.set_icon('vimwn-dark')
+		elif iconname == "light":
+			self.ind.set_icon('vimwn-light')
+		else:
+			self.ind.set_icon('vimwn')
+
 	def activate(self):
-		self.ind = AppIndicator3.Indicator.new("vimwn", ICONNAME, AppIndicator3.IndicatorCategory.APPLICATION_STATUS )
+		iconname = 'vimwn'
+		self.ind = AppIndicator3.Indicator.new("vimwn", iconname, AppIndicator3.IndicatorCategory.APPLICATION_STATUS )
 		self.ind.set_status (AppIndicator3.IndicatorStatus.ACTIVE)
 		self.ind.set_menu(self.menu)
+		self._update_icon()
 
 	def _popup_menu(self, status_icon, button, activate_time, menu):
 		menu.popup(None, None, Gtk.StatusIcon.position_menu, status_icon, button, activate_time)
