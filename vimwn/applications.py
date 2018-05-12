@@ -27,10 +27,18 @@ APPS_GLOB = [
 		"/var/lib/snapd/desktop/applications/*.desktop",
 		os.path.expanduser('~/.local/share/applications')+'/*.desktop' ]
 
-class Applications():
+
+class Applications:
 
 	def __init__(self):
 		self.name_map= {}
+		self._read_desktop_files()
+
+	def reload(self):
+		self.name_map.clear()
+		self._read_desktop_files()
+
+	def _read_desktop_files(self):
 		for app_files_glob in APPS_GLOB:
 			for f in glob.glob(app_files_glob):
 				try:

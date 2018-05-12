@@ -22,11 +22,11 @@ from gi.repository import Gtk
 from gi.repository import AppIndicator3
 
 
-class NavigatorStatus():
+class StatusIcon:
 
-	def __init__(self, configurations, service):
+	def __init__(self, configurations):
 		self.configurations = configurations
-		self.service = service
+		self.service = None
 		self.menu = Gtk.Menu()
 
 		self.autostart_item = Gtk.CheckMenuItem(label="Autostart")
@@ -41,6 +41,9 @@ class NavigatorStatus():
 		quit_item.connect("activate", self._quit)
 		quit_item.show()
 		self.menu.append(quit_item)
+
+	def reload(self):
+		self._update_icon()
 
 	def _add_appearance_menu(self):
 		self.appearance_menu = Gtk.Menu()
@@ -76,7 +79,8 @@ class NavigatorStatus():
 		else:
 			self.ind.set_icon('vimwn')
 
-	def activate(self):
+	def activate(self, service):
+		self.service = service
 		iconname = 'vimwn'
 		self.ind = AppIndicator3.Indicator.new("vimwn", iconname, AppIndicator3.IndicatorCategory.APPLICATION_STATUS )
 		self.ind.set_status (AppIndicator3.IndicatorStatus.ACTIVE)

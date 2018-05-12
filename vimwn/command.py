@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
 
+
 class Command:
 
 	COMMANDS = []
@@ -112,4 +113,5 @@ class Command:
 		Command.map_name_to_function('centralize', "^\s*(centralize|centralize)\s*$",	False,	controller.centralize )
 		Command.map_name_to_function('maximize',   "^\s*(maximize|maximize)\s*$",		False,	controller.maximize )
 		Command.map_name_to_function('quit',       "^\s*(quit|q)\s*$",					False,	controller.quit)
+		Command.map_name_to_function('reload',     "^\s*(reload)\s*$",					False,	controller.reload)
 

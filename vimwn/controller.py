@@ -25,29 +25,53 @@ from vimwn.applications import Applications
 from vimwn.terminal import Terminal
 from vimwn.status_line import StatusLine
 from vimwn.command import Command
+from vimwn.status import StatusIcon
 
 KEY_FUNCTIONS = {}
 
-#TODO chain commands
-class Controller ():
 
-	def __init__(self):
+# TODO chain commands
+class Controller:
+
+	def __init__(self, as_service=None):
+		self.status_icon = None
+		self.running_as_service = as_service
 		self.configurations = Configurations()
 		self.applications = Applications()
 		self.terminal = Terminal()
 		self.windows = Windows(self)
-		self.view = NavigatorWindow(self, self.windows)
 		self.status_line = StatusLine(self)
+		map_functions(self, self.windows)
+		Command.map_commands(self, self.windows)
+		self._initialize_view()
+		self.clear_state()
+
+	def indicate_running_service(self, service):
+		self.status_icon = StatusIcon(self.configurations)
+		self.status_icon.activate(service)
+
+	def _initialize_view(self):
+		self.view = NavigatorWindow(self, self.windows)
 		self.view.connect("key-press-event", self.on_window_key_press)
 		self.view.entry.connect("key-release-event", self.on_entry_key_release)
 		self.view.entry.connect("key-press-event", self.on_entry_key_press)
 		self.view.entry.connect("activate", self.on_command, None)
-		map_functions(self, self.windows)
-		Command.map_commands(self, self.windows)
-		self.clear_state()
+		if self.running_as_service:
+			self.view.connect("focus-out-event", self.hide_ui)
+		else:
+			self.view.connect("focus-out-event", Gtk.main_quit)
+
+	def reload(self, cmd, time):
+		self.configurations.reload()
+		self.applications.reload()
+		self.terminal.reload()
+		self.view.close()
+		self._initialize_view()
+		self.refresh_view(time)
+		if self.status_icon:
+			self.status_icon.reload()
 
 	def open(self):
-		self.view.connect("focus-out-event", Gtk.main_quit)
 		self.show_ui(0)
 		Gtk.main()
 
@@ -65,7 +89,6 @@ class Controller ():
 			if not bound:
 				raise Exception("Could not bind the command prefix key: " + command_prefix, file=sys.stderr)
 
-		self.view.connect("focus-out-event", self.hide_ui)
 		print("Listening keys: '{}', '{}' pid: {} ".format(normal_prefix, command_prefix, os.getpid()))
 
 	def handle_prefix_key(self, key, data):
@@ -364,7 +387,7 @@ class Controller ():
 		else:
 			self.show_error_message('No matching buffer for ' + window_title, time)
 
-	def quit(self, keyval, time):
+	def quit(self, cmd, time):
 		self.view.hide()
 
 	def show_error_message(self, message, time):

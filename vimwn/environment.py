@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import configparser, os
 from xdg import BaseDirectory as base
 from xdg import DesktopEntry as desktop
-from configparser import SafeConfigParser
+from configparser import ConfigParser
 
 VIMWN_DESKTOP='vimwn.desktop'
 VIMWN_PACKAGE='vimwn'
@@ -37,7 +37,7 @@ class Configurations():
 		autostart_dir = base.save_config_path("autostart")
 		self.autostart_file = os.path.join(autostart_dir, VIMWN_DESKTOP)
 
-		self.parser = SafeConfigParser(interpolation=None)
+		self.parser = ConfigParser(interpolation=None)
 		self.parser.read(self.get_config_file())
 		need_write = False
 		if not self.parser.has_section('service'):
@@ -79,6 +79,9 @@ class Configurations():
 		if need_write:
 			with open(self.get_config_file(), 'w') as f:
 				self.parser.write(f)
+
+	def reload(self):
+		self.parser.read(self.get_config_file())
 
 	def is_list_workspaces(self):
 		return self.parser.getboolean('interface', 'list_workspaces')

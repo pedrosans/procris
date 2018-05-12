@@ -38,6 +38,6 @@ elif args.action == 'stop':
 elif args.action == 'status':
 	print(RemoteInterface().get_status())
 elif args.action == 'open':
-	Controller().open()
+	Controller(as_service=False).open()
 else:
 	parser.print_help()

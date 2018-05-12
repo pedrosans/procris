@@ -20,25 +20,35 @@ from vimwn.command import Command
 
 COMMANDS_GLOB = [ "/usr/bin/*", "/snap/bin/*", os.path.expanduser('~/.local/bin')+'/*' ]
 
-class Terminal():
+
+class Terminal:
 
 	def __init__(self):
 		self.aliases_map = {}
-		self.read_aliases()
 		self.name_map= {}
-		for commands_glob in COMMANDS_GLOB:
-			for c in glob.glob(commands_glob):
-				segs = c.split('/')
-				name = segs[-1]
-				self.name_map[name] = c
+		self._read_aliases()
+		self._read_commands()
 
-	def read_aliases(self):
+	def reload(self):
+		self.aliases_map.clear()
+		self.name_map.clear()
+		self._read_aliases()
+		self._read_commands()
+
+	def _read_aliases(self):
 		proc = subprocess.Popen(LIST_ALIASE, executable='bash', shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 		result = proc.communicate()[0].decode('utf-8')
 		for alias_line in result.splitlines():
 			name = re.search(r'^\s*alias\s(.*?)\s*=', alias_line).group(1)
 			cmd = re.search(r'=\s*\'(.*?)\'', alias_line).group(1)
 			self.aliases_map[name] = cmd
+
+	def _read_commands(self):
+		for commands_glob in COMMANDS_GLOB:
+			for c in glob.glob(commands_glob):
+				segs = c.split('/')
+				name = segs[-1]
+				self.name_map[name] = c
 
 	def has_perfect_match(self, name):
 		return name in self.name_map.keys()
