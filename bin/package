@@ -1,13 +1,22 @@
 #!/bin/bash
-#dependencies to package:
-#sudo apt-get install python3-stdeb
-#dependencies to upload:
-#sudo apt install devscripts
+# 
+# Commands to package the project
+# 
+#	binaries: so it can be distributed
+#	sources : so it can be uploaded to a repository
+#	publish : publishes the sources package to pedrosans Ubuntu PPA
+#	delete  : cleans any built artifact from the project tree
+# 
+# Dependencies to
+# 
+#	package: sudo apt-get install python3-stdeb
+#	upload : sudo apt install devscripts
+# 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-export PYTHONPATH="$(dirname $DIR)"
+PYTHONPATH="$(dirname $DIR)" && export PYTHONPATH
 SETUP_SCRIPT="$PYTHONPATH"/setup.py
-VERSION=$(sed -n "s/^\s*version='\([^']*\)'.*/\1/p" $SETUP_SCRIPT)
-LAST_VERSION=$(sed -n "s/^\s*last_version='\([^']*\)'.*/\1/p" $SETUP_SCRIPT)
+VERSION=$(      git describe --abbrev=0 --tags $(git rev-list --tags --skip=0 --max-count=1))
+LAST_VERSION=$( git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1))
 case "$1" in
 	delete)
 		rm -rf "$PYTHONPATH"/build "$PYTHONPATH"/deb_dist "$PYTHONPATH"/dist
@@ -33,6 +42,6 @@ case "$1" in
 		&& cd "$PYTHONPATH"/deb_dist && dput ppa:pedrosans/vimwn vimwn_$VERSION-1_source.changes && echo "Published"
 		;;
 	*)
-		echo $"Usage: $0 {create|binaries|sources|publish}"
+		echo $"Usage: $0 {delete|binaries|sources|publish}"
 		exit 1
 esac
