@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, signal, re, os, sys
+import gi, signal, re, os, sys, logging
 gi.require_version('Gtk', '3.0')
 gi.require_version("Keybinder", "3.0")
 from gi.repository import Gtk, Gdk, Keybinder, GLib
@@ -60,6 +60,10 @@ class Controller:
 			self.view.connect("focus-out-event", self.hide_ui)
 		else:
 			self.view.connect("focus-out-event", Gtk.main_quit)
+		# https://lazka.github.io/pgi-docs/GLib-2.0/functions.html#GLib.log_set_handler
+		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_WARNING, self.log_function)
+		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, self.log_function)
+		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, self.log_function)
 
 	def reload(self, cmd, time):
 		self.configurations.reload()
@@ -82,14 +86,24 @@ class Controller:
 
 		for hotkey in normal_prefix.split(","):
 			if not Keybinder.bind(hotkey, self.handle_prefix_key, None):
-				raise Exception("Could not bind the hotkey: " + hotkey, file=sys.stderr)
+				raise Exception("Could not bind the hotkey: " + hotkey)
 
 		if command_prefix:
 			bound = Keybinder.bind(command_prefix, self.handle_command_prefix_key, None)
 			if not bound:
-				raise Exception("Could not bind the command prefix key: " + command_prefix, file=sys.stderr)
+				raise Exception("Could not bind the command prefix key: " + command_prefix)
 
 		print("Listening keys: '{}', '{}' pid: {} ".format(normal_prefix, command_prefix, os.getpid()))
+
+	def log_function(self, log_domain, log_level, message):
+		if log_level is GLib.LogLevelFlags.LEVEL_WARNING:
+			logging.warning('GLib log[%s]:%s',log_domain, message)
+			self.view.show_warning(message)
+		elif log_level in (GLib.LogLevelFlags.LEVEL_ERROR, GLib.LogLevelFlags.LEVEL_CRITICAL):
+			logging.error('GLib log[%s]:%s',log_domain, message)
+			self.view.show_error(message)
+		else:
+			raise Exception(message)
 
 	def handle_prefix_key(self, key, data):
 		self.show_ui(Keybinder.get_current_event_time())
