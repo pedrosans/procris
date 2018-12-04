@@ -4,7 +4,7 @@ from distutils.core import setup
 
 setup(name='vimwn',
 	version='1.4',
-	description='Window navigator that emulates Vim commands',
+	description='Maps Vim window commands to Libwnck functions to move and navigate around X windows',
 	author='Pedro Santos',
 	author_email='pedrosans@gmail.com',
 	url='https://github.com/pedrosans/vimwn',

@@ -1,17 +1,17 @@
 #!/bin/bash
-# 
+#
 # Commands to package the project
-# 
+#
 #	binaries: so it can be distributed
 #	sources : so it can be uploaded to a repository
 #	publish : publishes the sources package to pedrosans Ubuntu PPA
 #	delete  : cleans any built artifact from the project tree
-# 
+#
 # Dependencies to
-# 
+#
 #	package: sudo apt-get install python3-stdeb
 #	upload : sudo apt install devscripts
-# 
+#
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 PYTHONPATH="$(dirname $DIR)" && export PYTHONPATH
 SETUP_SCRIPT="$PYTHONPATH"/setup.py
@@ -19,18 +19,21 @@ VERSION=$(      git describe --abbrev=0 --tags $(git rev-list --tags --skip=0 --
 LAST_VERSION=$( git describe --abbrev=0 --tags $(git rev-list --tags --skip=1 --max-count=1))
 case "$1" in
 	delete)
-		rm -rf "$PYTHONPATH"/build "$PYTHONPATH"/deb_dist "$PYTHONPATH"/dist
-		rm "$PYTHONPATH"/vimwn-*.tar.gz "$PYTHONPATH"/installed_files.txt "$PYTHONPATH"/tags 2>/dev/null
+		[ -f $PYTHONPATH/installed_files.txt ] && rm -f $PYTHONPATH/installed_files.txt && "	install log - removed"
+		[ -f $PYTHONPATH/tags ] && rm $PYTHONPATH/tags && echo "	tags file - removed"
+		[ -f $PYTHONPATH/vimwn-*.tar.gz ] && rm $PYTHONPATH/vimwn-*.tar.gz && echo "	build artifact - removed"
+		rm -r $PYTHONPATH/build $PYTHONPATH/deb_dist $PYTHONPATH/dist 2>/dev/null && echo "	build dependency dirs - removed"
+		echo "	OK:	package files are gone"
 		;;
 	binaries)
-		"$DIR"/package delete && echo "Old package deleted"
-		echo "Packaging version $VERSION"
-		$SETUP_SCRIPT --command-packages=stdeb.command bdist_deb 1>/dev/null && echo "Binaries packaged"
+		echo "Packaging version $VERSION Last package were: $LAST_VERSION"
+		"$DIR"/package delete
+		python3 $SETUP_SCRIPT --command-packages=stdeb.command bdist_deb 1>/dev/null && echo "Binaries packaged"
 		;;
 	sources)
-		"$DIR"/package delete && echo "Old package deleted"
-		echo "Packaging sources version $VERSION"
-		$SETUP_SCRIPT --command-packages=stdeb.command sdist_dsc --forced-upstream-version $VERSION 1>/dev/null \
+		echo "Packaging sources version $VERSION Last package were: $LAST_VERSION"
+		$DIR/package delete
+		python3 $SETUP_SCRIPT --command-packages=stdeb.command sdist_dsc --forced-upstream-version $VERSION 1>/dev/null \
 		&& echo "New version is built" \
 		&& sed -i '15,16d' deb_dist/vimwn_$VERSION-1_source.changes \
 		&& CHANGES=$(git log master --oneline  --reverse --not $LAST_VERSION) \
