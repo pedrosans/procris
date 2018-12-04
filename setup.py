@@ -3,7 +3,7 @@
 from distutils.core import setup
 
 setup(name='vimwn',
-	version='1.4',
+	version='1.5',
 	description='Maps Vim window commands to Libwnck functions to move and navigate around X windows',
 	author='Pedro Santos',
 	author_email='pedrosans@gmail.com',
