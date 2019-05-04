@@ -74,9 +74,9 @@ X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q<
 		on Unbuntu:
 
 		```
-		sudo apt-get install python3 gir1.2-gtk-3.0 gir1.2-wnck-3.0      \
-			gir1.2-appindicator3-0.1 gir1.2-keybinder-3.0 libwnck-3-0    \
-			python3-gi-cairo python3-xdg python3-dbus python3-setproctitle
+		sudo apt-get install python3-distutils gir1.2-gtk-3.0 gir1.2-wnck-3.0 \
+		gir1.2-appindicator3-0.1 gir1.2-keybinder-3.0 libwnck-3-0             \
+		python3-gi-cairo python3-xdg python3-dbus python3-setproctitle
 		```
 	2. Install vimwn
 		```
