@@ -110,8 +110,8 @@ class Command:
 		Command.map_name_to_function('buffer',     "^\s*(buffer|b)\s*$",				True,	controller.buffer )
 		Command.map_name_to_function('buffer',     "^\s*(buffer|b)\s*[0-9]+\s*$",		True,	controller.open_indexed_buffer )
 		Command.map_name_to_function('buffer',     "^\s*(buffer|b)\s+\w+.*$",			True,	controller.open_named_buffer )
-		Command.map_name_to_function('centralize', "^\s*(centralize|centralize)\s*$",	False,	controller.centralize )
-		Command.map_name_to_function('maximize',   "^\s*(maximize|maximize)\s*$",		False,	controller.maximize )
+		Command.map_name_to_function('centralize', "^\s*(centralize|ce)\s*$",	False,	controller.centralize )
+		Command.map_name_to_function('maximize',   "^\s*(maximize|ma)\s*$",		False,	controller.maximize )
 		Command.map_name_to_function('quit',       "^\s*(quit|q)\s*$",					False,	controller.quit)
 		Command.map_name_to_function('reload',     "^\s*(reload)\s*$",					False,	controller.reload)
 

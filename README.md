@@ -1,5 +1,5 @@
 # vimwn
-Maps Vim window commands to Libwnck functions to move and navigate around X windows.
+Maps Vim window commands to Libwnck functions to move and navigate around X windows. As vimwn uses Libwnck to manipulate windows, it only works on X11
 
 ## Usage
 X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q</kbd> by default, followed by:
@@ -48,50 +48,44 @@ X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q<
 
 ### Specific commands
 
-`:maximizes` Maximize active window
+`:maximizes` `:ma` Maximize active window
 
-`:centralize` Centralize active window
+`:centralize` `:ce` Centralize active window
 
 ## Installation
 
-vimwn uses Libwnck to manipulate windows so it works only on X11
+1. From PPA, for Ubuntu distributions
+	```bash
+	sudo add-apt-repository ppa:pedrosans/vimwn
+	sudo apt-get update
+	sudo apt-get install vimwn
+	```
+2. From source code
 
-### Dependencies
+	1. Install vimwn's dependencies
 
-`python3 gir1.2-gtk-3.0 python3-gi-cairo` python + gtk  
-`python3-xdg` free desktop standards used to configure and launch vimwn  
-`gir1.2-wnck-3.0 libwnck-3-0` functions to navigate X windows  
-`gir1.2-appindicator3-0.1` used to indicate vimwn running on the statur bar  
-`gir1.2-keybinder-3.0 python3-dbus` to bind navigation functions to keyboard prefix + shortcuts  
-`python3-setproctitle` used to name the running process
+		`python3 gir1.2-gtk-3.0 python3-gi-cairo` python + gtk  
+		`python3-xdg` free desktop standards used to configure and launch vimwn  
+		`gir1.2-wnck-3.0 libwnck-3-0` functions to navigate X windows  
+		`gir1.2-appindicator3-0.1` used to indicate vimwn running on the statur bar  
+		`gir1.2-keybinder-3.0 python3-dbus` bind navigation functions to keyboard prefix + shortcuts  
+		`python3-setproctitle` used to name the running process
 
-### From source code
+		on Unbuntu:
 
-1) Install vimwn's dependencies, on Unbuntu
-
-```
-sudo apt-get install python3 gir1.2-gtk-3.0 gir1.2-wnck-3.0 gir1.2-appindicator3-0.1 gir1.2-keybinder-3.0 libwnck-3-0 python3-gi-cairo python3-xdg python3-dbus python3-setproctitle
-
-```
-2) Install vimwn
-```
-sudo ./setup.py install --record installed_files.txt
-
-```
-
-To uninstall:
-
-```
-sudo cat installed_files.txt | sudo  xargs rm -rf ; rm -f installed_files.txt
-```
-
-### From PPA
-
-```bash
-sudo add-apt-repository ppa:pedrosans/vimwn
-sudo apt-get update
-sudo apt-get install vimwn
-```
+		```
+		sudo apt-get install python3 gir1.2-gtk-3.0 gir1.2-wnck-3.0      \
+			gir1.2-appindicator3-0.1 gir1.2-keybinder-3.0 libwnck-3-0    \
+			python3-gi-cairo python3-xdg python3-dbus python3-setproctitle
+		```
+	2. Install vimwn
+		```
+		sudo ./setup.py install --record installed_files.txt
+		```
+	* Uninstall:
+		```
+		sudo cat installed_files.txt | sudo  xargs rm -rf ; rm -f installed_files.txt
+		```
 
 ## Commmand line interface
 
@@ -115,6 +109,8 @@ Section `[interface]` | Customization options
 `auto_hint`| automatic command hints in the status line, default is `true`
 `position`| `top`, `center` and `bottom`. Default is `bottom`
 `width`| interface width in pixels or `100%` if the it should span the entire screen
+`auto_hint` | show hints for the command being typed. Default is `true`
+`auto_select_first_hint` | if the fist option offered in the hint bar should be selected automatically. Default is `true`
 
 Example:
 

@@ -20,16 +20,18 @@ from xdg import BaseDirectory as base
 from xdg import DesktopEntry as desktop
 from configparser import ConfigParser
 
-VIMWN_DESKTOP='vimwn.desktop'
-VIMWN_PACKAGE='vimwn'
-DEFAULT_PREFIX_KEY='<ctrl>q'
-DEFAULT_LIST_WORKSPACES='true'
-DEFAULT_COMPACT_OPTION='false'
-DEFAULT_POSITION='bottom'
-DEFAULT_WIDTH='800'
-DEFAULT_AUTO_HINT='true'
+VIMWN_DESKTOP = 'vimwn.desktop'
+VIMWN_PACKAGE = 'vimwn'
+DEFAULT_PREFIX_KEY = '<ctrl>q'
+DEFAULT_LIST_WORKSPACES = 'true'
+DEFAULT_COMPACT_OPTION = 'false'
+DEFAULT_POSITION = 'bottom'
+DEFAULT_WIDTH = '800'
+DEFAULT_AUTO_HINT = 'true'
+DEFAULT_AUTO_SELECT_FIRST_HINT = 'true'
 
-class Configurations():
+
+class Configurations:
 
 	def __init__(self):
 
@@ -61,7 +63,7 @@ class Configurations():
 			self.parser.set('interface', 'auto_hint', DEFAULT_AUTO_HINT)
 			need_write = True
 		if not self.parser.has_option('interface', 'auto_select_first_hint'):
-			self.parser.set('interface', 'auto_select_first_hint', 'false')
+			self.parser.set('interface', 'auto_select_first_hint', DEFAULT_AUTO_SELECT_FIRST_HINT)
 			need_write = True
 		if not self.parser.has_option('interface', 'save_vertical_space'):
 			self.parser.set('interface', 'save_vertical_space', 'false')
