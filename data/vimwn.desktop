@@ -2,5 +2,5 @@
 Type=Application
 Name=Vimwn
 Icon=vimwn
-Exec=vimwn start --redirect-output
+Exec=vimwn start
 Categories=Utility;

@@ -30,13 +30,9 @@ class NavigatorService:
 	def __init__(self):
 		self.bus_object = None
 
-	def start(self, redirect_output):
+	def start(self):
 		self.controller = Controller(as_service=True)
 		self.configurations = self.controller.configurations
-
-		#redirect as early as possible
-		if redirect_output:
-			self.redirect_output(self.configurations.get_log_file())
 
 		self.configure_process()
 
@@ -105,20 +101,6 @@ class NavigatorService:
 		except OSError as e:
 			sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
 			sys.exit(1)
-
-	def redirect_output(self, logfile='/dev/null' ):
-		# redirect standard file descriptors
-		sys.stdout.flush()
-		sys.stderr.flush()
-		try:
-			so = open(logfile, 'a+')
-			se = open(logfile, 'a+')
-		except:
-			so = open(os.devnull, 'a+')
-			se = open(os.devnull, 'a+')
-
-		os.dup2(so.fileno(), sys.stdout.fileno())
-		os.dup2(se.fileno(), sys.stderr.fileno())
 
 class NavigatorBusService (ExportedGObject):
 

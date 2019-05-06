@@ -22,7 +22,6 @@ from configparser import ConfigParser
 
 VIMWN_DESKTOP='vimwn.desktop'
 VIMWN_PACKAGE='vimwn'
-DEFAULT_LOG_FILE='~/.vimwn/vimwn.log'
 DEFAULT_PREFIX_KEY='<ctrl>q'
 DEFAULT_LIST_WORKSPACES='true'
 DEFAULT_COMPACT_OPTION='false'
@@ -40,12 +39,6 @@ class Configurations():
 		self.parser = ConfigParser(interpolation=None)
 		self.parser.read(self.get_config_file())
 		need_write = False
-		if not self.parser.has_section('service'):
-			self.parser.add_section('service')
-			need_write = True
-		if not self.parser.has_option('service', 'log_file'):
-			self.parser.set('service', 'log_file', DEFAULT_LOG_FILE)
-			need_write = True
 		if not self.parser.has_section('interface'):
 			self.parser.add_section('interface')
 			need_write = True
@@ -144,13 +137,6 @@ class Configurations():
 		except configparser.NoOptionError:
 			return None
 
-	def get_log_file(self):
-		try:
-			path = self.parser.get('service', 'log_file')
-			return os.path.expanduser(path)
-		except configparser.NoOptionError:
-			return None
-
 	def get_config_file(self):
 		d = base.load_first_config(VIMWN_PACKAGE)
 		if not d:
@@ -166,5 +152,5 @@ class Configurations():
 		dfile.set("X-GNOME-Autostart-enabled", str(auto_start).lower())
 		dfile.set("Name", "Vimwn")
 		dfile.set("Icon", "vimwn")
-		dfile.set("Exec", "vimwn start --redirect-output")
+		dfile.set("Exec", "vimwn start")
 		dfile.write(filename=self.autostart_file)
