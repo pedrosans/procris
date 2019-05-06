@@ -22,7 +22,8 @@ case "$1" in
 		[ -f $PYTHONPATH/installed_files.txt ] && rm -f $PYTHONPATH/installed_files.txt && "	install log - removed"
 		[ -f $PYTHONPATH/tags ] && rm $PYTHONPATH/tags && echo "	tags file - removed"
 		[ -f $PYTHONPATH/vimwn-*.tar.gz ] && rm $PYTHONPATH/vimwn-*.tar.gz && echo "	build artifact - removed"
-		rm -r $PYTHONPATH/build $PYTHONPATH/deb_dist $PYTHONPATH/dist 2>/dev/null && echo "	build dependency dirs - removed"
+		[ -d $PYTHONPATH/build ] && sudo rm -rf $PYTHONPATH/build && echo "	build directory - removed"
+		rm -r $PYTHONPATH/deb_dist $PYTHONPATH/dist 2>/dev/null && echo "	build dependency dirs - removed"
 		echo "	OK:	package files are gone"
 		;;
 	binaries)
