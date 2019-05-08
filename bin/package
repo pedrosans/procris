@@ -9,7 +9,7 @@
 #
 # Dependencies to
 #
-#	package: sudo apt-get install python3-stdeb
+#	package: sudo apt-get install python3-distutils python3-stdeb
 #	upload : sudo apt install devscripts
 #
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
