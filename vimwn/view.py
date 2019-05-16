@@ -247,7 +247,7 @@ class NavigatorWindow(Gtk.Window):
 		midx = geo.x + geo.width / 2 - wid / 2
 		if self.controller.configurations.get_position() == 'top':
 			midy = geo.y
-		elif self.controller.configurations.get_position() == 'center':
+		elif self.controller.configurations.get_position() == 'middle':
 			midy = geo.y + geo.height / 2 - hei
 		else:
 			midy = geo.y + geo.height - hei

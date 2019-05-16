@@ -161,7 +161,8 @@ class Controller:
 		return 0
 
 	def on_window_key_press(self, widget, event):
-		if event.keyval == Gdk.KEY_Escape:
+		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
+		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft) :
 			self.escape(None, None)
 		if self.reading_command:
 			return False
@@ -434,3 +435,4 @@ def map_functions(controller, windows):
 	KEY_FUNCTIONS[Gdk.KEY_colon  ] = controller.colon
 	KEY_FUNCTIONS[Gdk.KEY_Return ] = controller.enter
 	KEY_FUNCTIONS[Gdk.KEY_Escape ] = controller.escape
+	KEY_FUNCTIONS[Gdk.KEY_bracketleft ] = controller.escape

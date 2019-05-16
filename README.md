@@ -18,13 +18,13 @@ X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q<
 
 <kbd>prefix key</kbd> + <kbd>l</kbd> Move to the window on the right
 
-<kbd>prefix key</kbd> + <kbd>h</kbd> Move the current window to be at the far left
+<kbd>prefix key</kbd> + <kbd>H</kbd> Move the current window to be at the far left
 
-<kbd>prefix key</kbd> + <kbd>j</kbd> Move the current window to be at the very bottom
+<kbd>prefix key</kbd> + <kbd>J</kbd> Move the current window to be at the very bottom
 
-<kbd>prefix key</kbd> + <kbd>k</kbd> Move the current window to be at the very top
+<kbd>prefix key</kbd> + <kbd>K</kbd> Move the current window to be at the very top
 
-<kbd>prefix key</kbd> + <kbd>l</kbd> Move the current window to be at the far right
+<kbd>prefix key</kbd> + <kbd>L</kbd> Move the current window to be at the far right
 
 <kbd>prefix key</kbd> + <kbd><</kbd> Decrease current window width
 
@@ -32,7 +32,15 @@ X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q<
 
 <kbd>prefix key</kbd> + <kbd>=</kbd> Make top 2 windows equally high and wide
 
-### Navigation commands
+### Command key combinations
+
+<kbd>prefix key</kbd> + <kbd>q</kbd> Quit current window
+
+### Usage key combinations
+
+<kbd>prefix key</kbd> + <kbd>esq</kbd> or <kbd>prefix key</kbd> + <kbd>ctrl + [</kbd> Quit vimwn operation and close its UI
+
+### Window commands
 
 `:buffers` `:ls` List windows
 
@@ -45,8 +53,6 @@ X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q<
 `:bd[elete] {bufname}` Close window for {bufname} (default: corrent buffer) and delete it from the window list
 
 `:bd[elete] [N]` Close window [N] (default: corrent buffer) and delete it from the window list
-
-### Specific commands
 
 `:maximizes` `:ma` Maximize active window
 
@@ -82,9 +88,17 @@ X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q<
 		```
 		sudo ./setup.py install --record installed_files.txt
 		```
-	* Uninstall:
+		to uninstall:
 		```
 		sudo cat installed_files.txt | sudo  xargs rm -rf ; rm -f installed_files.txt
+		```
+
+	3. Update icons cache
+
+		on Unbuntu:
+
+		```
+		sudo update-icon-caches /usr/share/icons/*
 		```
 
 ## Commmand line interface
@@ -107,7 +121,7 @@ Section `[interface]` | Customization options
 `command_prefix_key`| <kbd>prefix key</kbd> for opening vimwn in command line mode
 `list_workspaces`| if buffers command should list windows from all workspaces, default is `true`
 `auto_hint`| automatic command hints in the status line, default is `true`
-`position`| `top`, `center` and `bottom`. Default is `bottom`
+`position`| `top`, `middle` and `bottom`. Default is `bottom`
 `width`| interface width in pixels or `100%` if the it should span the entire screen
 `auto_hint` | show hints for the command being typed. Default is `true`
 `auto_select_first_hint` | if the fist option offered in the hint bar should be selected automatically. Default is `true`
