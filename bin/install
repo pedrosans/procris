@@ -1,0 +1,6 @@
+#!/bin/bash
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+sudo apt install -y python3 gir1.2-gtk-3.0 gir1.2-wnck-3.0 gir1.2-appindicator3-0.1 gir1.2-keybinder-3.0 libwnck-3-0 python3-gi-cairo python3-xdg python3-dbus python3-setproctitle
+sudo apt install -y python3-distutils # python3-stdeb
+sudo $DIR/../setup.py install
+sudo update-icon-caches /usr/share/icons/*
