@@ -323,7 +323,7 @@ class Controller:
 		self.only(None, time)
 
 	def only(self, cmd, time):
-		for w in self.windows.visibles:
+		for w in self.windows.visible:
 			if self.windows.active != w:
 				w.minimize()
 		self.open_window(self.windows.active, time)

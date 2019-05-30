@@ -45,7 +45,7 @@ class Windows():
 		self.active = None
 		self.staging = False
 		self.unity_wm = False
-		self.visibles =[]
+		self.visible =[]
 		self.buffers =[]
 		self.read_itself = False
 		self.window_handlers = {}
@@ -53,12 +53,12 @@ class Windows():
 
 	def remove(self, window, time):
 		window.close(time)
-		self.visibles.remove(window)
+		self.visible.remove(window)
 		self.buffers.remove(window)
 		self._update_internal_state()
 
 	def read_screen(self):
-		del self.visibles[:]
+		del self.visible[:]
 		del self.buffers[:]
 		self.read_itself = False
 		#TODO is needed?
@@ -77,7 +77,7 @@ class Windows():
 			if in_active_workspace or self.controller.configurations.is_list_workspaces():
 				self.buffers.append(wnck_window)
 			if in_active_workspace and not wnck_window.is_minimized():
-				self.visibles.append(wnck_window)
+				self.visible.append(wnck_window)
 		self._update_internal_state()
 
 	def find_by_name(self, window_title):
@@ -96,18 +96,18 @@ class Windows():
 	def _update_internal_state(self):
 		self.active = None
 		for w in reversed(self.screen.get_windows_stacked()):
-			if w in self.visibles:
+			if w in self.visible:
 				self.active = w
 				break
-		self.x_line = list(self.visibles)
+		self.x_line = list(self.visible)
 		self.x_line.sort(key=lambda w: w.get_geometry().xp * 1000 + w.get_geometry().yp)
-		self.y_line = list(self.visibles)
+		self.y_line = list(self.visible)
 		self.y_line.sort(key=lambda w: w.get_geometry().yp)
 
 	def clear_state(self):
 		self.screen = None
 		self.active = None
-		self.visibles =[]
+		self.visible =[]
 		self.buffers =[]
 		self.x_line = None
 		self.y_line = None
@@ -157,7 +157,7 @@ class Windows():
 		top = self.active
 		below = None
 		for w in reversed(self.screen.get_windows_stacked()):
-			if w in self.visibles:
+			if w in self.visible:
 				if not top:
 					top = w
 					continue
