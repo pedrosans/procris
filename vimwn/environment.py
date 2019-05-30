@@ -65,9 +65,6 @@ class Configurations:
 		if not self.parser.has_option('interface', 'auto_select_first_hint'):
 			self.parser.set('interface', 'auto_select_first_hint', DEFAULT_AUTO_SELECT_FIRST_HINT)
 			need_write = True
-		if not self.parser.has_option('interface', 'save_vertical_space'):
-			self.parser.set('interface', 'save_vertical_space', 'false')
-			need_write = True
 		if not self.parser.has_option('interface', 'icon'):
 			self.parser.set('interface', 'icon', 'default')
 			need_write = True
@@ -112,12 +109,6 @@ class Configurations:
 	def is_auto_select_first_hint(self):
 		try:
 			return self.parser.getboolean('interface', 'auto_select_first_hint')
-		except configparser.NoOptionError:
-			return True
-
-	def is_save_vertical_space(self):
-		try:
-			return self.parser.getboolean('interface', 'save_vertical_space')
 		except configparser.NoOptionError:
 			return True
 

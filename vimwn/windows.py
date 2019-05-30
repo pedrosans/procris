@@ -202,37 +202,15 @@ class Windows():
 		"""
 		Moves the window base on the parameter geometry : screen ratio
 		"""
-		was_maximized_horizontally = False
-		was_maximized_vertically = False
 		geometry_mask = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH
-		old_x, old_y, old_width, old_height = window.get_geometry()
 		monitor_geo = self.controller.view.get_monitor_geometry()
 
 		if window.is_maximized():
 			window.unmaximize()
 		if window.is_maximized_horizontally():
 			window.unmaximize_horizontally()
-			was_maximized_horizontally = True
-
-		is_save_vertical_space = self.controller.configurations.is_save_vertical_space()
-
-		if (is_save_vertical_space and height_ratio == 1 and not window.get_xid() in self.window_handlers):
-			window.maximize_vertically()
-			gdk_window = self.get_gdk_window(window.get_xid())
-			is_decorated, decorations = gdk_window.get_decorations()
-			gdk_window.set_decorations(0)
-			old_x, old_y, old_width, old_height = window.get_client_window_geometry()
-			if is_decorated:
-				self.window_original_decorations[window.get_xid()] = decorations
-			else:
-				self.window_original_decorations[window.get_xid()] = None
-			handler_id = window.connect("state-changed", self._restore_decorations)
-			self.window_handlers[window.get_xid()] = handler_id
-
-		if ( window.is_maximized_vertically()
-				and (height_ratio < 1 or not is_save_vertical_space) ):
+		if window.is_maximized_vertically():
 			window.unmaximize_vertically()
-			was_maximized_vertically = True
 
 		new_width = int(monitor_geo.width * width_ratio)
 		new_height = int(monitor_geo.height * height_ratio)
