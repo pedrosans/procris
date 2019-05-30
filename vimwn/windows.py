@@ -44,7 +44,6 @@ class Windows():
 		Wnck.set_client_type(Wnck.ClientType.PAGER)
 		self.active = None
 		self.staging = False
-		self.unity_wm = False
 		self.visible =[]
 		self.buffers =[]
 		self.read_itself = False
@@ -67,8 +66,6 @@ class Windows():
 
 		active_workspace = self.screen.get_active_workspace()
 		for wnck_window in self.screen.get_windows():
-			if wnck_window.get_name() == 'XdndCollectionWindowImp':
-				self.unity_wm = True
 			if wnck_window.get_pid() == os.getpid():
 				self.read_itself = True
 			if wnck_window.is_skip_tasklist():
@@ -233,7 +230,7 @@ class Windows():
 			self.window_handlers[window.get_xid()] = handler_id
 
 		if ( window.is_maximized_vertically()
-				and (height_ratio < 1 or ( not is_save_vertical_space and not self.unity_wm))):
+				and (height_ratio < 1 or not is_save_vertical_space) ):
 			window.unmaximize_vertically()
 			was_maximized_vertically = True
 
@@ -242,24 +239,8 @@ class Windows():
 		new_x = int(monitor_geo.x + monitor_geo.width * x_ratio)
 		new_y = int(monitor_geo.y + monitor_geo.height * y_ratio)
 
-		if not self.unity_wm:
-			geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.X
-			geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.Y
-		else:
-			if width_ratio == 1:
-				window.maximize_horizontally()
-			else:
-				if new_x != old_x or was_maximized_horizontally:
-					geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.X
-					if new_x == monitor_geo.x:
-						new_width -= 10
-			if height_ratio == 1:
-				window.maximize_vertically()
-			else:
-				if new_y != old_y or was_maximized_vertically:
-					geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.Y
-					if new_y == monitor_geo.y:
-						new_height -= 10
+		geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.X
+		geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.Y
 
 		#print("window: x={} y={} width={} heigh={}".format(new_x, new_y, new_width, new_height))
 		#print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))

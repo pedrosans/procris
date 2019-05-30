@@ -105,10 +105,7 @@ class NavigatorWindow(Gtk.Window):
 		return screen.get_monitor_workarea(monitor_nr)
 
 	def show(self, event_time ):
-		if self.windows.unity_wm:
-			self.set_gravity(Gdk.Gravity.SOUTH_WEST)
-		else:
-			self.set_gravity(Gdk.Gravity.NORTH_WEST)
+		self.set_gravity(Gdk.Gravity.NORTH_WEST)
 		for c in self.output_box.get_children(): c.destroy()
 		for c in self.windows_list_box.get_children(): c.destroy()
 
