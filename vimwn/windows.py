@@ -153,14 +153,14 @@ class Windows():
 	def get_top_two_windows(self):
 		top = self.active
 		below = None
+		after_top = False
 		for w in reversed(self.screen.get_windows_stacked()):
-			if w in self.visible:
-				if not top:
-					top = w
-					continue
-				else:
-					below = w
-					break
+			if w is self.active:
+				after_top = True
+				continue
+			if after_top and w in self.visible and w is not top:
+				below = w
+				break
 		return top, below
 
 	def get_left_right_top_windows(self):
