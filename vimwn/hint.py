@@ -20,8 +20,9 @@ gi.require_version("Keybinder", "3.0")
 from gi.repository import Gtk, Gdk, Keybinder, GLib
 from vimwn.command import Command
 
+
 # TODO move to status.py
-class StatusLine :
+class HintStatus:
 
 	def __init__(self, controller):
 		self.controller = controller

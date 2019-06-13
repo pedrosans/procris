@@ -1,14 +1,14 @@
 import unittest
 from unittest.mock import patch
 from unittest.mock import MagicMock
-from vimwn.status_line import StatusLine
+from vimwn.hint import HintStatus
 from vimwn.command import Command
 
 class HintTestCase(unittest.TestCase):
 
 	def setUp(self):
 		self.controller = MagicMock()
-		self.status_line = StatusLine(self.controller)
+		self.status_line = HintStatus(self.controller)
 		self.bang_command = MagicMock()
 		self.bang_command.name = '!'
 		self.bang_command.hint_vim_command_parameter = MagicMock()

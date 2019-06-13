@@ -61,8 +61,8 @@ class NavigatorWindow(Gtk.Window):
 		self.windows_list_box = Gtk.Box(homogeneous=False, spacing=0)
 		self.v_box.pack_start(self.windows_list_box, expand=True, fill=True, padding=0)
 
-		self.status_box = StatusBox()
-		self.v_box.pack_start(self.status_box, expand=True, fill=True, padding=0)
+		self.hint_line = HintLine()
+		self.v_box.pack_start(self.hint_line, expand=True, fill=True, padding=0)
 
 		self.entry = Gtk.Entry()
 		self.entry.get_style_context().add_class('command-input')
@@ -79,17 +79,16 @@ class NavigatorWindow(Gtk.Window):
 		hints array, plus auto complete the current input
 		if any comple command
 		"""
-		self.status_box.show(hints, higlight_index)
+		self.hint_line.show(hints, higlight_index)
 
-	def clear_hints_state(self):
+	def clean_hints(self):
 		"""
-		Clear the status line and renders it again, so
-		any change in the hints listing can be shown
+		Clean the status line and render it again
 		"""
-		self.status_box.clear_status_line()
+		self.hint_line.clear_status_line()
 		if not self.controller.listing_windows:
-			self.status_box.add_status_text(' ', False)
-		self.status_box.show_all()
+			self.hint_line.add_status_text(' ', False)
+		self.hint_line.show_all()
 
 	def get_command(self):
 		return self.entry.get_text()[1:]
@@ -111,7 +110,7 @@ class NavigatorWindow(Gtk.Window):
 
 		self.present_with_time(event_time)
 		self._calculate_width()
-		self.clear_hints_state()
+		self.clean_hints()
 
 		if self.controller.listing_windows:
 			self.list_windows(event_time)
@@ -130,7 +129,7 @@ class NavigatorWindow(Gtk.Window):
 	def list_navigation_windows(self):
 		if self.controller.reading_command or self.controller.listing_windows:
 			return
-		for c in self.status_box.get_children(): c.destroy()
+		for c in self.hint_line.get_children(): c.destroy()
 		for window in self.windows.x_line:
 			name = window.get_name()
 			name = ' ' + ((name[:8] + '..') if len(name) > 10 else name)
@@ -138,10 +137,10 @@ class NavigatorWindow(Gtk.Window):
 			if window is not self.windows.active:
 				position = ' ' + position
 			active = window is self.windows.active
-			self.status_box.add_status_icon(window, active)
-			self.status_box.add_status_text(position, active)
-			self.status_box.add_status_text(name, active)
-			self.status_box.add_status_text(' ', False)
+			self.hint_line.add_status_icon(window, active)
+			self.hint_line.add_status_text(position, active)
+			self.hint_line.add_status_text(name, active)
+			self.hint_line.add_status_text(' ', False)
 
 	def populate_navigation_options(self):
 		line = Gtk.HBox(homogeneous=False, spacing=0);
@@ -236,7 +235,7 @@ class NavigatorWindow(Gtk.Window):
 		layout.set_font_description(self.entry.get_style_context().get_font(Gtk.StateFlags.NORMAL))
 		char_size = layout.get_pixel_extents().logical_rect.width
 		self.columns = int(self.window_width / char_size)
-		self.status_box.page_size = self.columns
+		self.hint_line.page_size = self.columns
 
 	def _move_to_preferred_position(self, allocation, data):
 		geo = self.get_monitor_geometry()
@@ -288,8 +287,8 @@ class WindowBtn(Gtk.Button):
 	def on_clicked(self, btn):
 		self.window.activate_transient(self.controller.get_current_event_time())
 
-#TODO rename to status line
-class StatusBox(Gtk.Box):
+
+class HintLine(Gtk.Box):
 
 	def __init__(self):
 		Gtk.Box.__init__(self, homogeneous=False, spacing=0)

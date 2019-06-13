@@ -4,3 +4,4 @@ sudo apt install -y python3 gir1.2-gtk-3.0 gir1.2-wnck-3.0 gir1.2-appindicator3-
 sudo apt install -y python3-distutils # python3-stdeb
 sudo $DIR/../setup.py install
 sudo update-icon-caches /usr/share/icons/*
+$DIR/package delete

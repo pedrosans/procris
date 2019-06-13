@@ -23,7 +23,7 @@ from vimwn.windows import Windows
 from vimwn.environment import Configurations
 from vimwn.applications import Applications
 from vimwn.terminal import Terminal
-from vimwn.status_line import StatusLine
+from vimwn.hint import HintStatus
 from vimwn.command import Command
 from vimwn.status import StatusIcon
 
@@ -40,11 +40,27 @@ class Controller:
 		self.applications = Applications()
 		self.terminal = Terminal()
 		self.windows = Windows(self)
-		self.status_line = StatusLine(self)
+		self.hint_status = HintStatus(self)
 		map_functions(self, self.windows)
 		Command.map_commands(self, self.windows)
 		self._initialize_view()
-		self.clear_state()
+		self.listing_windows = self.reading_command = self.reading_multiple_commands = False
+		self.status_message = self.status_level = None
+		self.multiplier = self.status_message = ''
+		self._clean_state()
+
+	def _clean_state(self):
+		self._clear_command_ui_state()
+		self.listing_windows = False
+
+	def _clear_command_ui_state(self):
+		self.hint_status.clear_state()
+		self.reading_command = False
+		self.reading_multiple_commands = False
+		self.multiplier = ""
+		self.status_message = None
+		self.status_level = None
+		self.status_message = '^W'
 
 	def indicate_running_service(self, service):
 		self.status_icon = StatusIcon(self.configurations)
@@ -65,35 +81,19 @@ class Controller:
 		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, self.log_function)
 		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, self.log_function)
 
-	def reload(self, cmd, time):
-		self.configurations.reload()
-		self.applications.reload()
-		self.terminal.reload()
-		self.view.close()
-		self._initialize_view()
-		self.refresh_view(time)
-		if self.status_icon:
-			self.status_icon.reload()
-
 	def open(self):
 		self.show_ui(0)
 		Gtk.main()
 
 	def listen_user_events(self):
 		normal_prefix = self.configurations.get_prefix_key()
-		command_prefix = self.configurations.get_command_prefix_key()
 		Keybinder.init()
 
 		for hotkey in normal_prefix.split(","):
 			if not Keybinder.bind(hotkey, self.handle_prefix_key, None):
 				raise Exception("Could not bind the hotkey: " + hotkey)
 
-		if command_prefix:
-			bound = Keybinder.bind(command_prefix, self.handle_command_prefix_key, None)
-			if not bound:
-				raise Exception("Could not bind the command prefix key: " + command_prefix)
-
-		print("Listening keys: '{}', '{}' pid: {} ".format(normal_prefix, command_prefix, os.getpid()))
+		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
 
 	def log_function(self, log_domain, log_level, message):
 		if log_level is GLib.LogLevelFlags.LEVEL_WARNING:
@@ -108,13 +108,6 @@ class Controller:
 	def handle_prefix_key(self, key, data):
 		self.show_ui(Keybinder.get_current_event_time())
 
-	def handle_command_prefix_key(self, key, data):
-		self.reading_command = True
-		self.show_ui(Keybinder.get_current_event_time())
-		self.view.set_command('')
-		#if self.configurations.is_auto_hint():
-		#	self.status_line.auto_hint('')
-
 	def show_ui(self, time):
 		self.windows.read_screen()
 		if self.windows.read_itself:
@@ -123,31 +116,24 @@ class Controller:
 		else:
 			self.view.show(time)
 
+	def show_error_message(self, message, time):
+		self._clear_command_ui_state()
+		self.status_message = message
+		self.status_level = 'error'
+		self.view.show(time)
+
 	def hide_ui(self, widget, event):
 		self.view.hide()
-		self.clear_state()
+		self._clean_state()
 		return True;
 
-	#TODO rename to refresh_ui
+	# TODO rename to refresh_ui
 	def refresh_view(self, time):
 		"""
 		Repaints the UI at its default state
 		"""
-		self.clear_state()
+		self._clean_state()
 		self.view.show (time)
-
-	def clear_state(self):
-		self.clear_command_ui_state()
-		self.listing_windows = False
-
-	def clear_command_ui_state(self):
-		self.status_line.clear_state()
-		self.reading_command = False
-		self.reading_multiple_commands = False
-		self.multiplier = ""
-		self.status_message = None
-		self.status_level = None
-		self.status_message = '^W'
 
 	def open_window(self, window, time):
 		window.activate_transient(time)
@@ -174,11 +160,11 @@ class Controller:
 			multiplier_int = int(self.multiplier) if self.multiplier else 1
 			for i in range(multiplier_int):
 				KEY_FUNCTIONS[event.keyval](event.keyval, event.time)
-			#TODO error message if not staging a change?
+			# TODO error message if not staging a change?
 			self.windows.commit_navigation(event.time)
 
-	#TODO no auto hints for commands to prevent the 'b' <> 'bdelete' misslead
-	#TODO no auto hint if a command is alreay a match
+	# TODO no auto hints for commands to prevent the 'b' <> 'bdelete' misslead
+	# TODO no auto hint if a command is alreay a match
 	def on_entry_key_release(self, widget, event):
 		if event.keyval in [
 				Gdk.KEY_Shift_L, Gdk.KEY_Shift_R, Gdk.KEY_Return,
@@ -189,34 +175,34 @@ class Controller:
 			return False
 
 		if not self.view.entry.get_text().strip():
-			self.clear_command_ui_state()
+			self._clear_command_ui_state()
 			self.view.show(event.time)
 			return False
 
 		if not self.view.get_command().strip():
-			self.status_line.clear_state()
-			self.view.clear_hints_state()
+			self.hint_status.clear_state()
+			self.view.clean_hints()
 			return False
 
 		if self.configurations.is_auto_hint():
-			self.status_line.auto_hint(self.view.get_command())
-			if self.status_line.hinting:
+			self.hint_status.auto_hint(self.view.get_command())
+			if self.hint_status.hinting:
 				index = -1
 				if self.configurations.is_auto_select_first_hint():
 					index = 0
-				self.view.hint(self.status_line.hints, index)
+				self.view.hint(self.hint_status.hints, index)
 			else:
-				self.view.clear_hints_state()
+				self.view.clean_hints()
 		else:
-			self.status_line.clear_state()
-			self.view.clear_hints_state()
+			self.hint_status.clear_state()
+			self.view.clean_hints()
 			return False
 
 	def on_entry_key_press(self, widget, event):
 		if event.keyval in [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R, Gdk.KEY_Return]:
 			return False
 
-		if self.status_line.hinting:
+		if self.hint_status.hinting:
 			if event.keyval in [Gdk.KEY_Left, Gdk.KEY_Up]:
 				self.show_highlights(-1)
 				return True
@@ -236,22 +222,22 @@ class Controller:
 		text = self.view.get_command()
 		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
 			if event.state & Gdk.ModifierType.SHIFT_MASK:
-				self.status_line.hint(text)
+				self.hint_status.hint(text)
 				self.show_highlights(-1)
 			else:
-				self.status_line.hint(text)
+				self.hint_status.hint(text)
 				self.show_highlights(1)
 			return True
 
 	def show_highlights(self, direction):
-		if not self.status_line.hinting:
+		if not self.hint_status.hinting:
 			return
-		self.status_line.cycle(direction)
-		if len(self.status_line.hints) == 1:
-			self.view.clear_hints_state()
-		elif len(self.status_line.hints) > 1:
-			self.view.hint(self.status_line.hints, self.status_line.highlight_index)
-		self.view.set_command(self.status_line.get_highlighted_hint())
+		self.hint_status.cycle(direction)
+		if len(self.hint_status.hints) == 1:
+			self.view.clean_hints()
+		elif len(self.hint_status.hints) > 1:
+			self.view.hint(self.hint_status.hints, self.hint_status.highlight_index)
+		self.view.set_command(self.hint_status.get_highlighted_hint())
 
 	def on_command(self, pane_owner, current):
 		if not self.reading_command:
@@ -260,15 +246,15 @@ class Controller:
 		cmd = self.view.get_command()
 
 		if (self.configurations.is_auto_select_first_hint()
-				and self.status_line.highlight_index == -1
-				and self.status_line.hinting
-				and len(self.status_line.hints) > 0 ):
-			self.status_line.highlight_index = 0
-			cmd = self.status_line.get_highlighted_hint()
+				and self.hint_status.highlight_index == -1
+				and self.hint_status.hinting
+				and len(self.hint_status.hints) > 0):
+			self.hint_status.highlight_index = 0
+			cmd = self.hint_status.get_highlighted_hint()
 
 		if Command.has_multiple_commands(cmd):
 			self.reading_multiple_commands = True
-			#TODO iterate multiple commands
+			# TODO iterate multiple commands
 
 		time = self.get_current_event_time()
 		command = Command.get_matching_command(cmd)
@@ -277,6 +263,19 @@ class Controller:
 			command.function(cmd, time)
 		else:
 			self.show_error_message('Not an editor command: ' + cmd, time)
+
+	#
+	# COMMANDS ANF FUNCTIONS
+	#
+	def reload(self, cmd, time):
+		self.configurations.reload()
+		self.applications.reload()
+		self.terminal.reload()
+		self.view.close()
+		self._initialize_view()
+		self.refresh_view(time)
+		if self.status_icon:
+			self.status_icon.reload()
 
 	def edit(self, cmd, time):
 		name = Command.extract_text_parameter(cmd)
@@ -404,11 +403,6 @@ class Controller:
 	def quit(self, cmd, time):
 		self.view.hide()
 
-	def show_error_message(self, message, time):
-		self.clear_command_ui_state()
-		self.status_message = message
-		self.status_level = 'error'
-		self.view.show(time)
 
 def map_functions(controller, windows):
 	if len(KEY_FUNCTIONS) > 0:
