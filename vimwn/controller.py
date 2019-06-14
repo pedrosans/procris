@@ -49,6 +49,10 @@ class Controller:
 		self.multiplier = self.status_message = ''
 		self._clean_state()
 
+	def indicate_running_service(self, service):
+		self.status_icon = StatusIcon(self.configurations)
+		self.status_icon.activate(service)
+
 	def _clean_state(self):
 		self._clear_command_ui_state()
 		self.listing_windows = False
@@ -61,10 +65,6 @@ class Controller:
 		self.status_message = None
 		self.status_level = None
 		self.status_message = '^W'
-
-	def indicate_running_service(self, service):
-		self.status_icon = StatusIcon(self.configurations)
-		self.status_icon.activate(service)
 
 	def _initialize_view(self):
 		self.view = NavigatorWindow(self, self.windows)
@@ -134,9 +134,6 @@ class Controller:
 		"""
 		self._clean_state()
 		self.view.show (time)
-
-	def open_window(self, window, time):
-		window.activate_transient(time)
 
 	def get_current_event_time(self):
 		gtk_event_time = Gtk.get_current_event_time()
@@ -321,11 +318,12 @@ class Controller:
 	def only_key_handler(self, keyval, time):
 		self.only(None, time)
 
+	# TODO: move logic to windows
 	def only(self, cmd, time):
 		for w in self.windows.visible:
 			if self.windows.active != w:
 				w.minimize()
-		self.open_window(self.windows.active, time)
+		self.windows.open(self.windows.active, time)
 
 	def centralize(self, cmd, time):
 		self.windows.centralize_active_window()
@@ -354,7 +352,7 @@ class Controller:
 		buffer_number = Command.extract_number_parameter(cmd)
 		index = int(buffer_number) - 1
 		if index < len(self.windows.buffers):
-			self.open_window(self.windows.buffers[index], time)
+			self.windows.open(self.windows.buffers[index], time)
 		else:
 			self.show_error_message('Buffer {} does not exist'.format(buffer_number), time)
 
@@ -362,7 +360,7 @@ class Controller:
 		window_title = Command.extract_text_parameter(cmd)
 		w = self.windows.find_by_name(window_title)
 		if w:
-			self.open_window(w, time)
+			self.windows.open(w, time)
 		else:
 			self.show_error_message('No matching buffer for ' + window_title, time)
 

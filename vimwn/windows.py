@@ -77,6 +77,9 @@ class Windows():
 				self.visible.append(wnck_window)
 		self._update_internal_state()
 
+	def open(self, window, time):
+		window.activate_transient(time)
+
 	def find_by_name(self, window_title):
 		for w in self.buffers:
 			if window_title.lower().strip() in w.get_name().lower():
@@ -112,7 +115,7 @@ class Windows():
 	#Commits any staged change in the active window
 	def commit_navigation(self, time):
 		if self.staging:
-			self.controller.open_window(self.active, time)
+			self.open(self.active, time)
 			self.staging = False
 
 	def navigate_to_previous(self, keyval, time):
