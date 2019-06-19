@@ -26,6 +26,7 @@ from vimwn.terminal import Terminal
 from vimwn.hint import HintStatus
 from vimwn.command import Command
 from vimwn.status import StatusIcon
+from vimwn.message import Messages
 
 KEY_FUNCTIONS = {}
 
@@ -41,12 +42,12 @@ class Controller:
 		self.terminal = Terminal()
 		self.windows = Windows(self)
 		self.hint_status = HintStatus(self)
+		self.messages = Messages(self, self.windows)
 		map_functions(self, self.windows)
 		Command.map_commands(self, self.windows)
 		self._initialize_view()
-		self.listing_windows = self.reading_command = self.reading_multiple_commands = False
-		self.status_message = self.status_level = None
-		self.multiplier = self.status_message = ''
+		self.reading_command = self.reading_multiple_commands = False
+		self.multiplier = ''
 		self._clean_state()
 
 	def indicate_running_service(self, service):
@@ -55,19 +56,16 @@ class Controller:
 
 	def _clean_state(self):
 		self._clear_command_ui_state()
-		self.listing_windows = False
+		self.messages.clean()
 
 	def _clear_command_ui_state(self):
 		self.hint_status.clear_state()
 		self.reading_command = False
 		self.reading_multiple_commands = False
 		self.multiplier = ""
-		self.status_message = None
-		self.status_level = None
-		self.status_message = '^W'
 
 	def _initialize_view(self):
-		self.view = NavigatorWindow(self, self.windows)
+		self.view = NavigatorWindow(self, self.windows, self.messages)
 		self.view.connect("key-press-event", self.on_window_key_press)
 		self.view.entry.connect("key-release-event", self.on_entry_key_release)
 		self.view.entry.connect("key-press-event", self.on_entry_key_press)
@@ -118,8 +116,7 @@ class Controller:
 
 	def show_error_message(self, message, time):
 		self._clear_command_ui_state()
-		self.status_message = message
-		self.status_level = 'error'
+		self.messages.add(message, 'error')
 		self.view.show(time)
 
 	def hide_ui(self, widget, event):
@@ -334,10 +331,8 @@ class Controller:
 		self.windows.commit_navigation(time)
 
 	def buffers(self, cmd, time):
-		self.listing_windows = True
-		self.reading_command = False
-		self.status_message = 'Press ENTER or type command to continue'
-		self.status_level = 'info'
+		self._clear_command_ui_state()
+		self.messages.list_buffers()
 		self.view.show(time)
 
 	def buffer(self, cmd, time):

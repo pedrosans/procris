@@ -18,7 +18,8 @@ import gi, io
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango
 
-#TODO show 'no name' active buffer if no active window at the buffers list
+
+# TODO show 'no name' active buffer if no active window at the buffers list
 class NavigatorWindow(Gtk.Window):
 
 	def show_warning(self, error):
@@ -35,13 +36,14 @@ class NavigatorWindow(Gtk.Window):
 		error_dialog.run()
 		error_dialog.destroy()
 
-	def __init__(self, controller, windows):
+	def __init__(self, controller, windows, messages):
 		Gtk.Window.__init__(self, title="vimwn")
 
 		self.columns = 100
 
 		self.controller = controller
 		self.windows = windows
+		self.messages = messages
 		self.single_line_view = self.controller.configurations.is_compact_interface()
 		self.show_app_name = False
 
@@ -58,8 +60,8 @@ class NavigatorWindow(Gtk.Window):
 		self.output_box = Gtk.Box(homogeneous=False, spacing=0)
 		self.v_box.pack_start(self.output_box, expand=True, fill=True, padding=0)
 
-		self.windows_list_box = Gtk.Box(homogeneous=False, spacing=0)
-		self.v_box.pack_start(self.windows_list_box, expand=True, fill=True, padding=0)
+		self.messages_box = Gtk.VBox(homogeneous=False, spacing=0)
+		self.v_box.pack_start(self.messages_box, expand=True, fill=True, padding=0)
 
 		self.hint_line = HintLine()
 		self.v_box.pack_start(self.hint_line, expand=True, fill=True, padding=0)
@@ -86,7 +88,7 @@ class NavigatorWindow(Gtk.Window):
 		Clean the status line and render it again
 		"""
 		self.hint_line.clear_status_line()
-		if not self.controller.listing_windows:
+		if not self.messages.list:
 			self.hint_line.add_status_text(' ', False)
 		self.hint_line.show_all()
 
@@ -106,20 +108,20 @@ class NavigatorWindow(Gtk.Window):
 	def show(self, event_time ):
 		self.set_gravity(Gdk.Gravity.NORTH_WEST)
 		for c in self.output_box.get_children(): c.destroy()
-		for c in self.windows_list_box.get_children(): c.destroy()
+		for c in self.messages_box.get_children(): c.destroy()
 
 		self.present_with_time(event_time)
 		self._calculate_width()
 		self.clean_hints()
 
-		if self.controller.listing_windows:
-			self.list_windows(event_time)
+		self.show_messages(event_time)
 
 		self._render_command_line()
 
 		if self.windows.active:
 			if self.single_line_view:
-				self.list_navigation_windows()
+				if not self.messages.list and not self.controller.reading_command:
+					self.list_navigation_windows()
 			else:
 				self.populate_navigation_options()
 
@@ -127,8 +129,6 @@ class NavigatorWindow(Gtk.Window):
 		self.get_window().focus(event_time)
 
 	def list_navigation_windows(self):
-		if self.controller.reading_command or self.controller.listing_windows:
-			return
 		for c in self.hint_line.get_children(): c.destroy()
 		for window in self.windows.x_line:
 			name = window.get_name()
@@ -158,43 +158,28 @@ class NavigatorWindow(Gtk.Window):
 
 			line.pack_start(column_box, expand=False, fill=False, padding=4)
 
-	def list_windows(self, time):
-		buffer_columns = min(100, self.columns - 3)
-		lines = Gtk.VBox();
-		self.windows_list_box.pack_start(lines, expand=True, fill=True, padding=0)
-		top, below = self.windows.get_left_right_top_windows()
-		for window in self.windows.buffers:
-			line = Gtk.HBox(homogeneous=False, spacing=0)
-			lines.pack_start(line, expand=False, fill=True, padding=0)
+	def show_messages(self, time):
+		for message in self.messages.list:
+			line = Gtk.HBox(homogeneous=False)
+			self.messages_box.pack_start(line, expand=False, fill=True, padding=0)
 
-			icon = Gtk.Image()
-			icon.set_from_pixbuf( window.get_mini_icon() )
-			icon.get_style_context().add_class('application-icon')
-			line.pack_start(icon, expand=False, fill=True, padding=0)
+			if message.get_pixbuf():
+				icon = Gtk.Image()
+				icon.set_from_pixbuf(message.get_pixbuf())
+				icon.get_style_context().add_class('application-icon')
+				line.pack_start(icon, expand=False, fill=True, padding=0)
 
-			flags = ''
-			if window is top:
-				flags += '%a'
-			elif window is below:
-				flags = '#'
-			index = 1 + self.windows.buffers.index(window)
-			description_columns = buffer_columns - 19
-			window_name = window.get_name().ljust(description_columns)[:description_columns]
-			name = '{:>2} {:2} {} {:12}'.format(index, flags, window_name, window.get_workspace().get_name().lower())
-
-			label = Gtk.Label(name)
+			label = Gtk.Label(message.get_content(self.columns))
 			label.set_valign(Gtk.Align.END)
-			label.set_max_width_chars(buffer_columns)
+			label.set_max_width_chars(self.columns)
 			label.get_layout().set_ellipsize(Pango.EllipsizeMode.END)
 			label.set_ellipsize(Pango.EllipsizeMode.END)
-			label.get_style_context().add_class('buffer-description')
-			if self.windows.active == window:
-				label.get_style_context().add_class('active-buffer-description')
+			if message.level is 'error':
+				label.get_style_context().add_class('error-message')
 			line.pack_start(label, expand=False, fill=False, padding=0)
 
 	def _render_command_line(self):
 		self.entry.set_text("")
-		self.entry.get_style_context().remove_class('error-message')
 		self.entry.get_style_context().add_class('input-ready')
 
 		if self.controller.reading_command is True:
@@ -204,13 +189,9 @@ class NavigatorWindow(Gtk.Window):
 		else:
 			self.entry.set_can_focus(False)
 			self.entry.hide()
-			if self.controller.status_message:
-				self.entry.set_text(self.controller.status_message)
-				if self.controller.status_level == 'error':
-					self.entry.get_style_context().add_class('error-message')
-					self.entry.get_style_context().remove_class('input-ready')
-				else:
-					self.entry.set_position(-1)
+			if self.messages.command_placeholder:
+				self.entry.set_text(self.messages.command_placeholder)
+				self.entry.set_position(-1)
 
 	def _navigation_index(self, window):
 		length = len(self.windows.x_line)
@@ -368,6 +349,10 @@ GTK_3_18_CSS = b"""
 	padding: 0 1px;
 	border: none;
 }
+.error-message{
+	background: red;
+	color: white;
+}
 
 /* WINDOW BUTTON */
 .window-relative-number {
@@ -378,12 +363,6 @@ GTK_3_18_CSS = b"""
 	padding: 4px;
 	border: 1px solid transparent;
 	border-radius: 4px;
-}
-
-/* BUFFERS LIST */
-.buffer-description{
-}
-.active-buffer-description{
 }
 
 /* STATUS LINE STYLE */
@@ -407,12 +386,6 @@ GTK_3_18_CSS = b"""
 .command-input {
 	border: none;
 	padding: 2px;
-}
-.input-ready{
-}
-.error-message{
-	background: red;
-	color: white;
 }
 """
 GTK_3_20_CSS = b"""
