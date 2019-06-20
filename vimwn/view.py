@@ -179,19 +179,17 @@ class NavigatorWindow(Gtk.Window):
 			line.pack_start(label, expand=False, fill=False, padding=0)
 
 	def _render_command_line(self):
-		self.entry.set_text("")
-		self.entry.get_style_context().add_class('input-ready')
-
 		if self.controller.reading_command is True:
 			self.entry.set_can_focus(True)
 			self.entry.grab_focus()
+			self.entry.set_text('')
 			self.entry.set_position(0)
 		else:
-			self.entry.set_can_focus(False)
+			self.entry.set_text(self.messages.command_placeholder)
+			# self.entry.set_position(-1)
 			self.entry.hide()
-			if self.messages.command_placeholder:
-				self.entry.set_text(self.messages.command_placeholder)
-				self.entry.set_position(-1)
+			self.entry.show()  # cause entry to lose focus
+			self.entry.set_can_focus(False)
 
 	def _navigation_index(self, window):
 		length = len(self.windows.x_line)
