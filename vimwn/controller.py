@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, signal, re, os, sys, logging
+import gi, re, os, logging
 gi.require_version('Gtk', '3.0')
 gi.require_version("Keybinder", "3.0")
 from gi.repository import Gtk, Gdk, Keybinder, GLib
@@ -27,8 +27,6 @@ from vimwn.hint import HintStatus
 from vimwn.command import Command
 from vimwn.status import StatusIcon
 from vimwn.message import Messages
-
-KEY_FUNCTIONS = {}
 
 
 # TODO chain commands
@@ -43,8 +41,7 @@ class Controller:
 		self.windows = Windows(self)
 		self.hint_status = HintStatus(self)
 		self.messages = Messages(self, self.windows)
-		map_functions(self, self.windows)
-		Command.map_commands(self, self.windows)
+		Command.create_commands(self, self.windows)
 		self._initialize_view()
 		self.reading_command = self.reading_multiple_commands = False
 		self.multiplier = ''
@@ -150,10 +147,10 @@ class Controller:
 		if gdk_key and gdk_key.isdigit():
 			self.multiplier = self.multiplier + Gdk.keyval_name(event.keyval)
 			return
-		if event.keyval in KEY_FUNCTIONS:
+		if event.keyval in Command.KEY_MAP:
 			multiplier_int = int(self.multiplier) if self.multiplier else 1
 			for i in range(multiplier_int):
-				KEY_FUNCTIONS[event.keyval](event.keyval, event.time)
+				Command.KEY_MAP[event.keyval].function(event.keyval, event.time)
 			# TODO error message if not staging a change?
 			self.windows.commit_navigation(event.time)
 
@@ -259,7 +256,7 @@ class Controller:
 			self.show_error_message('Not an editor command: ' + cmd, time)
 
 	#
-	# COMMANDS ANF FUNCTIONS
+	# LIST ANF FUNCTIONS
 	#
 	def reload(self, cmd, time):
 		self.configurations.reload()
@@ -396,30 +393,3 @@ class Controller:
 	def quit(self, cmd, time):
 		self.view.hide()
 
-
-def map_functions(controller, windows):
-	if len(KEY_FUNCTIONS) > 0:
-		raise Exception('Functions were already mapped')
-	KEY_FUNCTIONS[Gdk.KEY_Right  ] = windows.navigate_right
-	KEY_FUNCTIONS[Gdk.KEY_l      ] = windows.navigate_right
-	KEY_FUNCTIONS[Gdk.KEY_L      ] = windows.move_right
-	KEY_FUNCTIONS[Gdk.KEY_Down   ] = windows.navigate_down
-	KEY_FUNCTIONS[Gdk.KEY_j      ] = windows.navigate_down
-	KEY_FUNCTIONS[Gdk.KEY_J      ] = windows.move_down
-	KEY_FUNCTIONS[Gdk.KEY_Left   ] = windows.navigate_left
-	KEY_FUNCTIONS[Gdk.KEY_h      ] = windows.navigate_left
-	KEY_FUNCTIONS[Gdk.KEY_H      ] = windows.move_left
-	KEY_FUNCTIONS[Gdk.KEY_Up     ] = windows.navigate_up
-	KEY_FUNCTIONS[Gdk.KEY_k      ] = windows.navigate_up
-	KEY_FUNCTIONS[Gdk.KEY_K      ] = windows.move_up
-	KEY_FUNCTIONS[Gdk.KEY_less   ] = windows.decrease_width
-	KEY_FUNCTIONS[Gdk.KEY_greater] = windows.increase_width
-	KEY_FUNCTIONS[Gdk.KEY_equal  ] = windows.equalize
-	KEY_FUNCTIONS[Gdk.KEY_w      ] = windows.cycle
-	KEY_FUNCTIONS[Gdk.KEY_p      ] = windows.navigate_to_previous
-	KEY_FUNCTIONS[Gdk.KEY_q      ] = controller.quit_current_window
-	KEY_FUNCTIONS[Gdk.KEY_o      ] = controller.only_key_handler
-	KEY_FUNCTIONS[Gdk.KEY_colon  ] = controller.colon
-	KEY_FUNCTIONS[Gdk.KEY_Return ] = controller.enter
-	KEY_FUNCTIONS[Gdk.KEY_Escape ] = controller.escape
-	KEY_FUNCTIONS[Gdk.KEY_bracketleft ] = controller.escape

@@ -15,19 +15,71 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import gi, re, os, logging
 import re
+gi.require_version('Gtk', '3.0')
+gi.require_version("Keybinder", "3.0")
+from gi.repository import Gtk, Gdk, Keybinder, GLib
+
+
+def m(name, pattern, keys, function):
+	command = Command(name, pattern, keys, function)
+	Command.LIST.append(command)
+	if keys:
+		for k in keys:
+			Command.KEY_MAP[k] = command
+	if name:
+		Command.NAME_MAP[name] = command
 
 
 class Command:
 
-	COMMANDS = []
+	LIST = []
+	KEY_MAP = {}
+	NAME_MAP = {}
 	MULTIPLE_COMMANDS_PATTERN = re.compile(r'.*[^\\]\|.*')
 
-	def __init__(self, name, pattern, test_parameter_partial_match, function):
+	def __init__(self, name, pattern, keys, function):
 		self.name = name
-		self.pattern = re.compile(pattern)
+		self.pattern = re.compile(pattern) if pattern else None
 		self.function = function
-		self.test_parameter_partial_match = test_parameter_partial_match
+		self.keys = keys
+
+	@staticmethod
+	def create_commands(controller, windows):
+		c_array = [
+		['edit'			,'^\s*(edit|e).*$'					,None									,controller.edit					],
+		['!'			,'^\s*!.*$'							,None									,controller.bang					],
+		['buffers'		,'^\s*(buffers|ls)\s*$'				,None									,controller.buffers					],
+		['bdelete'		,'^\s*(bdelete|bd)\s*$'				,None									,controller.delete_current_buffer	],
+		['bdelete'		,'^\s*(bdelete|bd)\s*([0-9]+\s*)+$'	,None									,controller.delete_indexed_buffer	],
+		['bdelete'		,'^\s*(bdelete|bd)\s+\w+\s*$'		,None									,controller.delete_named_buffer		],
+		['buffer'		,'^\s*(buffer|b)\s*$'				,None									,controller.buffer					],
+		['buffer'		,'^\s*(buffer|b)\s*[0-9]+\s*$'		,None									,controller.open_indexed_buffer		],
+		['buffer'		,'^\s*(buffer|b)\s+\w+.*$'			,None									,controller.open_named_buffer		],
+		['centralize'	,'^\s*(centralize|ce)\s*$'			,None									,controller.centralize				],
+		['maximize'		,'^\s*(maximize|ma)\s*$'			,None									,controller.maximize				],
+		['reload'		,'^\s*(reload)\s*$'					,None									,controller.reload					],
+		['quit'			,'^\s*(quit|q)\s*$'					,[Gdk.KEY_q]							,controller.quit					],  # quit_current_window
+		['only'			,'^\s*(only|on)\s*$'				,[Gdk.KEY_o]							,controller.only					],  # only_key_handler
+		[None			,None								,[Gdk.KEY_Right, Gdk.KEY_l]				,windows.navigate_right				],
+		[None			,None								,[Gdk.KEY_L]							,windows.move_right					],
+		[None			,None								,[Gdk.KEY_Down, Gdk.KEY_j]				,windows.navigate_down				],
+		[None			,None								,[Gdk.KEY_J]							,windows.move_down					],
+		[None			,None								,[Gdk.KEY_Left, Gdk.KEY_h]				,windows.navigate_left				],
+		[None			,None								,[Gdk.KEY_H]							,windows.move_left					],
+		[None			,None								,[Gdk.KEY_Up, Gdk.KEY_k]				,windows.navigate_up				],
+		[None			,None								,[Gdk.KEY_K]							,windows.move_up					],
+		[None			,None								,[Gdk.KEY_less]							,windows.decrease_width				],
+		[None			,None								,[Gdk.KEY_greater]						,windows.increase_width				],
+		[None			,None								,[Gdk.KEY_equal]						,windows.equalize					],
+		[None			,None								,[Gdk.KEY_w]							,windows.cycle						],
+		[None			,None								,[Gdk.KEY_p]							,windows.navigate_to_previous		],
+		[None			,None								,[Gdk.KEY_colon]						,controller.colon					],
+		[None			,None								,[Gdk.KEY_Return]						,controller.enter					],
+		[None			,None								,[Gdk.KEY_Escape, Gdk.KEY_bracketleft]	,controller.escape					]]
+		for a in c_array:
+			m(a[0], a[1], a[2], a[3])
 
 	def hint_vim_command_parameter(self, controller, command_parameters):
 		if self.name == 'edit':
@@ -46,8 +98,8 @@ class Command:
 		"""
 		Returns matching command function if any
 		"""
-		for command in Command.COMMANDS:
-			if command.pattern.match(command_input):
+		for command in Command.LIST:
+			if command.pattern and command.pattern.match(command_input):
 				return command
 		return None
 
@@ -55,8 +107,8 @@ class Command:
 	def query_vim_commands(user_input):
 		striped = user_input.lstrip()
 		matches = filter(
-				(lambda n : not user_input or n.startswith(striped)),
-				map((lambda c : c.name), Command.COMMANDS)
+				(lambda n: not user_input or n.startswith(striped)),
+				Command.NAME_MAP.keys()
 			)
 		matches = filter(lambda x : x != striped, matches)
 		return sorted(list(set(matches)))
@@ -65,7 +117,7 @@ class Command:
 	def extract_number_parameter(cmd):
 		return re.findall(r'\d+', cmd)[0]
 
-	#TODO remove and make it the input minus the detected command
+	# TODO remove and make it the input minus the detected command
 	@staticmethod
 	def extract_text_parameter(cmd):
 		if not cmd:
@@ -91,27 +143,4 @@ class Command:
 		if not cmd.strip():
 			return cmd
 		return re.match(r'^\s*\w+', cmd).group()
-
-	@staticmethod
-	def map_name_to_function(name, pattern, test_parameter_partial_match, function):
-		Command.COMMANDS.append(Command(name, pattern, test_parameter_partial_match, function))
-
-	@staticmethod
-	def map_commands(controller, windows):
-		if len(Command.COMMANDS) > 0:
-			raise Exception('Commands were already mapped')
-		Command.map_name_to_function('only',       "^\s*(only|on)\s*$",					False,	controller.only )
-		Command.map_name_to_function('edit',       "^\s*(edit|e).*$",					False,	controller.edit )
-		Command.map_name_to_function('!',          "^\s*!.*$",							False,	controller.bang )
-		Command.map_name_to_function('buffers',    "^\s*(buffers|ls)\s*$",				False,	controller.buffers )
-		Command.map_name_to_function('bdelete',    "^\s*(bdelete|bd)\s*$",				True,	controller.delete_current_buffer )
-		Command.map_name_to_function('bdelete',    "^\s*(bdelete|bd)\s*([0-9]+\s*)+$",	True,	controller.delete_indexed_buffer )
-		Command.map_name_to_function('bdelete',    "^\s*(bdelete|bd)\s+\w+\s*$",		True,	controller.delete_named_buffer )
-		Command.map_name_to_function('buffer',     "^\s*(buffer|b)\s*$",				True,	controller.buffer )
-		Command.map_name_to_function('buffer',     "^\s*(buffer|b)\s*[0-9]+\s*$",		True,	controller.open_indexed_buffer )
-		Command.map_name_to_function('buffer',     "^\s*(buffer|b)\s+\w+.*$",			True,	controller.open_named_buffer )
-		Command.map_name_to_function('centralize', "^\s*(centralize|ce)\s*$",	False,	controller.centralize )
-		Command.map_name_to_function('maximize',   "^\s*(maximize|ma)\s*$",		False,	controller.maximize )
-		Command.map_name_to_function('quit',       "^\s*(quit|q)\s*$",					False,	controller.quit)
-		Command.map_name_to_function('reload',     "^\s*(reload)\s*$",					False,	controller.reload)
 
