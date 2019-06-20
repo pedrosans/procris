@@ -1,0 +1,6 @@
+#!/bin/bash
+# there is an expectation that the LAUNCH_SCRIPT will be executed
+# in the same bash where this script is sourced
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+export PYTHONPATH="$(dirname $DIR)"
+export LAUNCH_SCRIPT="$PYTHONPATH/bin/vimwn open"
