@@ -171,12 +171,11 @@ class Controller:
 			self.multiplier = self.multiplier + Gdk.keyval_name(event.keyval)
 			return
 		if event.keyval in KEY_FUNCTIONS:
-			function = KEY_FUNCTIONS[event.keyval]
-			if function is not None:
-				multiplier_int = int(self.multiplier) if self.multiplier else 1
-				for i in range(multiplier_int):
-					function(event.keyval, event.time)
-				self.windows.commit_navigation(event.time)
+			multiplier_int = int(self.multiplier) if self.multiplier else 1
+			for i in range(multiplier_int):
+				KEY_FUNCTIONS[event.keyval](event.keyval, event.time)
+			#TODO error message if not staging a change?
+			self.windows.commit_navigation(event.time)
 
 	#TODO no auto hints for commands to prevent the 'b' <> 'bdelete' misslead
 	#TODO no auto hint if a command is alreay a match
@@ -430,6 +429,7 @@ def map_functions(controller, windows):
 	KEY_FUNCTIONS[Gdk.KEY_greater] = windows.increase_width
 	KEY_FUNCTIONS[Gdk.KEY_equal  ] = windows.equalize
 	KEY_FUNCTIONS[Gdk.KEY_w      ] = windows.cycle
+	KEY_FUNCTIONS[Gdk.KEY_p      ] = windows.navigate_to_previous
 	KEY_FUNCTIONS[Gdk.KEY_q      ] = controller.quit_current_window
 	KEY_FUNCTIONS[Gdk.KEY_o      ] = controller.only_key_handler
 	KEY_FUNCTIONS[Gdk.KEY_colon  ] = controller.colon

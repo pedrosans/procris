@@ -118,6 +118,12 @@ class Windows():
 			self.controller.open_window(self.active, time)
 			self.staging = False
 
+	def navigate_to_previous(self, keyval, time):
+		top, below = self.get_top_two_windows()
+		if below:
+			self.active = below
+			self.staging = True
+
 	def cycle(self, keyval, time):
 		next_window = self.x_line[(self.x_line.index(self.active) + 1) % len(self.x_line)]
 		self.active = next_window
@@ -148,7 +154,8 @@ class Windows():
 			self.move_on_axis(right, HORIZONTAL, new_center, 1 - new_center)
 
 	def get_top_two_windows(self):
-		top = below = None
+		top = self.active
+		below = None
 		for w in reversed(self.screen.get_windows_stacked()):
 			if w in self.visibles:
 				if not top:
@@ -157,7 +164,10 @@ class Windows():
 				else:
 					below = w
 					break
+		return top, below
 
+	def get_left_right_top_windows(self):
+		top, below = self.get_top_two_windows()
 		if top and below and below.get_geometry().xp < top.get_geometry().xp:
 			return below, top
 		else:

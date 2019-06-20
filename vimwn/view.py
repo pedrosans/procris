@@ -166,7 +166,7 @@ class NavigatorWindow(Gtk.Window):
 		buffer_columns = min(100, self.columns - 3)
 		lines = Gtk.VBox();
 		self.windows_list_box.pack_start(lines, expand=True, fill=True, padding=0)
-		top, below = self.windows.get_top_two_windows()
+		top, below = self.windows.get_left_right_top_windows()
 		for window in self.windows.buffers:
 			line = Gtk.HBox(homogeneous=False, spacing=0)
 			lines.pack_start(line, expand=False, fill=True, padding=0)
