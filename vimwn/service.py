@@ -18,12 +18,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import sys, os, gi, dbus, dbus.service, signal, setproctitle
 gi.require_version('Gtk', '3.0')
 from vimwn.controller import Controller
-from gi.repository import GObject, Gtk
+from gi.repository import GObject, Gtk, GLib
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus.gi_service import ExportedGObject
 
 SERVICE_NAME = "io.github.vimwn"
 SERVICE_OBJECT_PATH = "/io/github/vimwn"
+SIGINT  = getattr(signal, "SIGINT", None)
+SIGTERM = getattr(signal, "SIGTERM", None)
+SIGHUP  = getattr(signal, "SIGHUP", None)
 
 class NavigatorService:
 
@@ -44,67 +47,45 @@ class NavigatorService:
 
 		print("Ending vimwn service, pid: {}".format(os.getpid()))
 
-	def stop(self):
-		self.bus_object.quit()
-
 	def configure_process(self):
 		setproctitle.setproctitle("vimwn")
-		signal.signal(signal.SIGINT, signal.SIG_DFL)
-		signal.signal(signal.SIGTERM, signal.SIG_DFL)
-		signal.signal(signal.SIGHUP, signal.SIG_DFL)
+		for sig in (SIGINT, SIGTERM, SIGHUP):
+			self.install_glib_handler(sig)
+
+	def install_glib_handler(self, sig):
+		unix_signal_add = None
+
+		if hasattr(GLib, "unix_signal_add"):
+			unix_signal_add = GLib.unix_signal_add
+		elif hasattr(GLib, "unix_signal_add_full"):
+			unix_signal_add = GLib.unix_signal_add_full
+
+		if unix_signal_add:
+			unix_signal_add(GLib.PRIORITY_HIGH, sig, self.unix_signal_handler, sig)
+		else:
+			print("Can't install GLib signal handler, too old gi.")
+
+	def unix_signal_handler(self, *args):
+		signal = args[0]
+		if signal in (1, SIGHUP, 2, SIGINT, 15, SIGTERM):
+			self.stop()
 
 	def export_bus_object(self):
-		self.bus_object = NavigatorBusService()
+		self.bus_object = NavigatorBusService(self)
 
-	def signal_handler(self, signal, frame):
-		"""
-		Implemented for reference, should be used
-		when python-gi version 3.27.0 gets into stable distros
-		https://bugs.debian.org/cgi-bin/bugreport.cgi?bug=743208
-		usage: signal.signal(signal.SIGINT, self.signal_handler)
-		"""
-		print('You pressed Ctrl+C!')
-		self.bus_object.quit()
+	def release_bus_object(self):
+		self.bus_object.release()
+		self.bus_object = None
 
-	def daemonize(self):
-		"""
-		do the UNIX double-fork magic, see Stevens' "Advanced
-		Programming in the UNIX Environment" for details (ISBN 0201563177)
-		http://www.erlenstar.demon.co.uk/unix/faq_2.html#SEC16
+	def stop(self):
+		Gtk.main_quit()
+		self.release_bus_object()
 
-		Code from Sander Marechal  found at
-		http://web.archive.org/web/20131017130434/http://www.jejik.com/articles/2007/02/a_simple_unix_linux_daemon_in_python/
-		rational from Sander's answer:
-		"... A true daemon has no environment. No parent process, no working directory and no stdin, stdout and stderr. That's why I redirect everything to /dev/null and that's why you need to fork() twice.
-		Using stdout and flush() can sorta work, but you don't have a real daemon anymore. Consider this. Open a terminal, start your program and then close the terminal. What happens to stdout now? It's gone. That's why it needs to be redirected to /dev/null. And that's why all daemons use logfiles or log to the syslog."
-		"""
-		try:
-			pid = os.fork()
-			if pid > 0:
-				# exit first parent
-				sys.exit(0)
-		except OSError as e:
-			sys.stderr.write("fork #1 failed: %d (%s)\n" % (e.errno, e.strerror))
-			sys.exit(1)
-
-		# decouple from parent environment
-		os.chdir("/")
-		os.setsid()
-		os.umask(0)
-
-		# do second fork
-		try:
-			pid = os.fork()
-			if pid > 0:
-				# exit from second parent
-				sys.exit(0)
-		except OSError as e:
-			sys.stderr.write("fork #2 failed: %d (%s)\n" % (e.errno, e.strerror))
-			sys.exit(1)
 
 class NavigatorBusService (ExportedGObject):
 
-	def __init__(self):
+	def __init__(self, service):
+		self.service = service
 		self.main_loop = DBusGMainLoop(set_as_default=True)
 		dbus.mainloop.glib.threads_init()
 		self.bus = dbus.Bus()
@@ -126,8 +107,10 @@ class NavigatorBusService (ExportedGObject):
 		return str(os.getpid())
 
 	@dbus.service.method("io.github.vimwn.Service", in_signature='', out_signature='')
-	def quit(self):
-		Gtk.main_quit()
+	def stop_vimwn(self):
+		self.service.stop()
+
+	def release(self):
 		self.bus.release_name(SERVICE_NAME)
 		print('vimwn service were released from bus')
 
@@ -153,7 +136,7 @@ class RemoteInterface():
 	def stop_running_instance(self):
 		if self.bus.name_has_owner(SERVICE_NAME):
 			service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
-			quit_function = service.get_dbus_method('quit', 'io.github.vimwn.Service')
+			quit_function = service.get_dbus_method('stop_vimwn', 'io.github.vimwn.Service')
 			quit_function()
 			print("Remote instance were stopped")
 		else:
