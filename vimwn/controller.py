@@ -43,6 +43,7 @@ class Controller:
 		self.messages = Messages(self, self.windows)
 		Command.create_commands(self, self.windows)
 		self._initialize_view()
+		# TODO: remove variable e track modes: normal, window, command
 		self.reading_command = self.reading_multiple_commands = False
 		self.multiplier = ''
 		self._clean_state()
@@ -68,7 +69,7 @@ class Controller:
 		self.view.entry.connect("key-press-event", self.on_entry_key_press)
 		self.view.entry.connect("activate", self.on_command, None)
 		if self.running_as_service:
-			self.view.connect("focus-out-event", self.hide_ui)
+			self.view.connect("focus-out-event", self._focus_out_callback)
 		else:
 			self.view.connect("focus-out-event", Gtk.main_quit)
 		# https://lazka.github.io/pgi-docs/GLib-2.0/functions.html#GLib.log_set_handler
@@ -116,10 +117,13 @@ class Controller:
 		self.messages.add(message, 'error')
 		self.view.show(time)
 
-	def hide_ui(self, widget, event):
+	def _focus_out_callback (self, widget, event):
+		self.set_normal_mode()
+		return True;
+
+	def set_normal_mode(self):
 		self.view.hide()
 		self._clean_state()
-		return True;
 
 	# TODO rename to refresh_ui
 	def refresh_view(self, time):
@@ -271,7 +275,7 @@ class Controller:
 	def edit(self, cmd, time):
 		name = Command.extract_text_parameter(cmd)
 		if name == None or not name.strip():
-			self.view.hide()
+			self.set_normal_mode()
 			return
 
 		app_name = None
@@ -285,7 +289,7 @@ class Controller:
 		if app_name:
 			try:
 				self.applications.launch_by_name(app_name)
-				self.view.hide()
+				self.set_normal_mode()
 			except GLib.GError as exc:
 				self.show_error_message('Error launching ' + name, time)
 		elif len(possible_apps) == 0:
@@ -297,7 +301,7 @@ class Controller:
 		vim_cmd = Command.extract_vim_command(cmd)
 		cmd = cmd.replace(vim_cmd, '', 1)
 		self.terminal.execute(cmd)
-		self.view.hide()
+		self.set_normal_mode()
 
 	def colon(self, keyval, time):
 		self.reading_command = True
@@ -307,10 +311,7 @@ class Controller:
 		self.refresh_view(time)
 
 	def escape(self, keyval, time):
-		self.view.hide()
-
-	def only_key_handler(self, keyval, time):
-		self.only(None, time)
+		self.set_normal_mode()
 
 	# TODO: move logic to windows
 	def only(self, cmd, time):
@@ -318,6 +319,14 @@ class Controller:
 			if self.windows.active != w:
 				w.minimize()
 		self.windows.open(self.windows.active, time)
+		self.set_normal_mode()
+
+	def quit(self, cmd, time):
+		if self.windows.active:
+			self.windows.active.minimize()
+			self.set_normal_mode()
+		else:
+			self.show_error_message('No active window', time)
 
 	def centralize(self, cmd, time):
 		self.windows.centralize_active_window()
@@ -356,15 +365,11 @@ class Controller:
 		else:
 			self.show_error_message('No matching buffer for ' + window_title, time)
 
-	#TODO: remove duplicated tokenizer
-	#TODO: close vimwn ui after the command?
-	def quit_current_window(self, keyval, time):
-		self.delete_current_buffer(None, time)
-
+	# TODO: remove duplicated tokenizer
 	def delete_current_buffer(self, cmd, time):
 		if self.windows.active:
 			self.windows.remove(self.windows.active, time)
-			self.view.hide()
+			self.set_normal_mode()
 		else:
 			self.show_error_message('There is no active window')
 
@@ -379,17 +384,14 @@ class Controller:
 				return
 		for window in to_delete:
 			self.windows.remove(window, time)
-			self.view.hide()
+		self.set_normal_mode()
 
 	def delete_named_buffer(self, cmd, time):
 		window_title = Command.extract_text_parameter(cmd)
 		w = self.windows.find_by_name(window_title)
 		if w:
 			self.windows.remove(w, time)
-			self.view.hide()
+			self.set_normal_mode()
 		else:
 			self.show_error_message('No matching buffer for ' + window_title, time)
-
-	def quit(self, cmd, time):
-		self.view.hide()
 

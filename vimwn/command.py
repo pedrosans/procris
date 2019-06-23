@@ -60,8 +60,8 @@ class Command:
 		['centralize'	,'^\s*(centralize|ce)\s*$'			,None									,controller.centralize				],
 		['maximize'		,'^\s*(maximize|ma)\s*$'			,None									,controller.maximize				],
 		['reload'		,'^\s*(reload)\s*$'					,None									,controller.reload					],
-		['quit'			,'^\s*(quit|q)\s*$'					,[Gdk.KEY_q]							,controller.quit					],  # quit_current_window
-		['only'			,'^\s*(only|on)\s*$'				,[Gdk.KEY_o]							,controller.only					],  # only_key_handler
+		['quit'			,'^\s*(quit|q)\s*$'					,[Gdk.KEY_q]							,controller.quit					],
+		['only'			,'^\s*(only|on)\s*$'				,[Gdk.KEY_o]							,controller.only					],
 		[None			,None								,[Gdk.KEY_Right, Gdk.KEY_l]				,windows.navigate_right				],
 		[None			,None								,[Gdk.KEY_L]							,windows.move_right					],
 		[None			,None								,[Gdk.KEY_Down, Gdk.KEY_j]				,windows.navigate_down				],
