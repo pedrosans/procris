@@ -27,24 +27,23 @@ class Messages:
 	def __init__(self, controller, windows):
 		self.controller = controller
 		self.windows = windows
-		self.listing_windows = False
 		self.command_placeholder = None
 		self.list = []
 
 	def clean(self):
-		self.listing_windows = False
 		del self.list[:]
 		self.command_placeholder = '^W'
 
 	def list_buffers(self):
-		self.listing_windows = True
-		self.command_placeholder = ENTER_TO_CONTINUE
-
 		for window in self.windows.buffers:
-			self.list.append(Messages.BufferName(window, self.windows))
+			self.add_message(Messages.BufferName(window, self.windows))
 
 	def add(self, content, type):
-		self.list.append(Messages.Plain(content, type))
+		self.add_message(Messages.Plain(content, type))
+
+	def add_message(self, message):
+		self.list.append(message)
+		self.command_placeholder = ENTER_TO_CONTINUE
 
 	class Plain:
 
