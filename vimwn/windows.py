@@ -49,6 +49,7 @@ class Windows():
 		self.read_itself = False
 		self.window_handlers = {}
 		self.window_original_decorations = {}
+		self.screen = None
 
 	def remove(self, window, time):
 		window.close(time)
@@ -61,7 +62,8 @@ class Windows():
 		del self.buffers[:]
 		self.read_itself = False
 		#TODO is needed?
-		self.screen = Wnck.Screen.get_default()
+		if not self.screen:
+			self.screen = Wnck.Screen.get_default()
 		self.screen.force_update()  #make sure we query X server
 
 		active_workspace = self.screen.get_active_workspace()

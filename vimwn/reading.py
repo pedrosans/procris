@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, re
 import time
+import threading
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from vimwn.view import NavigatorWindow
@@ -33,8 +34,7 @@ from vimwn.message import Messages
 class Reading:
 
 	def __init__(self, service=None):
-		self.view = None
-		self._pressed = {}
+		self.view = self.pressed_key = None
 		self.last_out = self.last_start = 0
 		# TODO: remove variable e track modes: normal, window, command
 		self.reading_command = self.multiplier = None
@@ -66,7 +66,7 @@ class Reading:
 		self.view.connect("key-press-event", self.on_window_key_press)
 		self.view.connect("key-release-event", self.on_window_key_release)
 		self.view.connect("focus-out-event", Gtk.main_quit if not self.service else self.end)
-		# self.view.connect("focus-in-event", self.focus_in)
+		self.view.connect("focus-in-event", self.focus_in)
 
 	def focus_in(self, widget, event):
 		self.windows.read_screen()
@@ -75,22 +75,21 @@ class Reading:
 	def start(self, event_time=0):
 		self.last_start = time.time()
 		time_since_focus_out = self.last_start - self.last_out
+
 		if time_since_focus_out < 0.1:
 			# TODO test if read itself at the top
 			# TODO test if the prefix is ctrl-w
-			print('* starting after last focus out: {0:10}'.format(time_since_focus_out))
-			self.windows.read_screen()
 			self.windows.cycle(None, None)
 			self.windows.commit_navigation(event_time)
 			self.set_normal_mode()
 			return
 
-		if self.view.get_window():
-			# self.view.present_with_time(event_time)
-			self.view.show_all()
-			self.view.get_window().focus(event_time)
-		else:
+		if not self.view.get_window():
 			self.view.show(event_time)
+
+		self.view.present_with_time(event_time)
+		self.view.get_window().focus(event_time)
+
 		if not self.running_as_service:
 			Gtk.main()
 
@@ -102,6 +101,7 @@ class Reading:
 		self.view.hide()
 		self.messages.clean()
 		self.clean_command_state()
+		self.pressed_key = None
 
 	def set_window_command_mode(self, time, error_message=None):
 		if error_message:
@@ -117,13 +117,12 @@ class Reading:
 	# CALLBACKS
 	#
 	def on_window_key_release(self, widget, event):
-		if event.keyval in self._pressed and not self._pressed[event.keyval]:
-			print('	key not detected when pressed: {}'.format(event.keyval))
+		if not self.pressed_key or self.pressed_key != event.keyval:
 			self.on_window_key(event)
-		self._pressed[event.keyval] = False
+		self.pressed_key = None
 
 	def on_window_key_press(self, widget, event):
-		self._pressed[event.keyval] = True
+		self.pressed_key = event.keyval
 		self.on_window_key(event)
 
 	def on_window_key(self, event):
