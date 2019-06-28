@@ -33,6 +33,7 @@ class Reading:
 
 	def __init__(self, service=None):
 		self.view = None
+		self._pressed = {}
 		# TODO: remove variable e track modes: normal, window, command
 		self.reading_command = self.multiplier = None
 		self.running_as_service = True if service else False
@@ -57,10 +58,11 @@ class Reading:
 		if self.view:
 			self.view.close()
 		self.view = NavigatorWindow(self, self.windows, self.messages)
-		self.view.connect("key-press-event", self.on_window_key_press)
 		self.view.entry.connect("key-release-event", self.on_entry_key_release)
 		self.view.entry.connect("key-press-event", self.on_entry_key_press)
 		self.view.entry.connect("activate", self.on_command, None)
+		self.view.connect("key-press-event", self.on_window_key_press)
+		self.view.connect("key-release-event", self.on_window_key_release)
 		self.view.connect("focus-out-event", Gtk.main_quit if not self.service else self.end)
 
 	def start(self, time=0):
@@ -96,7 +98,17 @@ class Reading:
 	#
 	# CALLBACKS
 	#
+	def on_window_key_release(self, widget, event):
+		if event.keyval in self._pressed and not self._pressed[event.keyval]:
+			print('	key not detected when pressed: {}'.format(event.keyval))
+			self.on_window_key(event)
+		self._pressed[event.keyval] = False
+
 	def on_window_key_press(self, widget, event):
+		self._pressed[event.keyval] = True
+		self.on_window_key(event)
+
+	def on_window_key(self, event):
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
 		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft) :
 			self.escape(None, None)
