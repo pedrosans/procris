@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import os, gi, dbus, dbus.service, signal, setproctitle
+import os, gi, dbus, dbus.service, signal, setproctitle, logging
 gi.require_version('Gtk', '3.0')
 gi.require_version("Keybinder", "3.0")
 from vimwn.reading import Reading
@@ -41,13 +41,18 @@ class NavigatorService:
 	def start(self):
 		self.reading = Reading(service=self)
 
+		# https://lazka.github.io/pgi-docs/GLib-2.0/functions.html#GLib.log_set_handler
+		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_WARNING, self.log_function)
+		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, self.log_function)
+		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, self.log_function)
+
 		self.configure_process()
-		self.export_bus_object()
 		self.listen_user_events()
 
 		self.status_icon = StatusIcon(self.reading.configurations)
 		self.status_icon.activate(self)
 
+		self.export_bus_object()
 		Gtk.main()
 
 		print("Ending vimwn service, pid: {}".format(os.getpid()))
@@ -61,10 +66,23 @@ class NavigatorService:
 		Keybinder.init()
 
 		for hotkey in normal_prefix.split(","):
-			if not Keybinder.bind(hotkey, self.reading.handle_prefix_key, None):
+			if not Keybinder.bind(hotkey, self.handle_prefix_key, None):
 				raise Exception("Could not bind the hotkey: " + hotkey)
 
 		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
+
+	def handle_prefix_key(self, key, data):
+		self.reading.start(Keybinder.get_current_event_time())
+
+	def log_function(self, log_domain, log_level, message):
+		if log_level is GLib.LogLevelFlags.LEVEL_WARNING:
+			logging.warning('GLib log[%s]:%s',log_domain, message)
+			self.reading.view.show_warning(message)
+		elif log_level in (GLib.LogLevelFlags.LEVEL_ERROR, GLib.LogLevelFlags.LEVEL_CRITICAL):
+			logging.error('GLib log[%s]:%s',log_domain, message)
+			self.reading.view.show_error(message)
+		else:
+			raise Exception(message)
 
 	def configure_process(self):
 		setproctitle.setproctitle("vimwn")

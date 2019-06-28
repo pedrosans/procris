@@ -14,10 +14,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, re, os, logging
+import gi, re
 gi.require_version('Gtk', '3.0')
-gi.require_version("Keybinder", "3.0")
-from gi.repository import Gtk, Gdk, Keybinder, GLib
+from gi.repository import Gtk, Gdk, GLib
 from vimwn.view import NavigatorWindow
 from vimwn.windows import Windows
 from vimwn.environment import Configurations
@@ -63,31 +62,11 @@ class Reading:
 		self.view.entry.connect("key-release-event", self.on_entry_key_release)
 		self.view.entry.connect("key-press-event", self.on_entry_key_press)
 		self.view.entry.connect("activate", self.on_command, None)
-		if self.running_as_service:
-			self.view.connect("focus-out-event", self._focus_out_callback)
-		else:
-			self.view.connect("focus-out-event", Gtk.main_quit)
-		# https://lazka.github.io/pgi-docs/GLib-2.0/functions.html#GLib.log_set_handler
-		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_WARNING, self.log_function)
-		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, self.log_function)
-		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, self.log_function)
-
-	def log_function(self, log_domain, log_level, message):
-		if log_level is GLib.LogLevelFlags.LEVEL_WARNING:
-			logging.warning('GLib log[%s]:%s',log_domain, message)
-			self.view.show_warning(message)
-		elif log_level in (GLib.LogLevelFlags.LEVEL_ERROR, GLib.LogLevelFlags.LEVEL_CRITICAL):
-			logging.error('GLib log[%s]:%s',log_domain, message)
-			self.view.show_error(message)
-		else:
-			raise Exception(message)
-
-	def handle_prefix_key(self, key, data):
-		self.start(Keybinder.get_current_event_time())
+		self.view.connect("focus-out-event", Gtk.main_quit if not self.service else self.end)
 
 	def start(self, time=0):
 		self.windows.read_screen()
-		# TODO noooooo
+		# TODO test if read itself at the top
 		if self.windows.read_itself:
 			self.windows.cycle(None, None)
 			self.windows.commit_navigation(time)
@@ -96,14 +75,13 @@ class Reading:
 		if not self.running_as_service:
 			Gtk.main()
 
+	def end(self, *args):
+		self.set_normal_mode()
+
 	def show_error_message(self, message, time):
 		self._clear_command_ui_state()
 		self.messages.add(message, 'error')
 		self.view.show(time)
-
-	def _focus_out_callback (self, widget, event):
-		self.set_normal_mode()
-		return True;
 
 	def set_normal_mode(self):
 		self.view.hide()
@@ -116,14 +94,6 @@ class Reading:
 		"""
 		self._clean_state()
 		self.view.show (time)
-
-	def get_current_event_time(self):
-		gtk_event_time = Gtk.get_current_event_time()
-		if gtk_event_time is not None:
-			return gtk_event_time
-		if Keybinder is not None:
-			return Keybinder.get_current_event_time()
-		return 0
 
 	def on_window_key_press(self, widget, event):
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
@@ -235,7 +205,7 @@ class Reading:
 			self.reading_multiple_commands = True
 			# TODO iterate multiple commands
 
-		time = self.get_current_event_time()
+		time = Gtk.get_current_event_time()
 		command = Command.get_matching_command(cmd)
 
 		if command:
