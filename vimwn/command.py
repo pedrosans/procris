@@ -46,7 +46,7 @@ class Command:
 		self.keys = keys
 
 	@staticmethod
-	def create_commands(controller, windows):
+	def map_to(controller, windows):
 		c_array = [
 		['edit'			,'^\s*(edit|e).*$'					,None									,controller.edit					],
 		['!'			,'^\s*!.*$'							,None									,controller.bang					],

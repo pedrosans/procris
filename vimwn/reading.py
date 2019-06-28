@@ -33,18 +33,18 @@ class Reading:
 	def __init__(self, service=None):
 		self.running_as_service = True if service else False
 		self.service = service
+		self.windows = Windows(self)
 		self.configurations = Configurations()
 		self.applications = Applications()
 		self.terminal = Terminal()
-		self.windows = Windows(self)
 		self.hint_status = HintStatus(self)
 		self.messages = Messages(self, self.windows)
-		Command.create_commands(self, self.windows)
 		self._initialize_view()
 		# TODO: remove variable e track modes: normal, window, command
 		self.reading_command = self.reading_multiple_commands = False
 		self.multiplier = ''
 		self._clean_state()
+		Command.map_to(self, self.windows)
 
 	def _clean_state(self):
 		self._clear_command_ui_state()
@@ -93,7 +93,7 @@ class Reading:
 		Repaints the UI at its default state
 		"""
 		self._clean_state()
-		self.view.show (time)
+		self.view.show(time)
 
 	def on_window_key_press(self, widget, event):
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
