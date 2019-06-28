@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import argparse, vimwn, subprocess
-from vimwn.controller import Controller
+from vimwn.reading import Reading
 from vimwn.service import NavigatorService
 from vimwn.service import RemoteInterface
 
@@ -37,6 +37,6 @@ elif args.action == 'stop':
 elif args.action == 'status':
 	print(RemoteInterface().get_status())
 elif args.action == 'open':
-	Controller(as_service=False).open()
+	Reading(as_service=False).open()
 else:
 	parser.print_help()

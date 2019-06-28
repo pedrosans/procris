@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import sys, os, gi, dbus, dbus.service, signal, setproctitle
 gi.require_version('Gtk', '3.0')
-from vimwn.controller import Controller
+from vimwn.reading import Reading
 from gi.repository import GObject, Gtk, GLib
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus.gi_service import ExportedGObject
@@ -34,15 +34,15 @@ class NavigatorService:
 		self.bus_object = None
 
 	def start(self):
-		self.controller = Controller(as_service=True)
-		self.configurations = self.controller.configurations
+		self.reading = Reading(as_service=True)
+		self.configurations = self.reading.configurations
 
 		self.configure_process()
 
-		self.controller.listen_user_events()
+		self.reading.listen_user_events()
 		self.export_bus_object()
 
-		self.controller.indicate_running_service(self)
+		self.reading.indicate_running_service(self)
 		Gtk.main()
 
 		print("Ending vimwn service, pid: {}".format(os.getpid()))

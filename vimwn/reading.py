@@ -30,7 +30,7 @@ from vimwn.message import Messages
 
 
 # TODO chain commands
-class Controller:
+class Reading:
 
 	def __init__(self, as_service=None):
 		self.status_icon = None
@@ -106,6 +106,7 @@ class Controller:
 
 	def show_ui(self, time):
 		self.windows.read_screen()
+		# TODO noooooo
 		if self.windows.read_itself:
 			self.windows.cycle(None, None)
 			self.windows.commit_navigation(time)
@@ -260,7 +261,7 @@ class Controller:
 			self.show_error_message('Not an editor command: ' + cmd, time)
 
 	#
-	# LIST ANF FUNCTIONS
+	# COMMANDS
 	#
 	def reload(self, cmd, time):
 		self.configurations.reload()
