@@ -28,10 +28,13 @@ from vimwn.message import Messages
 
 
 # TODO chain commands
+# TODO hint line shows only '>' if you type :b <long window title start>
 class Reading:
 
 	def __init__(self, service=None):
 		self.view = None
+		# TODO: remove variable e track modes: normal, window, command
+		self.reading_command = self.multiplier = None
 		self.running_as_service = True if service else False
 		self.service = service
 		self.windows = Windows(self)
@@ -40,24 +43,17 @@ class Reading:
 		self.terminal = Terminal()
 		self.hint_status = HintStatus(self)
 		self.messages = Messages(self, self.windows)
-		self._initialize_view()
-		# TODO: remove variable e track modes: normal, window, command
-		self.reading_command = self.reading_multiple_commands = False
-		self.multiplier = ''
-		self._clean_state()
+		self.install_callbacks()
+		self.clean_command_state()
+		self.messages.clean()
 		Command.map_to(self, self.windows)
 
-	def _clean_state(self):
-		self._clear_command_ui_state()
-		self.messages.clean()
-
-	def _clear_command_ui_state(self):
+	def clean_command_state(self):
 		self.hint_status.clear_state()
 		self.reading_command = False
-		self.reading_multiple_commands = False
-		self.multiplier = ""
+		self.multiplier = ''
 
-	def _initialize_view(self):
+	def install_callbacks(self):
 		if self.view:
 			self.view.close()
 		self.view = NavigatorWindow(self, self.windows, self.messages)
@@ -84,18 +80,22 @@ class Reading:
 
 	def set_normal_mode(self):
 		self.view.hide()
-		self._clean_state()
+		self.messages.clean()
+		self.clean_command_state()
 
 	def set_window_command_mode(self, time, error_message=None):
 		if error_message:
 			self.messages.add(error_message, 'error')
-		self._clear_command_ui_state()
+		self.clean_command_state()
 		self.view.show(time)
 
 	def set_command_mode(self, time):
 		self.reading_command = True
 		self.view.show(time)
 
+	#
+	# CALLBACKS
+	#
 	def on_window_key_press(self, widget, event):
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
 		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft) :
@@ -202,8 +202,7 @@ class Reading:
 			cmd = self.hint_status.get_highlighted_hint()
 
 		if Command.has_multiple_commands(cmd):
-			self.reading_multiple_commands = True
-			# TODO iterate multiple commands
+			raise Exception('TODO: iterate multiple commands')
 
 		time = Gtk.get_current_event_time()
 		command = Command.get_matching_command(cmd)
@@ -220,7 +219,7 @@ class Reading:
 		self.configurations.reload()
 		self.applications.reload()
 		self.terminal.reload()
-		self._initialize_view()
+		self.install_callbacks()
 		self.messages.clean()
 		self.set_window_command_mode(time)
 		if self.running_as_service:
