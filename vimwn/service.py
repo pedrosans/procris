@@ -15,12 +15,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import sys, os, gi, dbus, dbus.service, signal, setproctitle
+import os, gi, dbus, dbus.service, signal, setproctitle
 gi.require_version('Gtk', '3.0')
+gi.require_version("Keybinder", "3.0")
 from vimwn.reading import Reading
-from gi.repository import GObject, Gtk, GLib
+from gi.repository import GObject, Gtk, GLib, Keybinder
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus.gi_service import ExportedGObject
+from vimwn.status import StatusIcon
 
 SERVICE_NAME = "io.github.vimwn"
 SERVICE_OBJECT_PATH = "/io/github/vimwn"
@@ -28,24 +30,41 @@ SIGINT  = getattr(signal, "SIGINT", None)
 SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP  = getattr(signal, "SIGHUP", None)
 
+
 class NavigatorService:
 
 	def __init__(self):
 		self.bus_object = None
+		self.reading = None
+		self.status_icon = None
 
 	def start(self):
-		self.reading = Reading(as_service=True)
-		self.configurations = self.reading.configurations
+		self.reading = Reading(service=self)
 
 		self.configure_process()
-
-		self.reading.listen_user_events()
 		self.export_bus_object()
+		self.listen_user_events()
 
-		self.reading.indicate_running_service(self)
+		self.status_icon = StatusIcon(self.reading.configurations)
+		self.status_icon.activate(self)
+
 		Gtk.main()
 
 		print("Ending vimwn service, pid: {}".format(os.getpid()))
+
+	def reload(self):
+		self.status_icon.reload()
+
+	def listen_user_events(self):
+		configurations = self.reading.configurations
+		normal_prefix = configurations.get_prefix_key()
+		Keybinder.init()
+
+		for hotkey in normal_prefix.split(","):
+			if not Keybinder.bind(hotkey, self.reading.handle_prefix_key, None):
+				raise Exception("Could not bind the hotkey: " + hotkey)
+
+		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
 
 	def configure_process(self):
 		setproctitle.setproctitle("vimwn")

@@ -37,6 +37,6 @@ elif args.action == 'stop':
 elif args.action == 'status':
 	print(RemoteInterface().get_status())
 elif args.action == 'open':
-	Reading(as_service=False).open()
+	Reading().start()
 else:
 	parser.print_help()

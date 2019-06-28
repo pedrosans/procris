@@ -25,16 +25,15 @@ from vimwn.applications import Applications
 from vimwn.terminal import Terminal
 from vimwn.hint import HintStatus
 from vimwn.command import Command
-from vimwn.status import StatusIcon
 from vimwn.message import Messages
 
 
 # TODO chain commands
 class Reading:
 
-	def __init__(self, as_service=None):
-		self.status_icon = None
-		self.running_as_service = as_service
+	def __init__(self, service=None):
+		self.running_as_service = True if service else False
+		self.service = service
 		self.configurations = Configurations()
 		self.applications = Applications()
 		self.terminal = Terminal()
@@ -47,10 +46,6 @@ class Reading:
 		self.reading_command = self.reading_multiple_commands = False
 		self.multiplier = ''
 		self._clean_state()
-
-	def indicate_running_service(self, service):
-		self.status_icon = StatusIcon(self.configurations)
-		self.status_icon.activate(service)
 
 	def _clean_state(self):
 		self._clear_command_ui_state()
@@ -77,20 +72,6 @@ class Reading:
 		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, self.log_function)
 		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, self.log_function)
 
-	def open(self):
-		self.show_ui(0)
-		Gtk.main()
-
-	def listen_user_events(self):
-		normal_prefix = self.configurations.get_prefix_key()
-		Keybinder.init()
-
-		for hotkey in normal_prefix.split(","):
-			if not Keybinder.bind(hotkey, self.handle_prefix_key, None):
-				raise Exception("Could not bind the hotkey: " + hotkey)
-
-		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
-
 	def log_function(self, log_domain, log_level, message):
 		if log_level is GLib.LogLevelFlags.LEVEL_WARNING:
 			logging.warning('GLib log[%s]:%s',log_domain, message)
@@ -102,9 +83,9 @@ class Reading:
 			raise Exception(message)
 
 	def handle_prefix_key(self, key, data):
-		self.show_ui(Keybinder.get_current_event_time())
+		self.start(Keybinder.get_current_event_time())
 
-	def show_ui(self, time):
+	def start(self, time=0):
 		self.windows.read_screen()
 		# TODO noooooo
 		if self.windows.read_itself:
@@ -112,6 +93,8 @@ class Reading:
 			self.windows.commit_navigation(time)
 		else:
 			self.view.show(time)
+		if not self.running_as_service:
+			Gtk.main()
 
 	def show_error_message(self, message, time):
 		self._clear_command_ui_state()
@@ -270,8 +253,8 @@ class Reading:
 		self.view.close()
 		self._initialize_view()
 		self.refresh_view(time)
-		if self.status_icon:
-			self.status_icon.reload()
+		if self.running_as_service:
+			self.service.reload()
 
 	def edit(self, cmd, time):
 		name = Command.extract_text_parameter(cmd)
