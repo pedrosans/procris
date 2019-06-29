@@ -267,7 +267,7 @@ class Reading:
 
 	def edit(self, cmd, time):
 		name = Command.extract_text_parameter(cmd)
-		if name == None or not name.strip():
+		if not name or not name.strip():
 			self.set_normal_mode()
 			return
 
