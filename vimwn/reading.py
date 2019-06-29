@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, re
+import time
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from vimwn.view import NavigatorWindow
@@ -34,6 +35,7 @@ class Reading:
 	def __init__(self, service=None):
 		self.view = None
 		self._pressed = {}
+		self.last_out = self.last_start = 0
 		# TODO: remove variable e track modes: normal, window, command
 		self.reading_command = self.multiplier = None
 		self.running_as_service = True if service else False
@@ -64,20 +66,36 @@ class Reading:
 		self.view.connect("key-press-event", self.on_window_key_press)
 		self.view.connect("key-release-event", self.on_window_key_release)
 		self.view.connect("focus-out-event", Gtk.main_quit if not self.service else self.end)
+		# self.view.connect("focus-in-event", self.focus_in)
 
-	def start(self, time=0):
+	def focus_in(self, widget, event):
 		self.windows.read_screen()
-		# TODO test if read itself at the top
-		# TODO test if the prefix is ctrl-w
-		if self.windows.read_itself:
+		self.view.show(event.get_time())
+
+	def start(self, event_time=0):
+		self.last_start = time.time()
+		time_since_focus_out = self.last_start - self.last_out
+		if time_since_focus_out < 0.1:
+			# TODO test if read itself at the top
+			# TODO test if the prefix is ctrl-w
+			print('* starting after last focus out: {0:10}'.format(time_since_focus_out))
+			self.windows.read_screen()
 			self.windows.cycle(None, None)
-			self.windows.commit_navigation(time)
+			self.windows.commit_navigation(event_time)
+			self.set_normal_mode()
+			return
+
+		if self.view.get_window():
+			# self.view.present_with_time(event_time)
+			self.view.show_all()
+			self.view.get_window().focus(event_time)
 		else:
-			self.view.show(time)
+			self.view.show(event_time)
 		if not self.running_as_service:
 			Gtk.main()
 
-	def end(self, *args):
+	def end(self, widget, event):
+		self.last_out = time.time()
 		self.set_normal_mode()
 
 	def set_normal_mode(self):
