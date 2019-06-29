@@ -46,7 +46,7 @@ class Reading:
 		self.terminal = Terminal()
 		self.hint_status = HintStatus(self)
 		self.messages = Messages(self, self.windows)
-		self.install_callbacks()
+		self.create_and_install_view()
 		self.clean_command_state()
 		self.messages.clean()
 		Command.map_to(self, self.windows)
@@ -58,7 +58,7 @@ class Reading:
 		self.hint_status.clear_state()
 		self.reading_command = False
 
-	def install_callbacks(self):
+	def create_and_install_view(self):
 		if self.view:
 			self.view.close()
 		self.view = NavigatorWindow(self, self.windows, self.messages)
@@ -108,8 +108,6 @@ class Reading:
 		self.clean_command_state()
 		self.clean_key_combination_state()
 		self.view.show(event_time)
-		# TODO needed only after reload, for some reason it fades out
-		self.view.present_with_time(event_time)
 
 	def set_command_mode(self, time):
 		self.reading_command = True
@@ -260,8 +258,9 @@ class Reading:
 		self.configurations.reload()
 		self.applications.reload()
 		self.terminal.reload()
-		self.install_callbacks()
 		self.messages.clean()
+		self.create_and_install_view()
+		self.view.present_with_time(time)
 		self.set_key_mode(time)
 		if self.running_as_service:
 			self.service.reload()
