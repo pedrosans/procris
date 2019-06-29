@@ -51,10 +51,12 @@ class Reading:
 		self.messages.clean()
 		Command.map_to(self, self.windows)
 
+	def clean_key_combination_state(self):
+		self.multiplier = ''
+
 	def clean_command_state(self):
 		self.hint_status.clear_state()
 		self.reading_command = False
-		self.multiplier = ''
 
 	def install_callbacks(self):
 		if self.view:
@@ -67,10 +69,6 @@ class Reading:
 		self.view.connect("key-release-event", self.on_window_key_release)
 		self.view.connect("focus-out-event", Gtk.main_quit if not self.service else self.end)
 		self.view.connect("focus-in-event", self.focus_in)
-
-	def focus_in(self, widget, event):
-		self.windows.read_screen()
-		self.view.show(event.get_time())
 
 	def start(self, event_time=0):
 		self.last_start = time.time()
@@ -103,11 +101,15 @@ class Reading:
 		self.clean_command_state()
 		self.pressed_key = None
 
-	def set_window_command_mode(self, time, error_message=None):
+	def set_key_mode(self, event_time, error_message=None):
+		self.windows.read_screen()
 		if error_message:
 			self.messages.add(error_message, 'error')
 		self.clean_command_state()
-		self.view.show(time)
+		self.clean_key_combination_state()
+		self.view.show(event_time)
+		# TODO needed only after reload, for some reason it fades out
+		self.view.present_with_time(event_time)
 
 	def set_command_mode(self, time):
 		self.reading_command = True
@@ -116,25 +118,35 @@ class Reading:
 	#
 	# CALLBACKS
 	#
+	def focus_in(self, widget, event):
+		self.set_key_mode(event.get_time())
+
 	def on_window_key_release(self, widget, event):
 		if not self.pressed_key or self.pressed_key != event.keyval:
+			# print('got -> {}'.format(Gdk.keyval_name(event.keyval)))
 			self.on_window_key(event)
 		self.pressed_key = None
 
 	def on_window_key_press(self, widget, event):
 		self.pressed_key = event.keyval
+		# print('got <- {}'.format(Gdk.keyval_name(event.keyval)))
 		self.on_window_key(event)
 
 	def on_window_key(self, event):
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
-		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft) :
+		key_name = Gdk.keyval_name(event.keyval)
+
+		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft):
 			self.escape(None, None)
-		if self.reading_command:
-			return False
-		gdk_key = Gdk.keyval_name(event.keyval)
-		if gdk_key and gdk_key.isdigit():
-			self.multiplier = self.multiplier + Gdk.keyval_name(event.keyval)
 			return
+
+		if self.reading_command:
+			return
+
+		if key_name and key_name.isdigit():
+			self.multiplier = self.multiplier + key_name
+			return
+
 		if event.keyval in Command.KEY_MAP:
 			multiplier_int = int(self.multiplier) if self.multiplier else 1
 			for i in range(multiplier_int):
@@ -154,7 +166,7 @@ class Reading:
 			return False
 
 		if not self.view.entry.get_text().strip():
-			self.set_window_command_mode(event.time)
+			self.set_key_mode(event.time)
 			return False
 
 		if not self.view.get_command().strip():
@@ -239,7 +251,7 @@ class Reading:
 		if command:
 			command.function(cmd, time)
 		else:
-			self.set_window_command_mode(time, error_message='Not an editor command: ' + cmd)
+			self.set_key_mode(time, error_message='Not an editor command: ' + cmd)
 
 	#
 	# COMMANDS
@@ -250,7 +262,7 @@ class Reading:
 		self.terminal.reload()
 		self.install_callbacks()
 		self.messages.clean()
-		self.set_window_command_mode(time)
+		self.set_key_mode(time)
 		if self.running_as_service:
 			self.service.reload()
 
@@ -273,11 +285,11 @@ class Reading:
 				self.applications.launch_by_name(app_name)
 				self.set_normal_mode()
 			except GLib.GError as exc:
-				self.set_window_command_mode(time, error_message='Error launching ' + name)
+				self.set_key_mode(time, error_message='Error launching ' + name)
 		elif len(possible_apps) == 0:
-			self.set_window_command_mode(time, error_message='No matching application for ' + name)
+			self.set_key_mode(time, error_message='No matching application for ' + name)
 		else:
-			self.set_window_command_mode(time, error_message='More than one application matches: ' + name)
+			self.set_key_mode(time, error_message='More than one application matches: ' + name)
 
 	def bang(self, cmd, time):
 		vim_cmd = Command.extract_vim_command(cmd)
@@ -290,7 +302,7 @@ class Reading:
 
 	def enter(self, keyval, time):
 		self.messages.clean()
-		self.set_window_command_mode(time)
+		self.set_key_mode(time)
 
 	def escape(self, keyval, time):
 		self.set_normal_mode()
@@ -308,7 +320,7 @@ class Reading:
 			self.windows.active.minimize()
 			self.set_normal_mode()
 		else:
-			self.set_window_command_mode(time, error_message='No active window')
+			self.set_key_mode(time, error_message='No active window')
 
 	def centralize(self, cmd, time):
 		self.windows.centralize_active_window()
@@ -320,7 +332,7 @@ class Reading:
 
 	def buffers(self, cmd, time):
 		self.messages.list_buffers()
-		self.set_window_command_mode(time)
+		self.set_key_mode(time)
 
 	def buffer(self, cmd, time):
 		"""
@@ -336,7 +348,7 @@ class Reading:
 		if index < len(self.windows.buffers):
 			self.windows.open(self.windows.buffers[index], time)
 		else:
-			self.set_window_command_mode(time, error_message='Buffer {} does not exist'.format(buffer_number))
+			self.set_key_mode(time, error_message='Buffer {} does not exist'.format(buffer_number))
 
 	def open_named_buffer(self, cmd, time):
 		window_title = Command.extract_text_parameter(cmd)
@@ -344,7 +356,7 @@ class Reading:
 		if w:
 			self.windows.open(w, time)
 		else:
-			self.set_window_command_mode(time, error_message='No matching buffer for ' + window_title)
+			self.set_key_mode(time, error_message='No matching buffer for ' + window_title)
 
 	# TODO: remove duplicated tokenizer
 	def delete_current_buffer(self, cmd, time):
@@ -352,7 +364,7 @@ class Reading:
 			self.windows.remove(self.windows.active, time)
 			self.set_normal_mode()
 		else:
-			self.set_window_command_mode(time, error_message='There is no active window')
+			self.set_key_mode(time, error_message='There is no active window')
 
 	def delete_indexed_buffer(self, cmd, time):
 		to_delete = []
@@ -361,7 +373,7 @@ class Reading:
 			if index < len(self.windows.buffers):
 				to_delete.append(self.windows.buffers[index])
 			else:
-				self.set_window_command_mode(time, error_message='No buffers were deleted')
+				self.set_key_mode(time, error_message='No buffers were deleted')
 				return
 		for window in to_delete:
 			self.windows.remove(window, time)
@@ -374,5 +386,5 @@ class Reading:
 			self.windows.remove(w, time)
 			self.set_normal_mode()
 		else:
-			self.set_window_command_mode(time, error_message='No matching buffer for ' + window_title)
+			self.set_key_mode(time, error_message='No matching buffer for ' + window_title)
 

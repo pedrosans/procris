@@ -110,7 +110,6 @@ class NavigatorWindow(Gtk.Window):
 		for c in self.output_box.get_children(): c.destroy()
 		for c in self.messages_box.get_children(): c.destroy()
 
-		# self.present_with_time(event_time)
 		self._calculate_width()
 		self.clean_hints()
 
@@ -126,7 +125,6 @@ class NavigatorWindow(Gtk.Window):
 				self.populate_navigation_options()
 
 		self.v_box.show_all()
-		# self.get_window().focus(event_time)
 
 	def list_navigation_windows(self):
 		for c in self.hint_line.get_children(): c.destroy()

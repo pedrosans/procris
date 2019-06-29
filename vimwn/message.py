@@ -62,23 +62,22 @@ class Messages:
 		def __init__(self, window, windows):
 			super().__init__(None, None)
 			self.window = window
-			self.windows = windows
-			self.top, self.below = windows.get_left_right_top_windows()
+			self.index = 1 + windows.buffers.index(self.window)
+			self.flags = ''
+			top, below = windows.get_left_right_top_windows()
+			if self.window is top:
+				self.flags += '%a'
+			elif self.window is below:
+				self.flags = '#'
 
 		def get_pixbuf(self):
 			return self.window.get_mini_icon()
 
 		def get_content(self, size):
-			buffer_columns = min(100, size- 3)
-
-			flags = ''
-			if self.window is self.top:
-				flags += '%a'
-			elif self.window is self.below:
-				flags = '#'
-			index = 1 + self.windows.buffers.index(self.window)
+			buffer_columns = min(100, size - 3)
 			description_columns = buffer_columns - 19
 			window_name = self.window.get_name().ljust(description_columns)[:description_columns]
-			name = '{:>2} {:2} {} {:12}'.format(index, flags, window_name, self.window.get_workspace().get_name().lower())
+			name = '{:>2} {:2} {} {:12}'.format(
+				self.index, self.flags, window_name, self.window.get_workspace().get_name().lower())
 			return name
 
