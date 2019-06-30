@@ -27,6 +27,7 @@ from vimwn.terminal import Terminal
 from vimwn.hint import HintStatus
 from vimwn.command import Command
 from vimwn.message import Messages
+from vimwn.command import CommandInput
 
 
 # TODO chain commands
@@ -148,7 +149,7 @@ class Reading:
 		if event.keyval in Command.KEY_MAP:
 			multiplier_int = int(self.multiplier) if self.multiplier else 1
 			for i in range(multiplier_int):
-				Command.KEY_MAP[event.keyval].function(event.keyval, event.time)
+				Command.KEY_MAP[event.keyval].function(CommandInput(event.time, key=event.keyval))
 			# TODO error message if not staging a change?
 			self.windows.commit_navigation(event.time)
 
@@ -247,26 +248,26 @@ class Reading:
 		command = Command.get_matching_command(cmd)
 
 		if command:
-			command.function(cmd, time)
+			command.function(CommandInput(time, text_input=cmd))
 		else:
 			self.set_key_mode(time, error_message='Not an editor command: ' + cmd)
 
 	#
 	# COMMANDS
 	#
-	def reload(self, cmd, time):
+	def reload(self, c_in):
 		self.configurations.reload()
 		self.applications.reload()
 		self.terminal.reload()
 		self.messages.clean()
 		self.create_and_install_view()
-		self.view.present_with_time(time)
-		self.set_key_mode(time)
+		self.view.present_with_time(c_in.time)
+		self.set_key_mode(c_in.time)
 		if self.running_as_service:
 			self.service.reload()
 
-	def edit(self, cmd, time):
-		name = Command.extract_text_parameter(cmd)
+	def edit(self, c_in):
+		name = Command.extract_text_parameter(c_in.text_input)
 		if not name or not name.strip():
 			self.set_normal_mode()
 			return
@@ -290,50 +291,50 @@ class Reading:
 		else:
 			self.set_key_mode(time, error_message='More than one application matches: ' + name)
 
-	def bang(self, cmd, time):
-		vim_cmd = Command.extract_vim_command(cmd)
-		cmd = cmd.replace(vim_cmd, '', 1)
+	def bang(self, c_in):
+		vim_cmd = Command.extract_vim_command(c_in.text_input)
+		cmd = c_in.text_input.replace(vim_cmd, '', 1)
 		self.terminal.execute(cmd)
 		self.set_normal_mode()
 
-	def colon(self, keyval, time):
-		self.set_command_mode(time)
+	def colon(self, c_in):
+		self.set_command_mode(c_in.time)
 
-	def enter(self, keyval, time):
+	def enter(self, c_in):
 		self.messages.clean()
-		self.set_key_mode(time)
+		self.set_key_mode(c_in.time)
 
-	def escape(self, keyval, time):
+	def escape(self, c_in):
 		self.set_normal_mode()
 
 	# TODO: move logic to windows
-	def only(self, cmd, time):
+	def only(self, c_in):
 		for w in self.windows.visible:
 			if self.windows.active != w:
 				w.minimize()
-		self.windows.open(self.windows.active, time)
+		self.windows.open(self.windows.active, c_in.time)
 		self.set_normal_mode()
 
-	def quit(self, cmd, time):
+	def quit(self, c_in):
 		if self.windows.active:
 			self.windows.active.minimize()
 			self.set_normal_mode()
 		else:
-			self.set_key_mode(time, error_message='No active window')
+			self.set_key_mode(c_in.time, error_message='No active window')
 
-	def centralize(self, cmd, time):
+	def centralize(self, c_in):
 		self.windows.centralize_active_window()
-		self.windows.commit_navigation(time)
+		self.windows.commit_navigation(c_in.time)
 
-	def maximize(self, cmd, time):
+	def maximize(self, c_in):
 		self.windows.maximize_active_window()
-		self.windows.commit_navigation(time)
+		self.windows.commit_navigation(c_in.time)
 
-	def buffers(self, cmd, time):
+	def buffers(self, c_in):
 		self.messages.list_buffers()
-		self.set_key_mode(time)
+		self.set_key_mode(c_in.time)
 
-	def buffer(self, cmd, time):
+	def buffer(self, c_in):
 		"""
 		vim original behaviour is to take the focus away from the command entry,
 		but given this focus change can't be clearly signalized, just ignoring
@@ -341,49 +342,50 @@ class Reading:
 		is a good alternative
 		"""
 
-	def open_indexed_buffer(self, cmd, time):
-		buffer_number = Command.extract_number_parameter(cmd)
+	def open_indexed_buffer(self, c_in):
+		# TODO generalize
+		buffer_number = Command.extract_number_parameter(c_in.text_input)
 		index = int(buffer_number) - 1
 		if index < len(self.windows.buffers):
-			self.windows.open(self.windows.buffers[index], time)
+			self.windows.open(self.windows.buffers[index], c_in.time)
 		else:
 			self.set_key_mode(time, error_message='Buffer {} does not exist'.format(buffer_number))
 
-	def open_named_buffer(self, cmd, time):
-		window_title = Command.extract_text_parameter(cmd)
+	def open_named_buffer(self, c_in):
+		window_title = Command.extract_text_parameter(c_in.text_input)
 		w = self.windows.find_by_name(window_title)
 		if w:
-			self.windows.open(w, time)
+			self.windows.open(w, c_in.time)
 		else:
-			self.set_key_mode(time, error_message='No matching buffer for ' + window_title)
+			self.set_key_mode(c_in.time, error_message='No matching buffer for ' + window_title)
 
 	# TODO: remove duplicated tokenizer
-	def delete_current_buffer(self, cmd, time):
+	def delete_current_buffer(self, c_in):
 		if self.windows.active:
-			self.windows.remove(self.windows.active, time)
+			self.windows.remove(self.windows.active, c_in.time)
 			self.set_normal_mode()
 		else:
-			self.set_key_mode(time, error_message='There is no active window')
+			self.set_key_mode(c_in.time, error_message='There is no active window')
 
-	def delete_indexed_buffer(self, cmd, time):
+	def delete_indexed_buffer(self, c_in):
 		to_delete = []
-		for number in re.findall(r'\d+', cmd):
+		for number in re.findall(r'\d+', c_in.text_input):
 			index = int(number) - 1
 			if index < len(self.windows.buffers):
 				to_delete.append(self.windows.buffers[index])
 			else:
-				self.set_key_mode(time, error_message='No buffers were deleted')
+				self.set_key_mode(c_in.time, error_message='No buffers were deleted')
 				return
 		for window in to_delete:
-			self.windows.remove(window, time)
+			self.windows.remove(window, c_in.time)
 		self.set_normal_mode()
 
-	def delete_named_buffer(self, cmd, time):
-		window_title = Command.extract_text_parameter(cmd)
+	def delete_named_buffer(self, c_in):
+		window_title = Command.extract_text_parameter(c_in.text_input)
 		w = self.windows.find_by_name(window_title)
 		if w:
-			self.windows.remove(w, time)
+			self.windows.remove(w, c_in.time)
 			self.set_normal_mode()
 		else:
-			self.set_key_mode(time, error_message='No matching buffer for ' + window_title)
+			self.set_key_mode(c_in.time, error_message='No matching buffer for ' + window_title)
 

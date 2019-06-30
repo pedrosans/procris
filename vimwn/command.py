@@ -15,21 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import gi, re, os, logging
-import re
-gi.require_version('Gtk', '3.0')
-gi.require_version("Keybinder", "3.0")
-from gi.repository import Gtk, Gdk, Keybinder, GLib
-
-
-def m(name, pattern, keys, function):
-	command = Command(name, pattern, keys, function)
-	Command.LIST.append(command)
-	if keys:
-		for k in keys:
-			Command.KEY_MAP[k] = command
-	if name:
-		Command.NAME_MAP[name] = command
+import gi, re
+from gi.repository import Gdk
 
 
 class Command:
@@ -78,8 +65,16 @@ class Command:
 		[None			,None								,[Gdk.KEY_colon]						,controller.colon					],
 		[None			,None								,[Gdk.KEY_Return]						,controller.enter					],
 		[None			,None								,[Gdk.KEY_Escape, Gdk.KEY_bracketleft]	,controller.escape					]]
-		for a in c_array:
-			m(a[0], a[1], a[2], a[3])
+		for p in c_array:
+			name, pattern, keys, function = p
+			command = Command(name, pattern, keys, function)
+			if name:
+				Command.NAME_MAP[name] = command
+			if keys:
+				for k in keys:
+					Command.KEY_MAP[k] = command
+			Command.LIST.append(command)
+
 
 	def hint_vim_command_parameter(self, controller, command_parameters):
 		if self.name == 'edit':
@@ -130,7 +125,7 @@ class Command:
 
 	@staticmethod
 	def extract_vim_command(cmd):
-		if cmd == None:
+		if cmd is None:
 			return None
 		if not cmd.strip():
 			return cmd
@@ -138,9 +133,16 @@ class Command:
 
 	@staticmethod
 	def extract_terminal_command(cmd):
-		if cmd == None:
+		if cmd is None:
 			return None
 		if not cmd.strip():
 			return cmd
 		return re.match(r'^\s*\w+', cmd).group()
 
+
+class CommandInput:
+
+	def __init__(self, time, text_input=None, key=None):
+		self.time = time
+		self.text_input = text_input
+		self.key = key
