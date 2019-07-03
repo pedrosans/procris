@@ -48,7 +48,7 @@ class Command:
 		['maximize'		,'^\s*(maximize|ma)\s*$'			,None									,windows.maximize			    	],
 		['reload'		,'^\s*(reload)\s*$'					,None									,controller.reload					],
 		['quit'			,'^\s*(quit|q)\s*$'					,[Gdk.KEY_q]							,controller.quit					],
-		['only'			,'^\s*(only|on)\s*$'				,[Gdk.KEY_o]							,controller.only					],
+		['only'			,'^\s*(only|on)\s*$'				,[Gdk.KEY_o]							,windows.only					],
 		[None			,None								,[Gdk.KEY_Right, Gdk.KEY_l]				,windows.navigate_right				],
 		[None			,None								,[Gdk.KEY_L]							,windows.move_right					],
 		[None			,None								,[Gdk.KEY_Down, Gdk.KEY_j]				,windows.navigate_down				],

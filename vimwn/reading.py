@@ -44,6 +44,7 @@ HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]
 HINT_LEFT = [Gdk.KEY_Left, Gdk.KEY_Up]
 HINT_RIGHT = [Gdk.KEY_Right, Gdk.KEY_Down]
 
+
 # TODO chain commands
 # TODO hint line shows only '>' if you type :b <long window title start>
 class Reading:
@@ -90,7 +91,6 @@ class Reading:
 		time_since_focus_out = self.last_start - self.last_out
 
 		if time_since_focus_out < 0.1:
-			# TODO test if read itself at the top
 			# TODO test if the prefix is ctrl-w
 			self.windows.cycle(None, None)
 			self.windows.commit_navigation(event_time)
@@ -178,6 +178,8 @@ class Reading:
 
 		if self.configurations.is_auto_hint():
 			self.hint_status.hint(self.view.get_command())
+		else:
+			self.hint_status.clear_state()
 
 		if self.hint_status.hinting:
 			self.view.hint(self.hint_status.hints, self.hint_status.highlight_index)
@@ -280,14 +282,6 @@ class Reading:
 		self.set_key_mode(c_in.time)
 
 	def escape(self, c_in):
-		self.set_normal_mode()
-
-	# TODO: move logic to windows
-	def only(self, c_in):
-		for w in self.windows.visible:
-			if self.windows.active != w:
-				w.minimize()
-		self.windows.open(self.windows.active, c_in.time)
 		self.set_normal_mode()
 
 	def quit(self, c_in):

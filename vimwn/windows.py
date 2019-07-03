@@ -132,6 +132,13 @@ class Windows:
 	#
 	# COMMANDS
 	#
+	def only(self, c_in):
+		for w in self.visible:
+			if self.active != w:
+				w.minimize()
+		self.open(self.active, c_in.time)
+		self.staging = True
+
 	def navigate_to_previous(self, c_in):
 		top, below = self.get_top_two_windows()
 		if below:
