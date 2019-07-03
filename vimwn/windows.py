@@ -60,15 +60,15 @@ class Windows:
 		del self.visible[:]
 		del self.buffers[:]
 		self.read_itself = False
-		# TODO is needed?
 		if not self.screen:
 			self.screen = Wnck.Screen.get_default()
-		self.screen.force_update()  #make sure we query X server
+		self.screen.force_update()  # make sure we query X server
 
 		active_workspace = self.screen.get_active_workspace()
 		for wnck_window in self.screen.get_windows():
 			if wnck_window.get_pid() == os.getpid():
 				self.read_itself = True
+				continue
 			if wnck_window.is_skip_tasklist():
 				continue
 			in_active_workspace = wnck_window.is_in_viewport(active_workspace)
