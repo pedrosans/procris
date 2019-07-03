@@ -88,6 +88,15 @@ class HintTestCase(unittest.TestCase):
 		self.status_line.highlight_index = 0
 		self.assertEqual(self.status_line.mount_input(), '!foobar')
 
+	def test_bang_vim_command_is_mounted_even_if_empty(self) :
+		Command.get_matching_command.return_value = self.bang_command
+		self.bang_command.hint_vim_command_parameter = MagicMock()
+		self.bang_command.hint_vim_command_parameter.return_value = ['foobar']
+
+		self.status_line.hint('!')
+		self.status_line.highlight_index = 0
+		self.assertEqual(self.status_line.mount_input(), '!foobar')
+
 
 if __name__ == '__main__':
 	unittest.main()

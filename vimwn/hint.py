@@ -77,7 +77,7 @@ class HintStatus:
 			return self.vim_command + self.vim_command_spacer + self.terminal_command + self.terminal_command_spacer + (
 					self.hints[i] if i > -1 else
 					self.terminal_command_parameter)
-		elif self.vim_command_spacer or (self.vim_command == '!' and len(self.terminal_command) > 0):
+		elif self.vim_command_spacer or (self.vim_command == '!' and i > -1):
 			return self.vim_command + self.vim_command_spacer + (
 					self.hints[i] if i > -1 else
 					self.vim_command_parameter)
