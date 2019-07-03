@@ -299,19 +299,31 @@ class HintLine(Gtk.Box):
 		self.pack_start(icon, expand=False, fill=False, padding=0)
 		self.page_items += 2
 
-	def show(self, hints, higlight_index):
+	def show(self, hints, highlight_index):
 		self.clear_status_line()
 		width = 0
+		self.clear_status_line()
+		highlighted_shown = False
 		for hint in hints:
-			truncated_hint = (hint[:50] + '..') if len(hint) > 75 else hint
-			if width + len(hint) + 2 < self.page_size:
-				self.add_status_text(truncated_hint, hints.index(hint) == higlight_index)
+			truncated_hint = (hint[:47] + '...') if len(hint) > 50 else hint
+			highlighted = hints.index(hint) == highlight_index
+
+			if width + len(truncated_hint) + 2 > self.page_size:
+				if highlighted_shown or highlight_index == -1:
+					self.add_status_text('>', False)
+					break
+				else:
+					width = 0
+					self.clear_status_line()
+
+			if width + len(truncated_hint) + 2 <= self.page_size:
+				self.add_status_text(truncated_hint, highlighted)
 				self.add_status_text('  ', False)
-				width += len(hint) + 2
-			else:
-				self.add_status_text('>', False)
-				break
+				width += len(truncated_hint) + 2
+				if highlighted:
+					highlighted_shown = True
 		self.show_all()
+
 
 GTK_3_18_CSS = b"""
 * {

@@ -52,7 +52,6 @@ class Reading:
 	def __init__(self, service=None):
 		self.view = self.pressed_key = None
 		self.last_out = self.last_start = 0
-		# TODO: remove variable e track modes: normal, window, command
 		self.reading_command = self.multiplier = None
 		self.running_as_service = True if service else False
 		self.service = service
@@ -299,7 +298,6 @@ class Reading:
 		self.set_key_mode(c_in.time)
 
 	def open_indexed_buffer(self, c_in):
-		# TODO generalize
 		buffer_number = Command.extract_number_parameter(c_in.text_input)
 		index = int(buffer_number) - 1
 		if index < len(self.windows.buffers):
@@ -315,7 +313,6 @@ class Reading:
 		else:
 			self.set_key_mode(c_in.time, error_message='No matching buffer for ' + window_title)
 
-	# TODO: remove duplicated tokenizer
 	def delete_current_buffer(self, c_in):
 		if self.windows.active:
 			self.windows.remove(self.windows.active, c_in.time)
