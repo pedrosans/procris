@@ -387,7 +387,7 @@ GTK_3_18_CSS = b"""
 }
 .hint-highlight {
 	background: darker(@fg_color);
-	color: red;
+	font-weight: bold;
 }
 
 /* COMMAND LINE STYLE */
