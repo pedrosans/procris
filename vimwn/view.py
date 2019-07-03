@@ -81,6 +81,7 @@ class NavigatorWindow(Gtk.Window):
 		hints array, plus auto complete the current input
 		if any comple command
 		"""
+		self._calculate_width()
 		self.hint_line.show(hints, higlight_index)
 
 	def clean_hints(self):
@@ -250,6 +251,7 @@ class NavigatorWindow(Gtk.Window):
 		provider.load_from_data(css)
 		Gtk.StyleContext.add_provider_for_screen(self.get_screen(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
+
 class WindowBtn(Gtk.Button):
 	def __init__(self, controller, window):
 		Gtk.Button.__init__(self)
@@ -301,25 +303,22 @@ class HintLine(Gtk.Box):
 
 	def show(self, hints, highlight_index):
 		self.clear_status_line()
-		width = 0
-		self.clear_status_line()
 		highlighted_shown = False
 		for hint in hints:
 			truncated_hint = (hint[:47] + '...') if len(hint) > 50 else hint
 			highlighted = hints.index(hint) == highlight_index
 
-			if width + len(truncated_hint) + 2 > self.page_size:
+			if self.page_items + len(truncated_hint) + 3 > self.page_size:
 				if highlighted_shown or highlight_index == -1:
 					self.add_status_text('>', False)
 					break
 				else:
-					width = 0
 					self.clear_status_line()
+					self.add_status_text('< ', False)
 
-			if width + len(truncated_hint) + 2 <= self.page_size:
+			if self.page_items + len(truncated_hint) + 3 <= self.page_size:
 				self.add_status_text(truncated_hint, highlighted)
 				self.add_status_text('  ', False)
-				width += len(truncated_hint) + 2
 				if highlighted:
 					highlighted_shown = True
 		self.show_all()
