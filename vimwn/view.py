@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, io
 gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Gdk, Pango
+from gi.repository import Gtk, Gdk, Pango, GLib
 
 
 # TODO show 'no name' active buffer if no active window at the buffers list
@@ -232,19 +232,17 @@ class NavigatorWindow(Gtk.Window):
 		self.move(midx, midy)
 
 	def _on_window_realize(self, widget):
-		css_file = self.controller.configurations.get_css_file()
 		try:
-			f = open(css_file, 'r')
-		except:
-			f = None
-		if css_file and f:
-			s = f.read()
-			self.apply_css(bytes(s, 'utf-8'))
-			f.close()
-		else:
 			self.apply_css(GTK_3_18_CSS)
-			if Gtk.get_major_version() >= 3 and Gtk.get_minor_version() >= 20:
-				self.apply_css(GTK_3_20_CSS)
+		except GLib.GError as exc:
+			self.apply_css(GTK_3_18_CSS.decode().replace('theme_fg_color', 'fg_color').encode())
+		if Gtk.get_major_version() >= 3 and Gtk.get_minor_version() >= 20:
+			self.apply_css(GTK_3_20_CSS)
+		css_file = self.controller.configurations.get_css_file()
+
+		with open(css_file, 'r') as custom_css:
+			s = custom_css.read()
+			self.apply_css(bytes(s, 'utf-8'))
 
 	def apply_css(self, css):
 		provider = Gtk.CssProvider()
@@ -348,8 +346,8 @@ GTK_3_18_CSS = b"""
 	transition-delay: initial;
 	padding: 0;
 	margin: 0;
-	background: @fg_color;
-	color: @bg_color;
+	background: @theme_fg_color;
+	color: @theme_bg_color;
 	font-family: monospace;
 }
 .application-icon{
@@ -375,18 +373,18 @@ GTK_3_18_CSS = b"""
 /* STATUS LINE STYLE */
 .status-line {
 	border: none;
-	background: lighter(@fg_color);
+	background: lighter(@theme_fg_color);
 }
 .status-text{
 	border: none;
 	padding: 2px 0;
-	background: lighter(@fg_color);
+	background: lighter(@theme_fg_color);
 }
 .status-application-icon {
-	background: lighter(@fg_color);
+	background: lighter(@theme_fg_color);
 }
 .hint-highlight {
-	background: darker(@fg_color);
+	background: darker(@theme_fg_color);
 	font-weight: bold;
 }
 
