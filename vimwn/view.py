@@ -17,6 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, io
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango, GLib
+from vimwn.message import BufferName
+
 
 
 # TODO show 'no name' active buffer if no active window at the buffers list
@@ -63,7 +65,7 @@ class NavigatorWindow(Gtk.Window):
 		self.messages_box = Gtk.VBox(homogeneous=False, spacing=0)
 		self.v_box.pack_start(self.messages_box, expand=True, fill=True, padding=0)
 
-		self.hint_line = HintLine()
+		self.hint_line = HintLine(self)
 		self.v_box.pack_start(self.hint_line, expand=True, fill=True, padding=0)
 
 		self.entry = Gtk.Entry()
@@ -162,10 +164,8 @@ class NavigatorWindow(Gtk.Window):
 			line = Gtk.HBox(homogeneous=False)
 			self.messages_box.pack_start(line, expand=False, fill=True, padding=0)
 
-			if message.get_pixbuf():
-				icon = Gtk.Image()
-				icon.set_from_pixbuf(message.get_pixbuf())
-				icon.get_style_context().add_class('application-icon')
+			if isinstance(message, BufferName):
+				icon = self.create_icon_image(message.get_window())
 				line.pack_start(icon, expand=False, fill=True, padding=0)
 
 			label = Gtk.Label(message.get_content(self.columns))
@@ -211,8 +211,8 @@ class NavigatorWindow(Gtk.Window):
 
 		layout = self.entry.create_pango_layout("W")
 		layout.set_font_description(self.entry.get_style_context().get_font(Gtk.StateFlags.NORMAL))
-		char_size = layout.get_pixel_extents().logical_rect.width
-		self.columns = int(self.window_width / char_size)
+		self.char_size = layout.get_pixel_extents().logical_rect.width
+		self.columns = int(self.window_width / self.char_size)
 		self.hint_line.page_size = self.columns
 
 	def _move_to_preferred_position(self, allocation, data):
@@ -249,6 +249,12 @@ class NavigatorWindow(Gtk.Window):
 		provider.load_from_data(css)
 		Gtk.StyleContext.add_provider_for_screen(self.get_screen(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
 
+	def create_icon_image(self, window):
+		icon = Gtk.Image()
+		icon.set_from_pixbuf(window.get_mini_icon() if self.char_size < 14 else window.get_icon())
+		icon.get_style_context().add_class('application-icon')
+		return icon
+
 
 class WindowBtn(Gtk.Button):
 	def __init__(self, controller, window):
@@ -267,7 +273,8 @@ class WindowBtn(Gtk.Button):
 
 class HintLine(Gtk.Box):
 
-	def __init__(self):
+	def __init__(self, view):
+		self.view = view
 		Gtk.Box.__init__(self, homogeneous=False, spacing=0)
 		self.get_style_context().add_class('status-line')
 		self.page_size = -1
@@ -290,10 +297,8 @@ class HintLine(Gtk.Box):
 	def add_status_icon(self, window, highlight):
 		if self.page_items + 2 > self.page_size:
 			return
-		icon = Gtk.Image()
-		icon.get_style_context().add_class('application-icon')
+		icon = self.view.create_icon_image(window)
 		icon.get_style_context().add_class('status-application-icon')
-		icon.set_from_pixbuf( window.get_mini_icon() )
 		if highlight:
 			icon.get_style_context().add_class('hint-highlight')
 		self.pack_start(icon, expand=False, fill=False, padding=0)

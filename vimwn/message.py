@@ -36,48 +36,47 @@ class Messages:
 
 	def list_buffers(self):
 		for window in self.windows.buffers:
-			self.add_message(Messages.BufferName(window, self.windows))
+			self.add_message(BufferName(window, self.windows))
 
 	def add(self, content, type):
-		self.add_message(Messages.Plain(content, type))
+		self.add_message(Plain(content, type))
 
 	def add_message(self, message):
 		self.list.append(message)
 		self.command_placeholder = ENTER_TO_CONTINUE
 
-	class Plain:
 
-		def __init__(self, content, level):
-			self.content = content
-			self.level = level
+class Plain:
 
-		def get_pixbuf(self):
-			return None
+	def __init__(self, content, level):
+		self.content = content
+		self.level = level
 
-		def get_content(self, size):
-			return self.content
+	def get_content(self, size):
+		return self.content
 
-	class BufferName(Plain):
 
-		def __init__(self, window, windows):
-			super().__init__(None, None)
-			self.window = window
-			self.index = 1 + windows.buffers.index(self.window)
-			self.flags = ''
-			top, below = windows.get_left_right_top_windows()
-			if self.window is top:
-				self.flags += '%a'
-			elif self.window is below:
-				self.flags = '#'
+class BufferName(Plain):
 
-		def get_pixbuf(self):
-			return self.window.get_mini_icon()
+	def __init__(self, window, windows):
+		super().__init__(None, None)
+		self.window = window
+		self.index = 1 + windows.buffers.index(self.window)
+		self.flags = ''
+		top, below = windows.get_left_right_top_windows()
+		if self.window is top:
+			self.flags += '%a'
+		elif self.window is below:
+			self.flags = '#'
 
-		def get_content(self, size):
-			buffer_columns = min(100, size - 3)
-			description_columns = buffer_columns - 19
-			window_name = self.window.get_name().ljust(description_columns)[:description_columns]
-			name = '{:>2} {:2} {} {:12}'.format(
-				self.index, self.flags, window_name, self.window.get_workspace().get_name().lower())
-			return name
+	def get_window(self):
+		return self.window
+
+	def get_content(self, size):
+		buffer_columns = min(100, size - 3)
+		description_columns = buffer_columns - 19
+		window_name = self.window.get_name().ljust(description_columns)[:description_columns]
+		name = '{:>2} {:2} {} {:12}'.format(
+			self.index, self.flags, window_name, self.window.get_workspace().get_name().lower())
+		return name
 
