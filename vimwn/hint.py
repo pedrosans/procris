@@ -34,7 +34,8 @@ class HintStatus:
 		self.terminal_command_parameter = None
 
 	def clear_state(self):
-		del self.hints[:]
+		if self.hints:
+			del self.hints[:]
 		self.hinting = False
 		self.highlight_index = -1
 		self.vim_command = None
@@ -47,7 +48,7 @@ class HintStatus:
 		self.highlight_index = -1
 		self.parse_input(text)
 		self.hints = self.list_hints(text)
-		self.hinting = len(self.hints) > 0
+		self.hinting = self.hints and len(self.hints) > 0
 
 	def list_hints(self, text):
 		command = Command.get_matching_command(text)
