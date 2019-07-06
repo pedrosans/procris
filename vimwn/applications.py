@@ -14,24 +14,22 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import os, glob, gi, configparser
+import os, glob, gi, configparser, sys
 import xdg.DesktopEntry
 import xdg.Exceptions
-from gi.repository import GLib
-from vimwn import desktop_parse
-from vimwn import desktop_launch
-from configparser import SafeConfigParser
+from gi.repository import Gio
 
 APPS_GLOB = [
 		"/usr/share/applications/*.desktop",
 		"/var/lib/snapd/desktop/applications/*.desktop",
-		os.path.expanduser('~/.local/share/applications')+'/*.desktop' ]
+		os.path.expanduser('~/.local/share/applications')+'/*.desktop']
 
 
 class Applications:
 
 	def __init__(self):
 		self.name_map= {}
+		self.location_map= {}
 		self._read_desktop_files()
 
 	def reload(self):
@@ -40,16 +38,18 @@ class Applications:
 
 	def _read_desktop_files(self):
 		for app_files_glob in APPS_GLOB:
-			for f in glob.glob(app_files_glob):
+			for file_path in glob.glob(app_files_glob):
 				try:
-					desktop_info = self.read_desktop_info(f)
-				except:
-					#TODO print
+					desktop_entry = xdg.DesktopEntry.DesktopEntry(file_path)
+					if not desktop_entry.getExec():
+						continue
+					name = desktop_entry.getName().strip()
+					name = name.replace('\xad', '')
+					self.name_map[name] = desktop_entry
+					self.location_map[name] = file_path
+				except (xdg.Exceptions.ParsingError, TypeError) as e:
+					print('Cant read a DesktopEntry from: {} Error: {}'.format(file_path, e), file=sys.stderr)
 					continue
-				if desktop_info:
-					name = desktop_info['Name'].strip()
-					name = name.strip().replace('\xad', '')
-					self.name_map[name] = desktop_info
 
 	def has_perfect_match(self, name):
 		return name in self.name_map.keys()
@@ -68,41 +68,6 @@ class Applications:
 		return sorted(list(set(matches)), key=str.lower)
 
 	def launch_by_name(self, name):
-		desktop_info = self.name_map[name]
-		workdir = desktop_info["Path"] or None
-		if not workdir or not os.path.exists(workdir):
-			workdir = "."
-		argv = desktop_parse.parse_unesc_argv(desktop_info['Exec'])
-		desktop_file = desktop_info['Location']
-		multiple_needed, missing_format, launch_argv = desktop_launch.replace_format_specs(argv, desktop_file, desktop_info, [])
-		GLib.spawn_async(argv=launch_argv, flags=GLib.SpawnFlags.SEARCH_PATH, working_directory=workdir)
+		launcher = Gio.DesktopAppInfo.new_from_filename(self.location_map[name])
+		launcher.launch_uris()
 
-	def gtk_to_unicode(self, gtkstring):
-		"""
-		Kupfer code from: https://github.com/kupferlauncher/kupfer/blob/feca5b98af28d77b8a8d3af60d5782449fa71563/kupfer/desktop_launch.py
-		Return unicode for a GTK/GLib string (bytestring or unicode)
-		"""
-		if isinstance(gtkstring, str):
-			return gtkstring
-		return gtkstring.decode("UTF-8", "ignore")
-
-	def read_desktop_info(self, desktop_file):
-		"""
-		Kupfer code from: https://github.com/kupferlauncher/kupfer/blob/feca5b98af28d77b8a8d3af60d5782449fa71563/kupfer/desktop_launch.py
-		Get the keys StartupNotify, Terminal, Exec, Path, Icon
-		Return dict with bool and unicode values
-		"""
-		de = xdg.DesktopEntry.DesktopEntry(desktop_file)
-
-		if not de.getExec():
-			return None
-
-		return {
-			"Terminal": de.getTerminal(),
-			"StartupNotify": de.getStartupNotify(),
-			"Exec": self.gtk_to_unicode(de.getExec()),
-			"Path": self.gtk_to_unicode(de.getPath()),
-			"Icon": self.gtk_to_unicode(de.getIcon()),
-			"Name": self.gtk_to_unicode(de.getName()),
-			"Location" : desktop_file,
-		}
