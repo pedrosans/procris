@@ -39,7 +39,8 @@ VERTICAL = Axis(get_y, Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HE
 HORIZONTAL = Axis(get_x, Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
 HORIZONTAL.perpendicular_axis = VERTICAL
 VERTICAL.perpendicular_axis = HORIZONTAL
-
+X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH |\
+							Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
 
 # TODO a better name would be screen
 class Windows:
@@ -242,7 +243,7 @@ class Windows:
 		"""
 		Moves the window base on the parameter geometry : screen ratio
 		"""
-		geometry_mask = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH
+
 		monitor_geo = self.controller.view.get_monitor_geometry()
 
 		if window.is_maximized():
@@ -257,17 +258,10 @@ class Windows:
 		new_x = int(monitor_geo.x + monitor_geo.width * x_ratio)
 		new_y = int(monitor_geo.y + monitor_geo.height * y_ratio)
 
-		geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.X
-		geometry_mask = geometry_mask | Wnck.WindowMoveResizeMask.Y
-
 		#print("window: x={} y={} width={} heigh={}".format(new_x, new_y, new_width, new_height))
 		#print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
 
-		y_offset = (monitor_geo.width + monitor_geo.x) - (new_x + new_width)
-		if y_offset < 5:
-			new_width += y_offset
-
-		window.set_geometry(Wnck.WindowGravity.STATIC, geometry_mask, new_x, new_y, new_width, new_height)
+		window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, new_x, new_y, new_width, new_height)
 
 		self.staging = True
 
