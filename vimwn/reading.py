@@ -91,7 +91,7 @@ class Reading:
 
 		if time_since_focus_out < 0.1:
 			# TODO test if the prefix is ctrl-w
-			self.windows.cycle(None, None)
+			self.windows.cycle(None)
 			self.windows.commit_navigation(event_time)
 			self.set_normal_mode()
 			return

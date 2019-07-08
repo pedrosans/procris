@@ -47,8 +47,11 @@ class Command:
 		['centralize'	,'^\s*(centralize|ce)\s*$'			,None									,windows.centralize			    	],
 		['maximize'		,'^\s*(maximize|ma)\s*$'			,None									,windows.maximize			    	],
 		['reload'		,'^\s*(reload)\s*$'					,None									,controller.reload					],
+		['decorate'		,'^\s*(decorate)\s+\w+.*$'			,None									,windows.decorate					],
+		['decorate'		,'^\s*(decorate)\s*$'	    		,None									,windows.decorate					],
+		['move'			,'^\s*(move)\s+\w+.*$'				,None									,windows.move						],
 		['quit'			,'^\s*(quit|q)\s*$'					,[Gdk.KEY_q]							,controller.quit					],
-		['only'			,'^\s*(only|on)\s*$'				,[Gdk.KEY_o]							,windows.only					],
+		['only'			,'^\s*(only|on)\s*$'				,[Gdk.KEY_o]							,windows.only		    			],
 		[None			,None								,[Gdk.KEY_Right, Gdk.KEY_l]				,windows.navigate_right				],
 		[None			,None								,[Gdk.KEY_L]							,windows.move_right					],
 		[None			,None								,[Gdk.KEY_Down, Gdk.KEY_j]				,windows.navigate_down				],
@@ -75,7 +78,6 @@ class Command:
 					Command.KEY_MAP[k] = command
 			Command.LIST.append(command)
 
-
 	def hint_vim_command_parameter(self, controller, command_parameters):
 		if self.name == 'edit':
 			return controller.applications.list_completions(command_parameters)
@@ -83,6 +85,8 @@ class Command:
 			return controller.windows.list_completions(command_parameters)
 		elif self.name == '!':
 			return controller.terminal.list_completions(command_parameters)
+		elif self.name == 'decorate':
+			return controller.windows.list_decoration_options(command_parameters)
 
 	@staticmethod
 	def has_multiple_commands(command_input):

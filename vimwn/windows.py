@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, time, logging, os
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
+from vimwn.command import Command
 
 
 def get_x(window):
@@ -35,12 +36,21 @@ class Axis:
 		self.size_mask = size_mask
 
 
+DECORATION_MAP = {'ALL': Gdk.WMDecoration.ALL,
+															'BORDER': Gdk.WMDecoration.BORDER,
+															'MAXIMIZE': Gdk.WMDecoration.MAXIMIZE,
+															'MENU': Gdk.WMDecoration.MENU,
+															'MINIMIZE ': Gdk.WMDecoration.MINIMIZE,
+															'RESIZEH': Gdk.WMDecoration.RESIZEH,
+															'TITLE': Gdk.WMDecoration.TITLE}
+
 VERTICAL = Axis(get_y, Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
 HORIZONTAL = Axis(get_x, Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
 HORIZONTAL.perpendicular_axis = VERTICAL
 VERTICAL.perpendicular_axis = HORIZONTAL
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH |\
 							Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
+
 
 # TODO a better name would be screen
 class Windows:
@@ -53,7 +63,6 @@ class Windows:
 		self.visible = []
 		self.buffers = []
 		self.read_itself = False
-		self.window_handlers = {}
 		self.window_original_decorations = {}
 		self.screen = None
 
@@ -130,6 +139,9 @@ class Windows:
 		names = filter(lambda x : striped != x.lower(), names)
 		return sorted(list(names), key=str.lower)
 
+	def list_decoration_options(self, option_name):
+		return list(filter(lambda x: x.lower().startswith(option_name.lower().strip()), DECORATION_MAP.keys()))
+
 	#
 	# COMMANDS
 	#
@@ -201,6 +213,42 @@ class Windows:
 	def navigate_down(self, c_in):
 		self.navigate(self.y_line, 1, VERTICAL, c_in.time)
 
+	def decorate(self, c_in):
+		"""
+		ALL - all decorations should be applied.
+		BORDER - a frame should be drawn around the window.
+		MAXIMIZE - a maximize button should be included.
+		MENU - a button for opening a menu should be included.
+		MINIMIZE - a minimize button should be included.
+		RESIZEH - the frame should have resize handles.
+		TITLE - a titlebar should be placed above the window.
+		"""
+		decoration_parameter = Command.extract_text_parameter(c_in.text_input)
+		decoration = 0
+		if decoration_parameter in DECORATION_MAP.keys():
+			decoration = DECORATION_MAP[decoration_parameter]
+		window = self.active
+		gdk_window = self.get_gdk_window(self.active.get_xid())
+		if not window.get_xid() in self.window_original_decorations:
+			is_decorated, decorations = gdk_window.get_decorations()
+			self.window_original_decorations[window.get_xid()] = decorations
+		gdk_window.set_decorations(decoration)
+		self.staging = True
+
+	def move(self, c_in):
+		parameter = Command.extract_text_parameter(c_in.text_input)
+		parameter_a = parameter.split()
+		monitor_geo = self.controller.view.get_monitor_geometry()
+		new_x = int(parameter_a[0]) + monitor_geo.x
+		new_y = int(parameter_a[1]) + monitor_geo.y
+		new_width = new_height = 0
+
+		frame = self.get_gdk_window(self.active.get_xid()).get_frame_extents()
+		# new_y = new_y - (frame.y - monitor_geo.y)
+
+		self.active.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, new_x, new_y, new_width, new_height)
+		self.staging = True
+
 	#
 	# COMMAND OPERATIONS
 	#
@@ -244,8 +292,6 @@ class Windows:
 		Moves the window base on the parameter geometry : screen ratio
 		"""
 
-		monitor_geo = self.controller.view.get_monitor_geometry()
-
 		if window.is_maximized():
 			window.unmaximize()
 		if window.is_maximized_horizontally():
@@ -253,10 +299,12 @@ class Windows:
 		if window.is_maximized_vertically():
 			window.unmaximize_vertically()
 
+		monitor_geo = self.controller.view.get_monitor_geometry()
+
 		new_width = int(monitor_geo.width * width_ratio)
 		new_height = int(monitor_geo.height * height_ratio)
-		new_x = int(monitor_geo.x + monitor_geo.width * x_ratio)
-		new_y = int(monitor_geo.y + monitor_geo.height * y_ratio)
+		new_x = monitor_geo.x + int(monitor_geo.width * x_ratio)
+		new_y = monitor_geo.y + int(monitor_geo.height * y_ratio)
 
 		#print("window: x={} y={} width={} heigh={}".format(new_x, new_y, new_width, new_height))
 		#print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
@@ -264,18 +312,6 @@ class Windows:
 		window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, new_x, new_y, new_width, new_height)
 
 		self.staging = True
-
-	def _restore_decorations( self, window, changed_mask, new_state ):
-		if window.is_maximized_vertically():
-			return
-		gdk_window = self.get_gdk_window(window.get_xid())
-		original_decorations = self.window_original_decorations[window.get_xid()]
-		if original_decorations != None:
-			gdk_window.set_decorations(original_decorations)
-		else:
-			gdk_window.set_decorations(Gdk.WMDecoration.ALL)
-		window.disconnect(self.window_handlers[window.get_xid()])
-		del self.window_handlers[window.get_xid()]
 
 	def get_gdk_window(self, pid):
 		gdkdisplay = GdkX11.X11Display.get_default()
