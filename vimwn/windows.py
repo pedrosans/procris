@@ -107,17 +107,20 @@ class Windows:
 		self.x_line = None
 		self.y_line = None
 
-	#Commits any staged change in the active window
-	def commit_navigation(self, time):
-		if self.staging:
-			self.open(self.active, time)
-			self.staging = False
-
 	#
 	# API
 	#
-	def open(self, window, time):
-		window.activate_transient(time)
+	def commit_navigation(self, event_time):
+		"""
+		Commits any staged change in the active window
+		"""
+		if self.staging:
+			self.active.activate_transient(event_time)
+			self.staging = False
+
+	def show(self, window):
+		self.active = window
+		self.staging = True
 
 	def remove(self, window, time):
 		window.close(time)
@@ -146,8 +149,7 @@ class Windows:
 		for w in self.visible:
 			if self.active != w:
 				w.minimize()
-		self.open(self.active, c_in.time)
-		self.staging = True
+		self.show(self.active)
 
 	def navigate_to_previous(self, c_in):
 		top, below = self.get_top_two_windows()

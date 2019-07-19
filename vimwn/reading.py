@@ -301,7 +301,7 @@ class Reading:
 		buffer_number = Command.extract_number_parameter(c_in.text_input)
 		index = int(buffer_number) - 1
 		if index < len(self.windows.buffers):
-			self.windows.open(self.windows.buffers[index], c_in.time)
+			self.windows.show(self.windows.buffers[index])
 		else:
 			self.set_key_mode(time, error_message='Buffer {} does not exist'.format(buffer_number))
 
@@ -309,7 +309,7 @@ class Reading:
 		window_title = Command.extract_text_parameter(c_in.text_input)
 		w = self.windows.find_by_name(window_title)
 		if w:
-			self.windows.open(w, c_in.time)
+			self.windows.show(w)
 		else:
 			self.set_key_mode(c_in.time, error_message='No matching buffer for ' + window_title)
 
