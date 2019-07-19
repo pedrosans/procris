@@ -89,6 +89,12 @@ class Command:
 			return controller.windows.list_decoration_options(command_parameters)
 
 	@staticmethod
+	def hint_vim_command(user_input):
+		user_input = user_input.lstrip()
+		filtered = filter(lambda n: n.startswith(user_input), Command.NAME_MAP.keys())
+		return sorted(list(set(filtered)))
+
+	@staticmethod
 	def has_multiple_commands(command_input):
 		return Command.MULTIPLE_COMMANDS_PATTERN.match(command_input)
 
@@ -101,16 +107,6 @@ class Command:
 			if command.pattern and command.pattern.match(command_input):
 				return command
 		return None
-
-	@staticmethod
-	def query_vim_commands(user_input):
-		striped = user_input.lstrip()
-		matches = filter(
-				(lambda n: not user_input or n.startswith(striped)),
-				Command.NAME_MAP.keys()
-			)
-		matches = filter(lambda x : x != striped, matches)
-		return sorted(list(set(matches)))
 
 	@staticmethod
 	def extract_number_parameter(cmd):

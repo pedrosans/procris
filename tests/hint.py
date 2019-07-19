@@ -15,7 +15,7 @@ class HintTestCase(unittest.TestCase):
 		self.buffer_command = MagicMock()
 		self.buffer_command.name = 'buffer'
 		Command.get_matching_command = MagicMock()
-		Command.query_vim_commands = MagicMock()
+		Command.hint_vim_command = MagicMock()
 
 	def tearDown(self):
 		self.status_line.clear_state()
@@ -51,7 +51,7 @@ class HintTestCase(unittest.TestCase):
 		self.status_line.parse_input('foo')
 		self.status_line.list_hints('foo')
 		Command.get_matching_command.assert_called_once_with('foo')
-		Command.query_vim_commands.assert_called_once_with('foo')
+		Command.hint_vim_command.assert_called_once_with('foo')
 
 	def test_query_vim_commands_even_if_partial_match(self) :
 		Command.get_matching_command.return_value = self.buffer_command
@@ -60,7 +60,7 @@ class HintTestCase(unittest.TestCase):
 		self.status_line.list_hints('b')
 
 		Command.get_matching_command.assert_called_once_with('b')
-		Command.query_vim_commands.assert_called_once_with('b')
+		Command.hint_vim_command.assert_called_once_with('b')
 
 	def test_dont_query_vim_command_if_bang(self) :
 		Command.get_matching_command.return_value = self.bang_command
@@ -69,7 +69,7 @@ class HintTestCase(unittest.TestCase):
 		self.status_line.list_hints('!foo')
 
 		Command.get_matching_command.assert_called_once_with('!foo')
-		Command.query_vim_commands.assert_not_called()
+		Command.hint_vim_command.assert_not_called()
 
 	def test_dont_query_vim_command_parameters_if_bang(self) :
 		Command.get_matching_command.return_value = self.bang_command

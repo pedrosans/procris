@@ -125,19 +125,16 @@ class Windows:
 		self.buffers.remove(window)
 		self._update_internal_state()
 
-	def find_by_name(self, window_title):
-		for w in self.buffers:
-			if window_title.lower().strip() in w.get_name().lower():
-				return w;
-		return None
+	#
+	# Query API
+	#
+	def find_by_name(self, name):
+		return next((w for w in self.buffers if name.lower().strip() in w.get_name().lower()), None)
 
-	# TODO: move from here
-	def list_completions(self, name_filter):
-		striped = name_filter.lower()
-		names = map(lambda x : x.get_name().strip(), self.buffers )
-		names = filter(lambda x :striped in x.lower(), names)
-		names = filter(lambda x : striped != x.lower(), names)
-		return sorted(list(names), key=str.lower)
+	def list_completions(self, name):
+		names = map(lambda x: x.get_name().strip(), self.buffers)
+		filtered = filter(lambda x: name.lower().strip() in x.lower(), names)
+		return list(filtered)
 
 	def list_decoration_options(self, option_name):
 		return list(filter(lambda x: x.lower().startswith(option_name.lower().strip()), DECORATION_MAP.keys()))

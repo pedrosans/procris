@@ -53,7 +53,7 @@ class HintStatus:
 	def list_hints(self, text):
 		command = Command.get_matching_command(text)
 		if not self.vim_command_spacer and (not command or command.name != '!'):
-			return Command.query_vim_commands(text)
+			return Command.hint_vim_command(text)
 		if not command:
 			return None
 		if self.vim_command_spacer or command.name == '!':
