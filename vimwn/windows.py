@@ -210,16 +210,16 @@ class Windows:
 		self.resize(self.active, 0.1, 0.1, 0.8, 0.8)
 
 	def navigate_right(self, c_in):
-		self.navigate(self.x_line, 1, HORIZONTAL, c_in.time)
+		self.navigate( 1, HORIZONTAL)
 
 	def navigate_left(self, c_in):
-		self.navigate(self.x_line, -1, HORIZONTAL, c_in.time)
+		self.navigate(-1, HORIZONTAL)
 
 	def navigate_up(self, c_in):
-		self.navigate(self.y_line, -1, VERTICAL, c_in.time)
+		self.navigate(-1, VERTICAL)
 
 	def navigate_down(self, c_in):
-		self.navigate(self.y_line, 1, VERTICAL, c_in.time)
+		self.navigate(1, VERTICAL)
 
 	def decorate(self, c_in):
 		decoration_parameter = Command.extract_text_parameter(c_in.text_input)
@@ -326,29 +326,12 @@ class Windows:
 		gdkwindow  = GdkX11.X11Window.foreign_new_for_display(gdkdisplay, pid)
 		return gdkwindow
 
-	def navigate(self, oriented_list, increment, axis, time):
-		at_the_side = self.look_at(oriented_list, self.active, increment, axis)
-		if at_the_side:
-			self.active = at_the_side
-			self.staging = True
-
-	def look_at(self, oriented_list, reference, increment, axis):
-		destination = self.get_candidates(oriented_list, reference, increment, axis.coordinate_function)
-		coordinate_function = axis.perpendicular_axis.coordinate_function
-		pos = coordinate_function(reference)
-		if destination:
-			return min(destination, key=lambda w: abs( pos - coordinate_function(w)))
-		return None
-
-	def get_candidates(self, oriented_list, reference, increment, position_function):
-		line = []
-		coordinate = position_function(reference)
-		index = oriented_list.index(reference) + increment
-		while index >= 0 and index < len(oriented_list):
-			if position_function(oriented_list[index]) != coordinate:
-				line.append(oriented_list[index])
-			index = index + increment
-		return line
+	def navigate(self, increment, axis):
+		oriented_list = self.x_line if axis is HORIZONTAL else self.y_line
+		index = oriented_list.index(self.active) + increment
+		if 0 <= index < len(oriented_list):
+			self.active = oriented_list[index]
+		self.staging = True
 
 	def get_decoration_size(self, window):
 		gdk_w = self.get_gdk_window(window.get_xid())
