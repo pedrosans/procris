@@ -14,10 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, signal, re, os, sys
-gi.require_version('Gtk', '3.0')
-gi.require_version("Keybinder", "3.0")
-from gi.repository import Gtk, Gdk, Keybinder, GLib
+import re
 from vimwn.command import Command
 
 
@@ -26,8 +23,18 @@ class HintStatus:
 
 	def __init__(self, controller):
 		self.controller = controller
+		self.hints = []
+		self.hinting = False
+		self.highlight_index = -1
+		self.vim_command = None
+		self.vim_command_spacer = None
+		self.vim_command_parameter = None
+		self.terminal_command = None
+		self.terminal_command_spacer = None
+		self.terminal_command_parameter = None
 
 	def clear_state(self):
+		del self.hints[:]
 		self.hinting = False
 		self.highlight_index = -1
 		self.vim_command = None
@@ -35,22 +42,14 @@ class HintStatus:
 		self.terminal_command = None
 		self.terminal_command_spacer = None
 		self.terminal_command_parameter = None
-		self.hints = []
-
-	def auto_hint(self, text):
-		self.highlight_index = -1
-		self.parse_input(text)
-		self.hints = self.list_hints(text)
-		self.hinting = self.hints and len(self.hints) > 0
 
 	def hint(self, text):
 		self.highlight_index = -1
 		self.parse_input(text)
 		self.hints = self.list_hints(text)
-		self.hinting = self.hints and len(self.hints) > 1
+		self.hinting = len(self.hints) > 0
 
 	def list_hints(self, text):
-		self.vim_command = Command.extract_vim_command(text)
 		command = Command.get_matching_command(text)
 		if not self.vim_command_spacer and (not command or command.name != '!'):
 			return Command.query_vim_commands(text)
@@ -72,8 +71,7 @@ class HintStatus:
 		else:
 			self.terminal_command = self.terminal_command_spacer = self.terminal_command_parameter = ''
 
-	#TODO rename to get selected or mount
-	def get_highlighted_hint(self):
+	def mount_input(self):
 		i = self.highlight_index
 		if self.terminal_command_spacer:
 			return self.vim_command + self.vim_command_spacer + self.terminal_command + self.terminal_command_spacer + (

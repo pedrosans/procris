@@ -29,6 +29,20 @@ from vimwn.command import Command
 from vimwn.message import Messages
 from vimwn.command import CommandInput
 
+HINT_OPERATION_KEYS = [
+	Gdk.KEY_Shift_L, Gdk.KEY_Shift_R, Gdk.KEY_Return,
+	Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab,
+	Gdk.KEY_Left, Gdk.KEY_Up,
+	Gdk.KEY_Right, Gdk.KEY_Down
+]
+HINT_NAVIGATION_KEYS = [
+	Gdk.KEY_Left, Gdk.KEY_Up,
+	Gdk.KEY_Right, Gdk.KEY_Down,
+	Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab
+]
+HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]
+HINT_LEFT = [Gdk.KEY_Left, Gdk.KEY_Up]
+HINT_RIGHT = [Gdk.KEY_Right, Gdk.KEY_Down]
 
 # TODO chain commands
 # TODO hint line shows only '>' if you type :b <long window title start>
@@ -155,77 +169,39 @@ class Reading:
 	# TODO no auto hints for commands to prevent the 'b' <> 'bdelete' misslead
 	# TODO no auto hint if a command is alreay a match
 	def on_entry_key_release(self, widget, event):
-		if event.keyval in [
-				Gdk.KEY_Shift_L, Gdk.KEY_Shift_R, Gdk.KEY_Return,
-				Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab,
-				Gdk.KEY_Left, Gdk.KEY_Up,
-				Gdk.KEY_Right, Gdk.KEY_Down
-				]:
+		if event.keyval in HINT_OPERATION_KEYS:
 			return False
 
 		if not self.view.entry.get_text().strip():
 			self.set_key_mode(event.time)
-			return False
-
-		if not self.view.get_command().strip():
-			self.hint_status.clear_state()
-			self.view.clean_hints()
-			return False
+			return True
 
 		if self.configurations.is_auto_hint():
-			self.hint_status.auto_hint(self.view.get_command())
-			if self.hint_status.hinting:
-				index = -1
-				if self.configurations.is_auto_select_first_hint():
-					index = 0
-				self.view.hint(self.hint_status.hints, index)
-			else:
-				self.view.clean_hints()
-		else:
-			self.hint_status.clear_state()
-			self.view.clean_hints()
-			return False
-
-	def on_entry_key_press(self, widget, event):
-		if event.keyval in [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R, Gdk.KEY_Return]:
-			return False
+			self.hint_status.hint(self.view.get_command())
 
 		if self.hint_status.hinting:
-			if event.keyval in [Gdk.KEY_Left, Gdk.KEY_Up]:
-				self.show_highlights(-1)
-				return True
-			elif event.keyval in [Gdk.KEY_Right, Gdk.KEY_Down]:
-				self.show_highlights(1)
-				return True
-			elif event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
-				if event.state & Gdk.ModifierType.SHIFT_MASK:
-					self.show_highlights(-1)
-				else:
-					self.show_highlights(1)
-				return True
-
-		if event.keyval in [Gdk.KEY_Up, Gdk.KEY_Down]:
-			return True
-
-		text = self.view.get_command()
-		if event.keyval in [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]:
-			if event.state & Gdk.ModifierType.SHIFT_MASK:
-				self.hint_status.hint(text)
-				self.show_highlights(-1)
-			else:
-				self.hint_status.hint(text)
-				self.show_highlights(1)
-			return True
-
-	def show_highlights(self, direction):
-		if not self.hint_status.hinting:
-			return
-		self.hint_status.cycle(direction)
-		if len(self.hint_status.hints) == 1:
-			self.view.clean_hints()
-		elif len(self.hint_status.hints) > 1:
 			self.view.hint(self.hint_status.hints, self.hint_status.highlight_index)
-		self.view.set_command(self.hint_status.get_highlighted_hint())
+		else:
+			self.view.clean_hints()
+
+	def on_entry_key_press(self, widget, event):
+		if event.keyval not in HINT_NAVIGATION_KEYS:
+			return False
+
+		if not self.hint_status.hinting and event.keyval in HINT_LAUNCH_KEYS:
+			self.hint_status.hint(self.view.get_command())
+
+		if self.hint_status.hinting:
+			shift_mask = event.state & Gdk.ModifierType.SHIFT_MASK
+			right = event.keyval in HINT_RIGHT or (not shift_mask and event.keyval in HINT_LAUNCH_KEYS)
+			self.hint_status.cycle(1 if right else -1)
+			if len(self.hint_status.hints) == 1:
+				self.view.clean_hints()
+			else:
+				self.view.hint(self.hint_status.hints, self.hint_status.highlight_index)
+			self.view.set_command(self.hint_status.mount_input())
+
+		return True
 
 	def on_command(self, pane_owner, current):
 		if not self.reading_command:
@@ -235,10 +211,9 @@ class Reading:
 
 		if (self.configurations.is_auto_select_first_hint()
 				and self.hint_status.highlight_index == -1
-				and self.hint_status.hinting
-				and len(self.hint_status.hints) > 0):
-			self.hint_status.highlight_index = 0
-			cmd = self.hint_status.get_highlighted_hint()
+				and self.hint_status.hinting ):
+			self.hint_status.cycle(1)
+			cmd = self.hint_status.mount_input()
 
 		if Command.has_multiple_commands(cmd):
 			raise Exception('TODO: iterate multiple commands')
@@ -327,12 +302,7 @@ class Reading:
 		self.set_key_mode(c_in.time)
 
 	def buffer(self, c_in):
-		"""
-		vim original behaviour is to take the focus away from the command entry,
-		but given this focus change can't be clearly signalized, just ignoring
-		the command will cause to focus to remain at the command entry, which
-		is a good alternative
-		"""
+		self.set_key_mode(c_in.time)
 
 	def open_indexed_buffer(self, c_in):
 		# TODO generalize
