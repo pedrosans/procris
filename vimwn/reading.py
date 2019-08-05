@@ -167,7 +167,7 @@ class Reading:
 			return True
 
 		if self.configurations.is_auto_hint():
-			self.hint_status.hint(CommandInput(text_input=self.view.get_command()).parse())
+			self.hint_status.hint(CommandInput(text=self.view.get_command()).parse())
 		else:
 			self.hint_status.clear_state()
 
@@ -190,7 +190,7 @@ class Reading:
 			return False
 
 		if not self.hint_status.hinting and event.keyval in HINT_LAUNCH_KEYS:
-			self.hint_status.hint(CommandInput(text_input=self.view.get_command()).parse())
+			self.hint_status.hint(CommandInput(text=self.view.get_command()).parse())
 
 		if self.hint_status.hinting:
 			shift_mask = event.state & Gdk.ModifierType.SHIFT_MASK
@@ -210,7 +210,7 @@ class Reading:
 
 		time = Gtk.get_current_event_time()
 		cmd = self.view.get_command()
-		command_input = CommandInput(time=time, text_input=cmd).parse()
+		command_input = CommandInput(time=time, text=cmd).parse()
 
 		self.command_history.append(cmd)
 
@@ -251,7 +251,7 @@ class Reading:
 			self.service.reload()
 
 	def edit(self, c_in):
-		name = Command.extract_text_parameter(c_in.text_input)
+		name = Command.extract_text_parameter(c_in.text)
 		if not name or not name.strip():
 			self.set_normal_mode()
 			return
@@ -318,7 +318,7 @@ class Reading:
 		self.set_key_mode(c_in.time)
 
 	def open_indexed_buffer(self, c_in):
-		buffer_number = Command.extract_number_parameter(c_in.text_input)
+		buffer_number = Command.extract_number_parameter(c_in.text)
 		index = int(buffer_number) - 1
 		if index < len(self.windows.buffers):
 			self.windows.show(self.windows.buffers[index])
@@ -326,7 +326,7 @@ class Reading:
 			self.set_key_mode(time, error_message='Buffer {} does not exist'.format(buffer_number))
 
 	def open_named_buffer(self, c_in):
-		window_title = Command.extract_text_parameter(c_in.text_input)
+		window_title = Command.extract_text_parameter(c_in.text)
 		w = self.windows.find_by_name(window_title)
 		if w:
 			self.windows.show(w)
@@ -342,7 +342,7 @@ class Reading:
 
 	def delete_indexed_buffer(self, c_in):
 		to_delete = []
-		for number in re.findall(r'\d+', c_in.text_input):
+		for number in re.findall(r'\d+', c_in.text):
 			index = int(number) - 1
 			if index < len(self.windows.buffers):
 				to_delete.append(self.windows.buffers[index])
@@ -354,7 +354,7 @@ class Reading:
 		self.set_normal_mode()
 
 	def delete_named_buffer(self, c_in):
-		window_title = Command.extract_text_parameter(c_in.text_input)
+		window_title = Command.extract_text_parameter(c_in.text)
 		w = self.windows.find_by_name(window_title)
 		if w:
 			self.windows.remove(w, c_in.time)

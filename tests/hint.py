@@ -23,14 +23,14 @@ class HintTestCase(unittest.TestCase):
 		self.hint.clear_state()
 
 	def test_query_vim_commands(self) :
-		self.hint.list_hints(CommandInput(text_input='foo').parse())
+		self.hint.list_hints(CommandInput(text='foo').parse())
 		Command.get_matching_command.assert_called_once_with('foo')
 		Command.hint_vim_command.assert_called_once_with('foo')
 
 	def test_query_vim_commands_even_if_partial_match(self) :
 		Command.get_matching_command.return_value = self.buffer_command
 
-		self.hint.list_hints(CommandInput(text_input='b').parse())
+		self.hint.list_hints(CommandInput(text='b').parse())
 
 		Command.get_matching_command.assert_called_once_with('b')
 		Command.hint_vim_command.assert_called_once_with('b')
@@ -38,7 +38,7 @@ class HintTestCase(unittest.TestCase):
 	def test_dont_query_vim_command_if_bang(self):
 		Command.get_matching_command.return_value = self.bang_command
 
-		command_input = CommandInput(text_input='!foo').parse()
+		command_input = CommandInput(text='!foo').parse()
 		self.hint.list_hints(command_input)
 
 		Command.get_matching_command.assert_called_once_with('!foo')
@@ -50,7 +50,7 @@ class HintTestCase(unittest.TestCase):
 		self.bang_command.hint_vim_command_parameter = MagicMock()
 		self.bang_command.hint_vim_command_parameter.return_value = ['foobar']
 
-		self.hint.hint(CommandInput(text_input='!foo').parse())
+		self.hint.hint(CommandInput(text='!foo').parse())
 		self.hint.highlight_index = 0
 		self.assertEqual(self.hint.mount_input(), '!foobar')
 
@@ -59,7 +59,7 @@ class HintTestCase(unittest.TestCase):
 		self.bang_command.hint_vim_command_parameter = MagicMock()
 		self.bang_command.hint_vim_command_parameter.return_value = ['foobar']
 
-		self.hint.hint(CommandInput(text_input='!').parse())
+		self.hint.hint(CommandInput(text='!').parse())
 		self.hint.highlight_index = 0
 		self.assertEqual('!foobar', self.hint.mount_input())
 

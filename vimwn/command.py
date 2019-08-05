@@ -129,9 +129,9 @@ class Command:
 
 class CommandInput:
 
-	def __init__(self, time=None, text_input=None, keyval=None):
+	def __init__(self, time=None, text=None, keyval=None):
 		self.time = time
-		self.text = text_input
+		self.text = text
 		self.keyval = keyval
 		self.vim_command_left_pad = None
 		self.vim_command = None

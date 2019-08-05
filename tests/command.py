@@ -8,20 +8,20 @@ from vimwn.command import CommandInput
 class CommandInputTestCase(unittest.TestCase):
 
 	def test_parse_vim_command(self):
-		i = CommandInput(text_input='buffers').parse()
+		i = CommandInput(text='buffers').parse()
 		self.assertEqual(i.vim_command, 'buffers')
 		self.assertTrue('' == i.vim_command_spacer == i.vim_command_parameter)
 		self.assertTrue(None is i.terminal_command is i.terminal_command_spacer is i.terminal_command_parameter)
 
 	def test_parse_vim_command_with_parameter(self):
-		i = CommandInput(text_input='buffer  term').parse()
+		i = CommandInput(text='buffer  term').parse()
 		self.assertEqual(i.vim_command, 'buffer')
 		self.assertEqual(i.vim_command_spacer, '  ')
 		self.assertEqual(i.vim_command_parameter, 'term')
 		self.assertTrue(None is i.terminal_command is i.terminal_command_spacer is i.terminal_command_parameter)
 
 	def test_parse_terminal_command_with_parameter(self):
-		i = CommandInput(text_input='!  git   add').parse()
+		i = CommandInput(text='!  git   add').parse()
 		self.assertEqual(i.vim_command, '!')
 		self.assertEqual(i.vim_command_spacer, '  ')
 		self.assertEqual(i.vim_command_parameter, 'git   add')
