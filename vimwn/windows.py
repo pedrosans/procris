@@ -53,6 +53,9 @@ DECORATION_MAP = {'ALL': Gdk.WMDecoration.ALL,
 					'RESIZEH': Gdk.WMDecoration.RESIZEH,
 					'TITLE': Gdk.WMDecoration.TITLE}
 
+INCREMENT = 0.1
+DECREMENT = -0.1
+CENTER = 0.5
 VERTICAL = Axis(get_y, Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
 HORIZONTAL = Axis(get_x, Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
 HORIZONTAL.perpendicular_axis = VERTICAL
@@ -171,24 +174,6 @@ class Windows:
 		self.active = next_window
 		self.staging = True
 
-	def decrease_width(self, c_in):
-		left, right = self.get_top_two_windows()
-		if left is self.active:
-			self.shift_center(0.4, left, right)
-		else:
-			self.shift_center(0.6, left, right)
-
-	def increase_width(self, c_in):
-		left, right = self.get_top_two_windows()
-		if left is self.active:
-			self.shift_center(0.6, left, right)
-		else:
-			self.shift_center(0.4, left, right)
-
-	def equalize(self, c_in):
-		left, right = self.get_top_two_windows()
-		self.shift_center(0.5, left, right)
-
 	def maximize(self, c_in):
 		self.active.maximize()
 		self.staging = True
@@ -204,6 +189,25 @@ class Windows:
 
 	def move_down(self, c_in):
 		self.snap_active_window(VERTICAL, 0.5)
+
+	def equalize(self, c_in):
+		left, right = self.get_left_right_top_windows()
+		if left:
+			self.move_on_axis(left, HORIZONTAL, 0, CENTER)
+		if right:
+			self.move_on_axis(right, HORIZONTAL, CENTER, 1 - CENTER)
+
+	def decrease_width(self, c_in):
+		self.shift_center(DECREMENT)
+
+	def increase_width(self, c_in):
+		self.shift_center(INCREMENT)
+
+	def calculate_new_center(self, shift, left, right):
+		left, right = self.get_left_right_top_windows()
+		x, y, w, h = left.get_geometry()
+		work_area = self._get_monitor_work_area(self.active)
+		return (w / work_area.width) + (shift if self.active is left else (shift * -1))
 
 	def centralize(self, c_in):
 		# TODO: move the staging flag logic from self.resize to here
@@ -254,11 +258,15 @@ class Windows:
 	#
 	# COMMAND OPERATIONS
 	#
-	def shift_center(self, new_center, left, right):
+	def shift_center(self, shift):
+		left, right = self.get_left_right_top_windows()
+		x, y, w, h = left.get_geometry()
+		work_area = self._get_monitor_work_area(self.active)
+		center = (w / work_area.width) + (shift if self.active is left else (shift * -1))
 		if left:
-			self.move_on_axis(left, HORIZONTAL, 0, new_center)
+			self.move_on_axis(left, HORIZONTAL, 0, center)
 		if right:
-			self.move_on_axis(right, HORIZONTAL, new_center, 1 - new_center)
+			self.move_on_axis(right, HORIZONTAL, center, 1 - center)
 
 	def get_top_two_windows(self):
 		top = self.active
