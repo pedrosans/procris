@@ -130,7 +130,7 @@ class NavigatorWindow(Gtk.Window):
 
 	def list_navigation_windows(self):
 		for c in self.hint_line.get_children(): c.destroy()
-		for window in self.windows.x_line:
+		for window in self.windows.line:
 			name = window.get_name()
 			name = ' ' + ((name[:8] + '..') if len(name) > 10 else name)
 			position = self._navigation_index(window)
@@ -147,7 +147,7 @@ class NavigatorWindow(Gtk.Window):
 		line.set_halign(Gtk.Align.CENTER)
 		self.output_box.pack_start(line, expand=True, fill=True, padding=0)
 
-		for window in self.windows.x_line:
+		for window in self.windows.line:
 			column_box = Gtk.VBox(homogeneous=False, spacing=0)
 			column_box.set_valign(Gtk.Align.CENTER)
 			column_box.pack_start(WindowBtn(self.controller, window), expand=False, fill=False, padding=2)
@@ -190,9 +190,9 @@ class NavigatorWindow(Gtk.Window):
 			self.entry.set_can_focus(False)
 
 	def _navigation_index(self, window):
-		length = len(self.windows.x_line)
-		start_position = self.windows.x_line.index(self.windows.active)
-		multiplier = (length + self.windows.x_line.index(window) - start_position) % len(self.windows.x_line)
+		length = len(self.windows.line)
+		start_position = self.windows.line.index(self.windows.active)
+		multiplier = (length + self.windows.line.index(window) - start_position) % len(self.windows.line)
 		if multiplier == 0:
 			return ''
 		if multiplier == 1:

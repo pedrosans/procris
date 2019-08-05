@@ -16,7 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, re
 import time
-import threading
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from vimwn.view import NavigatorWindow

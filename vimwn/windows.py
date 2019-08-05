@@ -21,17 +21,8 @@ from gi.repository import Wnck, GdkX11, Gdk
 from vimwn.command import Command
 
 
-def get_x(window):
-	return window.get_geometry().xp
-
-
-def get_y(window):
-	return window.get_geometry().yp
-
-
 class Axis:
-	def __init__(self, coordinate_function, position_mask, size_mask):
-		self.coordinate_function = coordinate_function
+	def __init__(self, position_mask, size_mask):
 		self.position_mask = position_mask
 		self.size_mask = size_mask
 
@@ -56,12 +47,13 @@ DECORATION_MAP = {'ALL': Gdk.WMDecoration.ALL,
 INCREMENT = 0.1
 DECREMENT = -0.1
 CENTER = 0.5
-VERTICAL = Axis(get_y, Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
-HORIZONTAL = Axis(get_x, Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
+VERTICAL = Axis(Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
+HORIZONTAL = Axis(Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
 HORIZONTAL.perpendicular_axis = VERTICAL
 VERTICAL.perpendicular_axis = HORIZONTAL
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH |\
 							Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
+STRETCH = 1000
 
 
 # TODO a better name would be screen
@@ -77,6 +69,7 @@ class Windows:
 		self.read_itself = False
 		self.window_original_decorations = {}
 		self.screen = None
+		self.line = self.column = None
 
 	def read_screen(self):
 		del self.visible[:]
@@ -102,22 +95,32 @@ class Windows:
 
 	def _update_internal_state(self):
 		self.active = None
-		for w in reversed(self.screen.get_windows_stacked()):
-			if w in self.visible:
-				self.active = w
+		if not self.visible:
+			return
+		for stacked in reversed(self.screen.get_windows_stacked()):
+			if stacked in self.visible:
+				self.active = stacked
 				break
-		self.x_line = list(self.visible)
-		self.x_line.sort(key=lambda w: w.get_geometry().xp * 1000 + w.get_geometry().yp)
-		self.y_line = list(self.visible)
-		self.y_line.sort(key=lambda w: w.get_geometry().yp)
+		self.line = sorted(list(self.visible), key=self.sort_line)
+		self.column = sorted(list(self.visible), key=self.sort_column)
+
+	def sort_line(self, w):
+		active_geometry = self.active.get_geometry()
+		geometry = w.get_geometry()
+		return geometry.xp * STRETCH + abs(active_geometry.yp - geometry.yp) * (1 if active_geometry.xp < geometry.xp else -1)
+
+	def sort_column(self, w):
+		active_geometry = self.active.get_geometry()
+		geometry = w.get_geometry()
+		return geometry.yp * STRETCH + abs(active_geometry.xp - geometry.xp) * (1 if active_geometry.yp < geometry.yp else -1)
 
 	def clear_state(self):
 		self.screen = None
 		self.active = None
 		self.visible =[]
 		self.buffers =[]
-		self.x_line = None
-		self.y_line = None
+		self.line = None
+		self.column = None
 
 	#
 	# API
@@ -171,7 +174,7 @@ class Windows:
 
 	def cycle(self, c_in):
 		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
-		next_window = self.x_line[(self.x_line.index(self.active) + direction) % len(self.x_line)]
+		next_window = self.line[(self.line.index(self.active) + direction) % len(self.line)]
 		self.active = next_window
 		self.staging = True
 
@@ -322,7 +325,7 @@ class Windows:
 		return gdkwindow
 
 	def navigate(self, increment, axis):
-		oriented_list = self.x_line if axis is HORIZONTAL else self.y_line
+		oriented_list = self.line if axis is HORIZONTAL else self.column
 		index = oriented_list.index(self.active) + increment
 		if 0 <= index < len(oriented_list):
 			self.active = oriented_list[index]
