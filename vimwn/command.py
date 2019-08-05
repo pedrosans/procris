@@ -64,7 +64,7 @@ class Command:
 		[None			,None								,[Gdk.KEY_less]							,windows.decrease_width				],
 		[None			,None								,[Gdk.KEY_greater]						,windows.increase_width				],
 		[None			,None								,[Gdk.KEY_equal]						,windows.equalize					],
-		[None			,None								,[Gdk.KEY_w]							,windows.cycle						],
+		[None			,None								,[Gdk.KEY_w, Gdk.KEY_W]					,windows.cycle						],
 		[None			,None								,[Gdk.KEY_p]							,windows.navigate_to_previous		],
 		[None			,None								,[Gdk.KEY_colon]						,controller.colon					],
 		[None			,None								,[Gdk.KEY_Return]						,controller.enter					],
@@ -143,10 +143,10 @@ class Command:
 
 class CommandInput:
 
-	def __init__(self, time, text_input=None, key=None):
+	def __init__(self, time, text_input=None, keyval=None):
 		self.time = time
 		self.text_input = text_input
-		self.key = key
+		self.keyval = keyval
 
 
 class CommandHistory:

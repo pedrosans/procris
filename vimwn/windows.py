@@ -170,7 +170,8 @@ class Windows:
 			self.staging = True
 
 	def cycle(self, c_in):
-		next_window = self.x_line[(self.x_line.index(self.active) + 1) % len(self.x_line)]
+		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
+		next_window = self.x_line[(self.x_line.index(self.active) + direction) % len(self.x_line)]
 		self.active = next_window
 		self.staging = True
 

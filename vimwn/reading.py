@@ -30,19 +30,11 @@ from vimwn.command import CommandHistory
 from vimwn.message import Messages
 from vimwn.command import CommandInput
 
-HINT_OPERATION_KEYS = [
-	Gdk.KEY_Shift_L, Gdk.KEY_Shift_R, Gdk.KEY_Return,
-	Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab,
-	Gdk.KEY_Left, Gdk.KEY_Up,
-	Gdk.KEY_Right, Gdk.KEY_Down
-]
-HINT_NAVIGATION_KEYS = [
-	Gdk.KEY_Left, Gdk.KEY_Right,
-	Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab
-]
 HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]
-HINT_LEFT = [Gdk.KEY_Left, Gdk.KEY_Up]
-HINT_RIGHT = [Gdk.KEY_Right, Gdk.KEY_Down]
+HINT_LEFT = [Gdk.KEY_Left]
+HINT_RIGHT = [Gdk.KEY_Right]
+HINT_NAVIGATION_KEYS = HINT_LAUNCH_KEYS + HINT_LEFT + HINT_RIGHT
+HINT_OPERATION_KEYS = [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R, Gdk.KEY_Return] + HINT_NAVIGATION_KEYS
 
 HISTORY_NAVIGATION_KEYS = [Gdk.KEY_Up, Gdk.KEY_Down]
 
@@ -165,7 +157,7 @@ class Reading:
 		if event.keyval in Command.KEY_MAP:
 			multiplier_int = int(self.multiplier) if self.multiplier else 1
 			for i in range(multiplier_int):
-				Command.KEY_MAP[event.keyval].function(CommandInput(event.time, key=event.keyval))
+				Command.KEY_MAP[event.keyval].function(CommandInput(event.time, keyval=event.keyval))
 			self.windows.commit_navigation(event.time)
 
 	def on_entry_key_release(self, widget, event):
