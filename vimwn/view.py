@@ -20,7 +20,6 @@ from gi.repository import Gtk, Gdk, Pango, GLib
 from vimwn.message import BufferName
 
 
-
 # TODO show 'no name' active buffer if no active window at the buffers list
 class NavigatorWindow(Gtk.Window):
 
@@ -77,14 +76,14 @@ class NavigatorWindow(Gtk.Window):
 		self.connect("size-allocate", self._move_to_preferred_position)
 		self.set_size_request(0, 0)
 
-	def hint(self, hints, higlight_index):
+	def hint(self, hints, highlight_index, auto_select_first_hint):
 		"""
 		Show hints of a command or paramter based on the
 		hints array, plus auto complete the current input
 		if any comple command
 		"""
 		self._calculate_width()
-		self.hint_line.show(hints, higlight_index)
+		self.hint_line.show(hints, highlight_index, 0 if auto_select_first_hint and highlight_index == -1 else None)
 
 	def clean_hints(self):
 		"""
@@ -238,11 +237,12 @@ class NavigatorWindow(Gtk.Window):
 			self.apply_css(GTK_3_18_CSS.decode().replace('theme_fg_color', 'fg_color').encode())
 		if Gtk.get_major_version() >= 3 and Gtk.get_minor_version() >= 20:
 			self.apply_css(GTK_3_20_CSS)
-		css_file = self.controller.configurations.get_css_file()
 
-		with open(css_file, 'r') as custom_css:
-			s = custom_css.read()
-			self.apply_css(bytes(s, 'utf-8'))
+		css_file = self.controller.configurations.get_css_file()
+		if css_file:
+			with open(css_file, 'r') as custom_css:
+				s = custom_css.read()
+				self.apply_css(bytes(s, 'utf-8'))
 
 	def apply_css(self, css):
 		provider = Gtk.CssProvider()
@@ -284,13 +284,15 @@ class HintLine(Gtk.Box):
 		self.page_items = 0
 		for c in self.get_children(): c.destroy()
 
-	def add_status_text(self, text, highlight):
+	def add_status_text(self, text, highlight, selected=False):
 		if self.page_items + len(text) > self.page_size:
 			return
 		l = Gtk.Label(text)
 		l.get_style_context().add_class('status-text')
 		if highlight:
 			l.get_style_context().add_class('hint-highlight')
+		if selected:
+			l.get_style_context().add_class('hint-selection')
 		self.pack_start(l, expand=False, fill=False, padding=0)
 		self.page_items += len(text)
 
@@ -304,12 +306,13 @@ class HintLine(Gtk.Box):
 		self.pack_start(icon, expand=False, fill=False, padding=0)
 		self.page_items += 2
 
-	def show(self, hints, highlight_index):
+	def show(self, hints, highlight_index, selection_index):
 		self.clear_status_line()
 		highlighted_shown = False
 		for hint in hints:
 			truncated_hint = (hint[:47] + '...') if len(hint) > 50 else hint
 			highlighted = hints.index(hint) == highlight_index
+			selected = hints.index(hint) == selection_index
 
 			if self.page_items + len(truncated_hint) + 3 > self.page_size:
 				if highlighted_shown or highlight_index == -1:
@@ -320,7 +323,7 @@ class HintLine(Gtk.Box):
 					self.add_status_text('< ', False)
 
 			if self.page_items + len(truncated_hint) + 3 <= self.page_size:
-				self.add_status_text(truncated_hint, highlighted)
+				self.add_status_text(truncated_hint, highlighted, selected=selected)
 				self.add_status_text('  ', False)
 				if highlighted:
 					highlighted_shown = True
@@ -390,7 +393,10 @@ GTK_3_18_CSS = b"""
 }
 .hint-highlight {
 	background: darker(@theme_fg_color);
-	font-weight: bold;
+}
+.hint-selection {
+	color: @theme_fg_color;
+	background: @theme_bg_color;
 }
 
 /* COMMAND LINE STYLE */

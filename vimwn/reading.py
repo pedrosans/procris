@@ -165,8 +165,6 @@ class Reading:
 				Command.KEY_MAP[event.keyval].function(CommandInput(event.time, key=event.keyval))
 			self.windows.commit_navigation(event.time)
 
-	# TODO no auto hints for commands to prevent the 'b' <> 'bdelete' misslead
-	# TODO no auto hint if a command is alreay a match
 	def on_entry_key_release(self, widget, event):
 		if event.keyval in HINT_OPERATION_KEYS:
 			return False
@@ -181,7 +179,7 @@ class Reading:
 			self.hint_status.clear_state()
 
 		if self.hint_status.hinting:
-			self.view.hint(self.hint_status.hints, self.hint_status.highlight_index)
+			self.view.hint(self.hint_status.hints, self.hint_status.highlight_index, self.configurations.is_auto_select_first_hint())
 		else:
 			self.view.clean_hints()
 
@@ -199,7 +197,7 @@ class Reading:
 			if len(self.hint_status.hints) == 1:
 				self.view.clean_hints()
 			else:
-				self.view.hint(self.hint_status.hints, self.hint_status.highlight_index)
+				self.view.hint(self.hint_status.hints, self.hint_status.highlight_index, self.configurations.is_auto_select_first_hint())
 			self.view.set_command(self.hint_status.mount_input())
 
 		return True
