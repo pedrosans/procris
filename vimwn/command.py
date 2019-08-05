@@ -49,7 +49,7 @@ class Command:
 		['reload'		,'^\s*(reload)\s*$'					,None									,controller.reload					],
 		['decorate'		,'^\s*(decorate)\s+\w+.*$'			,None									,windows.decorate					],
 		['decorate'		,'^\s*(decorate)\s*$'	    		,None									,windows.decorate					],
-		['debug'		,'^\s*(debug)\s*$'	          		,None									,controller.debug					],
+		['report'		,'^\s*(report)\s*$'	          		,None									,controller.debug					],
 		['move'			,'^\s*(move)\s+\w+.*$'				,None									,windows.move						],
 		['quit'			,'^\s*(quit|q)\s*$'					,[Gdk.KEY_q]							,controller.quit					],
 		['only'			,'^\s*(only|on)\s*$'				,[Gdk.KEY_o]							,windows.only		    			],
