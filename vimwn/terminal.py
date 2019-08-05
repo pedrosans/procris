@@ -15,7 +15,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import os, glob, subprocess, shlex, re
+import os, glob, subprocess, shlex, re, traceback
 from vimwn.command import Command
 
 COMMANDS_GLOB = ["/usr/bin/*", "/snap/bin/*", os.path.expanduser('~/.local/bin')+'/*']
@@ -45,34 +45,25 @@ class Terminal:
 
 	def _read_commands(self):
 		for commands_glob in COMMANDS_GLOB:
-			for c in glob.glob(commands_glob):
-				segs = c.split('/')
-				name = segs[-1]
-				self.name_map[name] = c
+			for path in glob.glob(commands_glob):
+				name = path.split('/')[-1]
+				self.name_map[name] = path
 
 	def has_perfect_match(self, name):
 		return name in self.name_map.keys()
 
-	def list_completions(self, text):
-		if ' ' in text:
-			try:
-				return self.query_command_parameters(text)
-			except:
-				print('Error trying to list completion options for a terminal command')
-				return None
+	def list_completions(self, command_input):
+		if command_input.terminal_command_parameter:
+			return self.query_command_parameters(command_input)
 		else:
-			return self.query_command_names(text)
+			return self.query_command_names(command_input.terminal_command)
 
-	def query_command_parameters(self, vim_command_parameter):
-		terminal_command = Command.extract_terminal_command(vim_command_parameter)
-		parameter_text = vim_command_parameter.replace(terminal_command, '', 1)
-		terminal_command_spacer = re.match(r'^\s*', parameter_text).group()
-		terminal_command_parameter = parameter_text.replace(terminal_command_spacer, '', 1)
+	def query_command_parameters(self, command_input):
 
-		completions = self.list_bash_completions(vim_command_parameter)
+		completions = self.list_bash_completions(command_input.vim_command_parameter)
 
-		completions = filter(lambda x : x.startswith(terminal_command_parameter), completions)
-		completions = filter(lambda x : x != terminal_command_parameter, completions)
+		completions = filter(lambda x : x.startswith(command_input.terminal_command_parameter), completions)
+		completions = filter(lambda x : x != command_input.terminal_command_parameter, completions)
 		return sorted(list(set(completions)))
 
 	def list_bash_completions(self, text):
@@ -83,8 +74,9 @@ class Terminal:
 
 	def query_command_names(self, name_filter):
 		names = self.name_map.keys()
-		names = filter(lambda x: x.startswith(name_filter), names)
-		names = filter(lambda x: x.strip() != name_filter, names)
+		if name_filter:
+			names = filter(lambda x: x.startswith(name_filter), names)
+			names = filter(lambda x: x.strip() != name_filter, names)
 		return sorted(list(set(names)))
 
 	@staticmethod
@@ -99,6 +91,9 @@ class Terminal:
 			return stdout, stderr
 		except FileNotFoundError:
 			return None, 'Cant run {}'.format(cmd)
+		except Exception as e:
+			print(traceback.format_exc())
+			return None, 'Error ({}) running command: {}'.format(str(e), cmd)
 
 
 LIST_ALIASE = """

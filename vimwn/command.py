@@ -18,6 +18,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, re
 from gi.repository import Gdk
 
+VIM_COMMAND_PATTERN = r'^\s*(\w+|!)'
+
 
 class Command:
 
@@ -79,15 +81,15 @@ class Command:
 					Command.KEY_MAP[k] = command
 			Command.LIST.append(command)
 
-	def hint_vim_command_parameter(self, controller, command_parameters):
+	def hint_vim_command_parameter(self, controller, input):
 		if self.name == 'edit':
-			return controller.applications.list_completions(command_parameters)
+			return controller.applications.list_completions(input.vim_command_parameter)
 		elif self.name in ['buffer']:
-			return controller.windows.list_completions(command_parameters)
+			return controller.windows.list_completions(input.vim_command_parameter)
 		elif self.name == '!':
-			return controller.terminal.list_completions(command_parameters)
+			return controller.terminal.list_completions(input)
 		elif self.name == 'decorate':
-			return controller.windows.decoration_options_for(command_parameters)
+			return controller.windows.decoration_options_for(input.vim_command_parameter)
 
 	@staticmethod
 	def hint_vim_command(user_input):
@@ -124,29 +126,51 @@ class Command:
 		else:
 			return cmd[len(command_match[0]):]
 
-	@staticmethod
-	def extract_vim_command(cmd):
-		if cmd is None:
-			return None
-		if not cmd.strip():
-			return cmd
-		return re.match(r'^\s*(\w+|!)', cmd).group()
-
-	@staticmethod
-	def extract_terminal_command(cmd):
-		if cmd is None:
-			return None
-		if not cmd.strip():
-			return cmd
-		return re.match(r'^\s*\w+', cmd).group()
-
 
 class CommandInput:
 
-	def __init__(self, time, text_input=None, keyval=None):
+	def __init__(self, time=None, text_input=None, keyval=None):
 		self.time = time
-		self.text_input = text_input
+		self.text = text_input
 		self.keyval = keyval
+		self.vim_command_left_pad = None
+		self.vim_command = None
+		self.vim_command_spacer = None
+		self.vim_command_parameter = None
+		self.terminal_command = None
+		self.terminal_command_spacer = None
+		self.terminal_command_parameter = None
+
+	def parse(self):
+		if not self.text:
+			return self
+
+		match = re.match(VIM_COMMAND_PATTERN, self.text)
+
+		if not match:
+			return self
+
+		self.vim_command = match.group(1)
+
+		parameter_text = self.text.replace(self.vim_command, '', 1)
+		self.vim_command_spacer = re.match(r'^\s*', parameter_text).group()
+		self.vim_command_parameter = parameter_text.replace(self.vim_command_spacer, '', 1)
+		if self.vim_command == '!' and self.vim_command_parameter:
+			self.terminal_command = re.match(r'^\s*\w+', self.vim_command_parameter).group()
+			parameter_text = self.vim_command_parameter.replace(self.terminal_command, '', 1)
+			self.terminal_command_spacer = re.match(r'^\s*', parameter_text).group()
+			self.terminal_command_parameter = parameter_text.replace(self.terminal_command_spacer, '', 1)
+		# self.print()
+		return self
+
+	def print(self):
+		print('------------------------------------------')
+		print('vc ::{}::'.format(self.vim_command))
+		print('vcs::{}::'.format(self.vim_command_spacer))
+		print('vcp::{}::'.format(self.vim_command_parameter))
+		print('tc ::{}::'.format(self.terminal_command))
+		print('tcs::{}::'.format(self.terminal_command_spacer))
+		print('tcp::{}::'.format(self.terminal_command_parameter))
 
 
 class CommandHistory:

@@ -1,13 +1,16 @@
 import unittest
-from unittest import TestSuite
-from tests.hint import HintTestCase
-from tests.terminal import TerminalTestCase
+import tests.command
+import tests.terminal
+import tests.hint
 
-test_cases = (HintTestCase,TerminalTestCase,)
+test_case_classes = (tests.command.CommandInputTestCase,
+                     tests.terminal.TerminalTestCase,
+                     tests.hint.HintTestCase)
 
-def load_tests(loader, tests, pattern):
-    suite = TestSuite()
-    for test_class in test_cases:
-        tests = loader.loadTestsFromTestCase(test_class)
-        suite.addTests(tests)
+
+def load_tests(loader, test_suite_array, pattern):
+    suite = unittest.TestSuite()
+    for test_class in test_case_classes:
+        unit_tests = loader.loadTestsFromTestCase(test_class)
+        suite.addTests(unit_tests)
     return suite

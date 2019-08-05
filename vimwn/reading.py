@@ -14,8 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, re
-import time
+import gi, re, time, traceback
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from vimwn.view import NavigatorWindow
@@ -156,7 +155,7 @@ class Reading:
 		if event.keyval in Command.KEY_MAP:
 			multiplier_int = int(self.multiplier) if self.multiplier else 1
 			for i in range(multiplier_int):
-				Command.KEY_MAP[event.keyval].function(CommandInput(event.time, keyval=event.keyval))
+				Command.KEY_MAP[event.keyval].function(CommandInput(time=event.time, keyval=event.keyval))
 			self.windows.commit_navigation(event.time)
 
 	def on_entry_key_release(self, widget, event):
@@ -168,7 +167,7 @@ class Reading:
 			return True
 
 		if self.configurations.is_auto_hint():
-			self.hint_status.hint(self.view.get_command())
+			self.hint_status.hint(CommandInput(text_input=self.view.get_command()).parse())
 		else:
 			self.hint_status.clear_state()
 
@@ -191,7 +190,7 @@ class Reading:
 			return False
 
 		if not self.hint_status.hinting and event.keyval in HINT_LAUNCH_KEYS:
-			self.hint_status.hint(self.view.get_command())
+			self.hint_status.hint(CommandInput(text_input=self.view.get_command()).parse())
 
 		if self.hint_status.hinting:
 			shift_mask = event.state & Gdk.ModifierType.SHIFT_MASK
@@ -209,7 +208,9 @@ class Reading:
 		if not self.reading_command:
 			return
 
+		time = Gtk.get_current_event_time()
 		cmd = self.view.get_command()
+		command_input = CommandInput(time=time, text_input=cmd).parse()
 
 		self.command_history.append(cmd)
 
@@ -222,12 +223,16 @@ class Reading:
 		if Command.has_multiple_commands(cmd):
 			raise Exception('TODO: iterate multiple commands')
 
-		time = Gtk.get_current_event_time()
 		command = Command.get_matching_command(cmd)
 
 		if command:
-			command.function(CommandInput(time, text_input=cmd))
-			self.windows.commit_navigation(time)
+			try:
+				command.function(command_input)
+				self.windows.commit_navigation(time)
+			except Exception as inst:
+				msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
+				print(traceback.format_exc())
+				self.set_key_mode(time, error_message=msg)
 		else:
 			self.set_key_mode(time, error_message='Not an editor command: ' + cmd)
 
@@ -271,8 +276,10 @@ class Reading:
 			self.set_key_mode(time, error_message='More than one application matches: ' + name)
 
 	def bang(self, c_in):
-		vim_cmd = Command.extract_vim_command(c_in.text_input)
-		cmd = c_in.text_input.replace(vim_cmd, '', 1)
+		cmd = c_in.vim_command_parameter
+		if not cmd:
+			self.set_key_mode(time, error_message='ERROR: empty command')
+			return
 		stdout, stderr = Terminal.execute(cmd)
 		if stdout:
 			for line in stdout.splitlines():
@@ -281,7 +288,6 @@ class Reading:
 			for line in stderr.splitlines():
 				self.messages.add(line, 'error')
 		self.set_key_mode(c_in.time)
-		# self.set_normal_mode()
 
 	def colon(self, c_in):
 		self.set_command_mode(c_in.time)
