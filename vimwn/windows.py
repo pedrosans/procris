@@ -19,49 +19,48 @@ import gi, time, logging, os
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 
+
 def get_x(window):
 	return window.get_geometry().xp
+
 
 def get_y(window):
 	return window.get_geometry().yp
 
-class Axis():
+
+class Axis:
 	def __init__(self, coordinate_function, position_mask, size_mask):
 		self.coordinate_function = coordinate_function
 		self.position_mask = position_mask
 		self.size_mask = size_mask
+
 
 VERTICAL = Axis(get_y, Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
 HORIZONTAL = Axis(get_x, Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
 HORIZONTAL.perpendicular_axis = VERTICAL
 VERTICAL.perpendicular_axis = HORIZONTAL
 
-#TODO a better name would be screen
-class Windows():
+
+# TODO a better name would be screen
+class Windows:
 
 	def __init__(self, controller):
 		self.controller = controller
 		Wnck.set_client_type(Wnck.ClientType.PAGER)
 		self.active = None
 		self.staging = False
-		self.visible =[]
-		self.buffers =[]
+		self.visible = []
+		self.buffers = []
 		self.read_itself = False
 		self.window_handlers = {}
 		self.window_original_decorations = {}
 		self.screen = None
 
-	def remove(self, window, time):
-		window.close(time)
-		self.visible.remove(window)
-		self.buffers.remove(window)
-		self._update_internal_state()
-
 	def read_screen(self):
 		del self.visible[:]
 		del self.buffers[:]
 		self.read_itself = False
-		#TODO is needed?
+		# TODO is needed?
 		if not self.screen:
 			self.screen = Wnck.Screen.get_default()
 		self.screen.force_update()  #make sure we query X server
@@ -78,22 +77,6 @@ class Windows():
 			if in_active_workspace and not wnck_window.is_minimized():
 				self.visible.append(wnck_window)
 		self._update_internal_state()
-
-	def open(self, window, time):
-		window.activate_transient(time)
-
-	def find_by_name(self, window_title):
-		for w in self.buffers:
-			if window_title.lower().strip() in w.get_name().lower():
-				return w;
-		return None
-
-	def list_completions(self, name_filter):
-		striped = name_filter.lower()
-		names = map(lambda x : x.get_name().strip(), self.buffers )
-		names = filter(lambda x :striped in x.lower(), names)
-		names = filter(lambda x : striped != x.lower(), names)
-		return sorted(list(names), key=str.lower)
 
 	def _update_internal_state(self):
 		self.active = None
@@ -120,35 +103,99 @@ class Windows():
 			self.open(self.active, time)
 			self.staging = False
 
-	def navigate_to_previous(self, keyval, time):
+	#
+	# API
+	#
+	def open(self, window, time):
+		window.activate_transient(time)
+
+	def remove(self, window, time):
+		window.close(time)
+		self.visible.remove(window)
+		self.buffers.remove(window)
+		self._update_internal_state()
+
+	def find_by_name(self, window_title):
+		for w in self.buffers:
+			if window_title.lower().strip() in w.get_name().lower():
+				return w;
+		return None
+
+	# TODO: move from here
+	def list_completions(self, name_filter):
+		striped = name_filter.lower()
+		names = map(lambda x : x.get_name().strip(), self.buffers )
+		names = filter(lambda x :striped in x.lower(), names)
+		names = filter(lambda x : striped != x.lower(), names)
+		return sorted(list(names), key=str.lower)
+
+	#
+	# COMMANDS
+	#
+	def navigate_to_previous(self, c_in):
 		top, below = self.get_top_two_windows()
 		if below:
 			self.active = below
 			self.staging = True
 
-	def cycle(self, keyval, time):
+	def cycle(self, c_in):
 		next_window = self.x_line[(self.x_line.index(self.active) + 1) % len(self.x_line)]
 		self.active = next_window
 		self.staging = True
 
-	def decrease_width(self, keyval, time):
+	def decrease_width(self, c_in):
 		left, right = self.get_top_two_windows()
 		if left is self.active:
 			self.shift_center(0.4, left, right)
 		else:
 			self.shift_center(0.6, left, right)
 
-	def increase_width(self, keyval, time):
+	def increase_width(self, c_in):
 		left, right = self.get_top_two_windows()
 		if left is self.active:
 			self.shift_center(0.6, left, right)
 		else:
 			self.shift_center(0.4, left, right)
 
-	def equalize(self, keyval, time):
+	def equalize(self, c_in):
 		left, right = self.get_top_two_windows()
 		self.shift_center(0.5, left, right)
 
+	def maximize(self, c_in):
+		self.active.maximize()
+		self.staging = True
+
+	def move_right(self, c_in):
+		self.snap_active_window(HORIZONTAL, 0.5)
+
+	def move_left(self, c_in):
+		self.snap_active_window(HORIZONTAL, 0)
+
+	def move_up(self, c_in):
+		self.snap_active_window(VERTICAL, 0)
+
+	def move_down(self, c_in):
+		self.snap_active_window(VERTICAL, 0.5)
+
+	def centralize(self, c_in):
+		# TODO: move the staging flag logic from self.resize to here
+		self.resize(self.active, 0.1, 0.1, 0.8, 0.8)
+
+	def navigate_right(self, c_in):
+		self.navigate(self.x_line, 1, HORIZONTAL, c_in.time)
+
+	def navigate_left(self, c_in):
+		self.navigate(self.x_line, -1, HORIZONTAL, c_in.time)
+
+	def navigate_up(self, c_in):
+		self.navigate(self.y_line, -1, VERTICAL, c_in.time)
+
+	def navigate_down(self, c_in):
+		self.navigate(self.y_line, 1, VERTICAL, c_in.time)
+
+	#
+	# COMMAND OPERATIONS
+	#
 	def shift_center(self, new_center, left, right):
 		if left:
 			self.move_on_axis(left, HORIZONTAL, 0, new_center)
@@ -175,22 +222,6 @@ class Windows():
 		else:
 			return top, below
 
-	def maximize_active_window(self):
-		self.active.maximize()
-		self.staging = True
-
-	def move_right(self, keyval, time):
-		self.snap_active_window(HORIZONTAL, 0.5)
-
-	def move_left(self, keyval, time):
-		self.snap_active_window(HORIZONTAL, 0)
-
-	def move_up(self, keyval, time):
-		self.snap_active_window(VERTICAL, 0)
-
-	def move_down(self, keyval, time):
-		self.snap_active_window(VERTICAL, 0.5)
-
 	def snap_active_window(self, axis, position):
 		self.move_on_axis(self.active, axis, position, 0.5)
 
@@ -199,9 +230,6 @@ class Windows():
 			self.resize(window, position, 0, proportion, 1)
 		else:
 			self.resize(window, 0, position, 1, proportion)
-
-	def centralize_active_window(self):
-		self.resize(self.active, 0.1, 0.1, 0.8, 0.8)
 
 	def resize(self, window, x_ratio, y_ratio, width_ratio, height_ratio):
 		"""
@@ -252,18 +280,6 @@ class Windows():
 		gdkdisplay = GdkX11.X11Display.get_default()
 		gdkwindow  = GdkX11.X11Window.foreign_new_for_display(gdkdisplay, pid)
 		return gdkwindow
-
-	def navigate_right(self, keyval, time):
-		self.navigate(self.x_line, 1, HORIZONTAL, time)
-
-	def navigate_left(self, keyval, time):
-		self.navigate(self.x_line, -1, HORIZONTAL, time)
-
-	def navigate_up(self, keyval, time):
-		self.navigate(self.y_line, -1, VERTICAL, time)
-
-	def navigate_down(self, keyval, time):
-		self.navigate(self.y_line, 1, VERTICAL, time)
 
 	def navigate(self, oriented_list, increment, axis, time):
 		at_the_side = self.look_at(oriented_list, self.active, increment, axis)

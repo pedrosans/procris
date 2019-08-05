@@ -136,7 +136,7 @@ class Reading:
 		key_name = Gdk.keyval_name(event.keyval)
 
 		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft):
-			self.escape(None, None)
+			self.escape(None)
 			return
 
 		if self.reading_command:
@@ -150,7 +150,6 @@ class Reading:
 			multiplier_int = int(self.multiplier) if self.multiplier else 1
 			for i in range(multiplier_int):
 				Command.KEY_MAP[event.keyval].function(CommandInput(event.time, key=event.keyval))
-			# TODO error message if not staging a change?
 			self.windows.commit_navigation(event.time)
 
 	# TODO no auto hints for commands to prevent the 'b' <> 'bdelete' misslead
@@ -249,6 +248,7 @@ class Reading:
 
 		if command:
 			command.function(CommandInput(time, text_input=cmd))
+			self.windows.commit_navigation(time)
 		else:
 			self.set_key_mode(time, error_message='Not an editor command: ' + cmd)
 
@@ -321,14 +321,6 @@ class Reading:
 			self.set_normal_mode()
 		else:
 			self.set_key_mode(c_in.time, error_message='No active window')
-
-	def centralize(self, c_in):
-		self.windows.centralize_active_window()
-		self.windows.commit_navigation(c_in.time)
-
-	def maximize(self, c_in):
-		self.windows.maximize_active_window()
-		self.windows.commit_navigation(c_in.time)
 
 	def buffers(self, c_in):
 		self.messages.list_buffers()
