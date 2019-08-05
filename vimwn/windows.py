@@ -203,12 +203,6 @@ class Windows:
 	def increase_width(self, c_in):
 		self.shift_center(INCREMENT)
 
-	def calculate_new_center(self, shift, left, right):
-		left, right = self.get_left_right_top_windows()
-		x, y, w, h = left.get_geometry()
-		work_area = self._get_monitor_work_area(self.active)
-		return (w / work_area.width) + (shift if self.active is left else (shift * -1))
-
 	def centralize(self, c_in):
 		# TODO: move the staging flag logic from self.resize to here
 		self.resize(self.active, 0.1, 0.1, 0.8, 0.8)
@@ -241,19 +235,7 @@ class Windows:
 	def move(self, c_in):
 		parameter = Command.extract_text_parameter(c_in.text_input)
 		parameter_a = parameter.split()
-
-		monitor_geo = self.controller.view.get_monitor_geometry()
-		x, y, w, h = self.active.get_geometry()
-		x = int(parameter_a[0]) + monitor_geo.x
-		y = int(parameter_a[1]) + monitor_geo.y
-
-		has_frame, decoration_width, decoration_height = self.get_decoration_size(self.active)
-		if not has_frame and decoration_width >= 0 and decoration_height >= 0:
-			x -= decoration_width
-			y -= decoration_height
-
-		self.active.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
-		self.staging = True
+		self.move_to(int(parameter_a[0]), int(parameter_a[1]))
 
 	#
 	# COMMAND OPERATIONS
@@ -271,12 +253,8 @@ class Windows:
 	def get_top_two_windows(self):
 		top = self.active
 		below = None
-		after_top = False
 		for w in reversed(self.screen.get_windows_stacked()):
-			if w is self.active:
-				after_top = True
-				continue
-			if after_top and w in self.visible and w is not top:
+			if w in self.visible and w is not top:
 				below = w
 				break
 		return top, below
@@ -301,32 +279,40 @@ class Windows:
 		"""
 		Moves the window base on the parameter geometry : screen ratio
 		"""
+		self._unsnap(window)
+		work_area = self._get_monitor_work_area(window)
 
-		if window.is_maximized():
-			window.unmaximize()
-		if window.is_maximized_horizontally():
-			window.unmaximize_horizontally()
-		if window.is_maximized_vertically():
-			window.unmaximize_vertically()
+		new_x = int(work_area.width * x_ratio) + work_area.x
+		new_y = int(work_area.height * y_ratio) + work_area.y
+		new_width = int(work_area.width * width_ratio)
+		new_height = int(work_area.height * height_ratio)
 
-		monitor_geo = self.controller.view.get_monitor_geometry()
-		new_x = int(monitor_geo.width * x_ratio) + monitor_geo.x
-		new_y = int(monitor_geo.height * y_ratio) + monitor_geo.y
-		new_width = int(monitor_geo.width * width_ratio)
-		new_height = int(monitor_geo.height * height_ratio)
+		self.set_geometry(window, x=new_x, y=new_y, w=new_width, h=new_height)
 
+	def move_to(self, to_x, to_y):
+		work_area = self._get_monitor_work_area(self.active)
+		x = to_x + work_area.x
+		y = to_y + work_area.y
+		self.set_geometry(self.active, x=x, y=y)
+
+	def set_geometry(self, window, x=None, y=None, w=None, h=None):
 		has_frame, decoration_width, decoration_height = self.get_decoration_size(window)
 		if not has_frame and decoration_width >= 0 and decoration_height >= 0:
-			new_x -= decoration_width
-			new_y -= decoration_height
-			new_width += decoration_width
-			new_height += decoration_height
+			x -= decoration_width
+			y -= decoration_height
+			if w and h:
+				w += decoration_width
+				h += decoration_height
+
+		if not w and not h:
+			geometry = window.get_geometry()
+			w = geometry.widthp
+			h = geometry.heightp
 
 		# print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
 		# print("window: x={} y={} width={} height={}".format(new_x, new_y, new_width, new_height))
 
-		window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, new_x, new_y, new_width, new_height)
-
+		window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
 		self.staging = True
 
 	def get_gdk_window(self, pid):
@@ -340,6 +326,23 @@ class Windows:
 		if 0 <= index < len(oriented_list):
 			self.active = oriented_list[index]
 		self.staging = True
+
+	#
+	# Internal API
+	#
+	def _get_monitor_work_area(self, window):
+		gdk_window = self.get_gdk_window(window.get_xid())
+		gdk_display = gdk_window.get_display()
+		gtk_monitor = gdk_display.get_monitor_at_window(gdk_window)
+		return gtk_monitor.get_workarea()
+
+	def _unsnap(self, window):
+		if window.is_maximized():
+			window.unmaximize()
+		if window.is_maximized_horizontally():
+			window.unmaximize_horizontally()
+		if window.is_maximized_vertically():
+			window.unmaximize_vertically()
 
 	def get_decoration_size(self, window):
 		gdk_w = self.get_gdk_window(window.get_xid())
