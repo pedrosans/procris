@@ -147,3 +147,39 @@ class CommandInput:
 		self.time = time
 		self.text_input = text_input
 		self.key = key
+
+
+class CommandHistory:
+
+	def __init__(self):
+		self.history = []
+		self.pointer = None
+		self.starting_command = None
+		self.filtered_history = None
+
+	def navigate_history(self, direction, user_input):
+		if self.starting_command is None:
+			self.starting_command = user_input
+			self.filtered_history = list(filter(lambda c: c.startswith(self.starting_command), self.history))
+		size = len(self.filtered_history)
+		if self.pointer is None:
+			self.pointer = size
+		self.pointer += direction
+		self.pointer = min(self.pointer, size)
+		self.pointer = max(self.pointer, 0)
+
+	def current_command(self):
+		size = len(self.filtered_history)
+		if self.pointer == size:
+			return self.starting_command
+		else:
+			return self.filtered_history[self.pointer]
+
+	def reset_history_pointer(self):
+		self.pointer = None
+		self.starting_command = None
+		self.filtered_history = None
+
+	def append(self, cmd):
+		if cmd not in self.history:
+			self.history.append(cmd)

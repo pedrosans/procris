@@ -26,6 +26,7 @@ from vimwn.applications import Applications
 from vimwn.terminal import Terminal
 from vimwn.hint import HintStatus
 from vimwn.command import Command
+from vimwn.command import CommandHistory
 from vimwn.message import Messages
 from vimwn.command import CommandInput
 
@@ -36,13 +37,14 @@ HINT_OPERATION_KEYS = [
 	Gdk.KEY_Right, Gdk.KEY_Down
 ]
 HINT_NAVIGATION_KEYS = [
-	Gdk.KEY_Left, Gdk.KEY_Up,
-	Gdk.KEY_Right, Gdk.KEY_Down,
+	Gdk.KEY_Left, Gdk.KEY_Right,
 	Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab
 ]
 HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]
 HINT_LEFT = [Gdk.KEY_Left, Gdk.KEY_Up]
 HINT_RIGHT = [Gdk.KEY_Right, Gdk.KEY_Down]
+
+HISTORY_NAVIGATION_KEYS = [Gdk.KEY_Up, Gdk.KEY_Down]
 
 
 # TODO chain commands
@@ -61,6 +63,7 @@ class Reading:
 		self.terminal = Terminal()
 		self.hint_status = HintStatus(self)
 		self.messages = Messages(self, self.windows)
+		self.command_history = CommandHistory()
 		self.create_and_install_view()
 		self.clean_command_state()
 		self.messages.clean()
@@ -184,6 +187,15 @@ class Reading:
 			self.view.clean_hints()
 
 	def on_entry_key_press(self, widget, event):
+		if event.keyval in HISTORY_NAVIGATION_KEYS:
+			self.command_history.navigate_history(-1 if event.keyval == Gdk.KEY_Up else 1, self.view.get_command())
+			self.view.set_command(self.command_history.current_command())
+			self.view.clean_hints()
+			self.hint_status.clear_state()
+			return True
+		else:
+			self.command_history.reset_history_pointer()
+
 		if event.keyval not in HINT_NAVIGATION_KEYS:
 			return False
 
@@ -207,6 +219,8 @@ class Reading:
 			return
 
 		cmd = self.view.get_command()
+
+		self.command_history.append(cmd)
 
 		if (self.configurations.is_auto_select_first_hint()
 				and self.hint_status.highlight_index == -1
