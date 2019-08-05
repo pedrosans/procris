@@ -294,6 +294,10 @@ class Reading:
 		self.messages.list_buffers()
 		self.set_key_mode(c_in.time)
 
+	def debug(self, c_in):
+		self.messages.add(self.windows.get_metadata_resume(), None)
+		self.set_key_mode(c_in.time)
+
 	def buffer(self, c_in):
 		self.set_key_mode(c_in.time)
 

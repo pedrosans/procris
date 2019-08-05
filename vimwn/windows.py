@@ -36,13 +36,22 @@ class Axis:
 		self.size_mask = size_mask
 
 
+"""
+ALL - all decorations should be applied.
+BORDER - a frame should be drawn around the window.
+MAXIMIZE - a maximize button should be included.
+MENU - a button for opening a menu should be included.
+MINIMIZE - a minimize button should be included.
+RESIZEH - the frame should have resize handles.
+TITLE - a titlebar should be placed above the window.
+"""
 DECORATION_MAP = {'ALL': Gdk.WMDecoration.ALL,
-															'BORDER': Gdk.WMDecoration.BORDER,
-															'MAXIMIZE': Gdk.WMDecoration.MAXIMIZE,
-															'MENU': Gdk.WMDecoration.MENU,
-															'MINIMIZE ': Gdk.WMDecoration.MINIMIZE,
-															'RESIZEH': Gdk.WMDecoration.RESIZEH,
-															'TITLE': Gdk.WMDecoration.TITLE}
+					'BORDER': Gdk.WMDecoration.BORDER,
+					'MAXIMIZE': Gdk.WMDecoration.MAXIMIZE,
+					'MENU': Gdk.WMDecoration.MENU,
+					'MINIMIZE ': Gdk.WMDecoration.MINIMIZE,
+					'RESIZEH': Gdk.WMDecoration.RESIZEH,
+					'TITLE': Gdk.WMDecoration.TITLE}
 
 VERTICAL = Axis(get_y, Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
 HORIZONTAL = Axis(get_x, Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
@@ -213,15 +222,6 @@ class Windows:
 		self.navigate(self.y_line, 1, VERTICAL, c_in.time)
 
 	def decorate(self, c_in):
-		"""
-		ALL - all decorations should be applied.
-		BORDER - a frame should be drawn around the window.
-		MAXIMIZE - a maximize button should be included.
-		MENU - a button for opening a menu should be included.
-		MINIMIZE - a minimize button should be included.
-		RESIZEH - the frame should have resize handles.
-		TITLE - a titlebar should be placed above the window.
-		"""
 		decoration_parameter = Command.extract_text_parameter(c_in.text_input)
 		decoration = 0
 		if decoration_parameter in DECORATION_MAP.keys():
@@ -237,15 +237,18 @@ class Windows:
 	def move(self, c_in):
 		parameter = Command.extract_text_parameter(c_in.text_input)
 		parameter_a = parameter.split()
+
 		monitor_geo = self.controller.view.get_monitor_geometry()
-		new_x = int(parameter_a[0]) + monitor_geo.x
-		new_y = int(parameter_a[1]) + monitor_geo.y
-		new_width = new_height = 0
+		x, y, w, h = self.active.get_geometry()
+		x = int(parameter_a[0]) + monitor_geo.x
+		y = int(parameter_a[1]) + monitor_geo.y
 
-		frame = self.get_gdk_window(self.active.get_xid()).get_frame_extents()
-		# new_y = new_y - (frame.y - monitor_geo.y)
+		has_frame, decoration_width, decoration_height = self.get_decoration_size(self.active)
+		if not has_frame and decoration_width >= 0 and decoration_height >= 0:
+			x -= decoration_width
+			y -= decoration_height
 
-		self.active.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, new_x, new_y, new_width, new_height)
+		self.active.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
 		self.staging = True
 
 	#
@@ -299,14 +302,20 @@ class Windows:
 			window.unmaximize_vertically()
 
 		monitor_geo = self.controller.view.get_monitor_geometry()
-
+		new_x = int(monitor_geo.width * x_ratio) + monitor_geo.x
+		new_y = int(monitor_geo.height * y_ratio) + monitor_geo.y
 		new_width = int(monitor_geo.width * width_ratio)
 		new_height = int(monitor_geo.height * height_ratio)
-		new_x = monitor_geo.x + int(monitor_geo.width * x_ratio)
-		new_y = monitor_geo.y + int(monitor_geo.height * y_ratio)
 
-		#print("window: x={} y={} width={} heigh={}".format(new_x, new_y, new_width, new_height))
-		#print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
+		has_frame, decoration_width, decoration_height = self.get_decoration_size(window)
+		if not has_frame and decoration_width >= 0 and decoration_height >= 0:
+			new_x -= decoration_width
+			new_y -= decoration_height
+			new_width += decoration_width
+			new_height += decoration_height
+
+		# print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
+		# print("window: x={} y={} width={} height={}".format(new_x, new_y, new_width, new_height))
 
 		window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, new_x, new_y, new_width, new_height)
 
@@ -341,3 +350,35 @@ class Windows:
 			index = index + increment
 		return line
 
+	def get_decoration_size(self, window):
+		gdk_w = self.get_gdk_window(window.get_xid())
+		is_decorated, decorations = gdk_w.get_decorations()
+		x, y, w, h = window.get_geometry()
+		cx, cy, cw, ch = window.get_client_window_geometry()
+		decoration_width = cx - x
+		decoration_height = cy - y
+
+		if decorations:
+			has_frame = True
+		elif is_decorated:
+			has_frame = False
+		else:
+			has_frame = gdk_w.get_type_hint() is Gdk.WindowTypeHint.NORMAL
+
+		return has_frame, decoration_width, decoration_height
+
+	def get_metadata_resume(self):
+		resume = ''
+		for wn in self.buffers:
+			gdk_w = self.get_gdk_window(wn.get_xid())
+			is_decorated, decorations = gdk_w.get_decorations()
+			x, y, w, h = wn.get_geometry()
+			cx, cy, cw, ch = wn.get_client_window_geometry()
+			has_frame, decoration_width, decoration_height = self.get_decoration_size(wn)
+			resume += '{:10} ({:5} {:3d},{:3d}) g({:3d},{:3d}) c_g({:3d},{:3d}) hint({:8}) dec({} {})\n'.format(
+				str(wn.get_name()[:10]),
+				str(has_frame), decoration_width, decoration_height,
+				x, y, cx, cy,
+				gdk_w.get_type_hint().value_name.replace('GDK_WINDOW_TYPE_HINT_', '')[:8],
+				is_decorated, decorations.value_names)
+		return resume
