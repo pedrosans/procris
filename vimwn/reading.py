@@ -195,7 +195,7 @@ class Reading:
 
 		if self.hint_status.hinting:
 			shift_mask = event.state & Gdk.ModifierType.SHIFT_MASK
-			right = event.keyval in HINT_RIGHT or (not shift_mask and event.keyval in HINT_LAUNCH_KEYS)
+			right = event.keyval in HINT_RIGHT or (event.keyval in HINT_LAUNCH_KEYS and not shift_mask )
 			self.hint_status.cycle(1 if right else -1)
 			if len(self.hint_status.hints) == 1:
 				self.view.clean_hints()

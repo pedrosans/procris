@@ -87,7 +87,7 @@ class Command:
 		elif self.name == '!':
 			return controller.terminal.list_completions(command_parameters)
 		elif self.name == 'decorate':
-			return controller.windows.list_decoration_options(command_parameters)
+			return controller.windows.decoration_options_for(command_parameters)
 
 	@staticmethod
 	def hint_vim_command(user_input):

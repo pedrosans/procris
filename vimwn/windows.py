@@ -56,7 +56,44 @@ X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResize
 STRETCH = 1000
 
 
-# TODO a better name would be screen
+def gdk_window_for(window):
+	return GdkX11.X11Window.foreign_new_for_display(GdkX11.X11Display.get_default(), window.get_xid())
+
+
+def monitor_work_area_for(window):
+	gdk_window = gdk_window_for(window)
+	gdk_display = gdk_window.get_display()
+	gtk_monitor = gdk_display.get_monitor_at_window(gdk_window)
+	return gtk_monitor.get_workarea()
+
+
+def decoration_size_for(window):
+	gdk_w = gdk_window_for(window)
+	is_decorated, decorations = gdk_w.get_decorations()
+	x, y, w, h = window.get_geometry()
+	cx, cy, cw, ch = window.get_client_window_geometry()
+	decoration_width = cx - x
+	decoration_height = cy - y
+
+	if decorations:
+		has_frame = True
+	elif is_decorated:
+		has_frame = False
+	else:
+		has_frame = gdk_w.get_type_hint() is Gdk.WindowTypeHint.NORMAL
+
+	return has_frame, decoration_width, decoration_height
+
+
+def unsnap(window):
+	if window.is_maximized():
+		window.unmaximize()
+	if window.is_maximized_horizontally():
+		window.unmaximize_horizontally()
+	if window.is_maximized_vertically():
+		window.unmaximize_vertically()
+
+
 class Windows:
 
 	def __init__(self, controller):
@@ -154,7 +191,7 @@ class Windows:
 		filtered = filter(lambda x: name.lower().strip() in x.lower(), names)
 		return list(filtered)
 
-	def list_decoration_options(self, option_name):
+	def decoration_options_for(self, option_name):
 		return list(filter(lambda x: x.lower().startswith(option_name.lower().strip()), DECORATION_MAP.keys()))
 
 	#
@@ -208,7 +245,6 @@ class Windows:
 		self.shift_center(INCREMENT)
 
 	def centralize(self, c_in):
-		# TODO: move the staging flag logic from self.resize to here
 		self.resize(self.active, 0.1, 0.1, 0.8, 0.8)
 
 	def navigate_right(self, c_in):
@@ -228,11 +264,7 @@ class Windows:
 		decoration = 0
 		if decoration_parameter in DECORATION_MAP.keys():
 			decoration = DECORATION_MAP[decoration_parameter]
-		window = self.active
-		gdk_window = self.get_gdk_window(self.active.get_xid())
-		if not window.get_xid() in self.window_original_decorations:
-			is_decorated, decorations = gdk_window.get_decorations()
-			self.window_original_decorations[window.get_xid()] = decorations
+		gdk_window = gdk_window_for(self.active)
 		gdk_window.set_decorations(decoration)
 		self.staging = True
 
@@ -247,7 +279,7 @@ class Windows:
 	def shift_center(self, shift):
 		left, right = self.get_left_right_top_windows()
 		x, y, w, h = left.get_geometry()
-		work_area = self._get_monitor_work_area(self.active)
+		work_area = monitor_work_area_for(self.active)
 		center = (w / work_area.width) + (shift if self.active is left else (shift * -1))
 		if left:
 			self.move_on_axis(left, HORIZONTAL, 0, center)
@@ -283,8 +315,8 @@ class Windows:
 		"""
 		Moves the window base on the parameter geometry : screen ratio
 		"""
-		self._unsnap(window)
-		work_area = self._get_monitor_work_area(window)
+		unsnap(window)
+		work_area = monitor_work_area_for(window)
 
 		new_x = int(work_area.width * x_ratio) + work_area.x
 		new_y = int(work_area.height * y_ratio) + work_area.y
@@ -294,13 +326,13 @@ class Windows:
 		self.set_geometry(window, x=new_x, y=new_y, w=new_width, h=new_height)
 
 	def move_to(self, to_x, to_y):
-		work_area = self._get_monitor_work_area(self.active)
+		work_area = monitor_work_area_for(self.active)
 		x = to_x + work_area.x
 		y = to_y + work_area.y
 		self.set_geometry(self.active, x=x, y=y)
 
 	def set_geometry(self, window, x=None, y=None, w=None, h=None):
-		has_frame, decoration_width, decoration_height = self.get_decoration_size(window)
+		has_frame, decoration_width, decoration_height = decoration_size_for(window)
 		if not has_frame and decoration_width >= 0 and decoration_height >= 0:
 			x -= decoration_width
 			y -= decoration_height
@@ -319,11 +351,6 @@ class Windows:
 		window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
 		self.staging = True
 
-	def get_gdk_window(self, pid):
-		gdkdisplay = GdkX11.X11Display.get_default()
-		gdkwindow  = GdkX11.X11Window.foreign_new_for_display(gdkdisplay, pid)
-		return gdkwindow
-
 	def navigate(self, increment, axis):
 		oriented_list = self.line if axis is HORIZONTAL else self.column
 		index = oriented_list.index(self.active) + increment
@@ -334,45 +361,14 @@ class Windows:
 	#
 	# Internal API
 	#
-	def _get_monitor_work_area(self, window):
-		gdk_window = self.get_gdk_window(window.get_xid())
-		gdk_display = gdk_window.get_display()
-		gtk_monitor = gdk_display.get_monitor_at_window(gdk_window)
-		return gtk_monitor.get_workarea()
-
-	def _unsnap(self, window):
-		if window.is_maximized():
-			window.unmaximize()
-		if window.is_maximized_horizontally():
-			window.unmaximize_horizontally()
-		if window.is_maximized_vertically():
-			window.unmaximize_vertically()
-
-	def get_decoration_size(self, window):
-		gdk_w = self.get_gdk_window(window.get_xid())
-		is_decorated, decorations = gdk_w.get_decorations()
-		x, y, w, h = window.get_geometry()
-		cx, cy, cw, ch = window.get_client_window_geometry()
-		decoration_width = cx - x
-		decoration_height = cy - y
-
-		if decorations:
-			has_frame = True
-		elif is_decorated:
-			has_frame = False
-		else:
-			has_frame = gdk_w.get_type_hint() is Gdk.WindowTypeHint.NORMAL
-
-		return has_frame, decoration_width, decoration_height
-
 	def get_metadata_resume(self):
 		resume = ''
 		for wn in self.buffers:
-			gdk_w = self.get_gdk_window(wn.get_xid())
+			gdk_w = gdk_window_for(wn)
 			is_decorated, decorations = gdk_w.get_decorations()
 			x, y, w, h = wn.get_geometry()
 			cx, cy, cw, ch = wn.get_client_window_geometry()
-			has_frame, decoration_width, decoration_height = self.get_decoration_size(wn)
+			has_frame, decoration_width, decoration_height = decoration_size_for(wn)
 			resume += '{:10} ({:5} {:3d},{:3d}) g({:3d},{:3d}) c_g({:3d},{:3d}) hint({:8}) dec({} {})\n'.format(
 				str(wn.get_name()[:10]),
 				str(has_frame), decoration_width, decoration_height,
