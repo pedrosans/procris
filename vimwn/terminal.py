@@ -18,14 +18,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os, glob, subprocess, shlex, re
 from vimwn.command import Command
 
-COMMANDS_GLOB = [ "/usr/bin/*", "/snap/bin/*", os.path.expanduser('~/.local/bin')+'/*' ]
+COMMANDS_GLOB = ["/usr/bin/*", "/snap/bin/*", os.path.expanduser('~/.local/bin')+'/*']
 
 
 class Terminal:
 
 	def __init__(self):
 		self.aliases_map = {}
-		self.name_map= {}
+		self.name_map = {}
 		self._read_aliases()
 		self._read_commands()
 
@@ -71,8 +71,8 @@ class Terminal:
 
 		completions = self.list_bash_completions(vim_command_parameter)
 
-		completions = filter( lambda x : x.startswith(terminal_command_parameter), completions)
-		completions = filter( lambda x : x != terminal_command_parameter, completions)
+		completions = filter(lambda x : x.startswith(terminal_command_parameter), completions)
+		completions = filter(lambda x : x != terminal_command_parameter, completions)
 		return sorted(list(set(completions)))
 
 	def list_bash_completions(self, text):
@@ -83,12 +83,23 @@ class Terminal:
 
 	def query_command_names(self, name_filter):
 		names = self.name_map.keys()
-		names = filter(lambda x : x.startswith(name_filter), names)
-		names = filter(lambda x : x.strip() != name_filter, names)
+		names = filter(lambda x: x.startswith(name_filter), names)
+		names = filter(lambda x: x.strip() != name_filter, names)
 		return sorted(list(set(names)))
 
-	def execute(self, cmd):
-		subprocess.Popen(shlex.split(cmd))
+	@staticmethod
+	def execute(cmd):
+		try:
+			process = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+			stdout, stderr = process.communicate()
+			if stdout:
+				stdout = stdout.decode('utf-8')
+			if stderr:
+				stderr = stderr.decode('utf-8')
+			return stdout, stderr
+		except FileNotFoundError:
+			return None, 'Cant run {}'.format(cmd)
+
 
 LIST_ALIASE = """
 source $HOME/.bash_aliases 2>/dev/null

@@ -273,8 +273,15 @@ class Reading:
 	def bang(self, c_in):
 		vim_cmd = Command.extract_vim_command(c_in.text_input)
 		cmd = c_in.text_input.replace(vim_cmd, '', 1)
-		self.terminal.execute(cmd)
-		self.set_normal_mode()
+		stdout, stderr = Terminal.execute(cmd)
+		if stdout:
+			for line in stdout.splitlines():
+				self.messages.add(line, None)
+		if stderr:
+			for line in stderr.splitlines():
+				self.messages.add(line, 'error')
+		self.set_key_mode(c_in.time)
+		# self.set_normal_mode()
 
 	def colon(self, c_in):
 		self.set_command_mode(c_in.time)
