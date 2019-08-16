@@ -309,13 +309,12 @@ class HintLine(Gtk.Box):
 	def show(self, hints, highlight_index, auto_select_first_hint):
 		self.clear_status_line()
 		for hint in hints:
-			truncated_hint = (hint[:47] + '...') if len(hint) > 50 else hint
 			index = hints.index(hint)
 			highlighted = index == highlight_index
 			selected = index == 0 and auto_select_first_hint
 			shown = highlight_index < index
 
-			if self.page_items + len(truncated_hint) + 3 > self.page_size:
+			if self.page_items + len(hint) + 3 > self.page_size:
 				if shown:
 					self.add_status_text('>', False)
 					break
@@ -323,8 +322,8 @@ class HintLine(Gtk.Box):
 					self.clear_status_line()
 					self.add_status_text('< ', False)
 
-			if self.page_items + len(truncated_hint) + 3 <= self.page_size:
-				self.add_status_text(truncated_hint, highlighted, selected=selected)
+			if self.page_items + len(hint) + 3 <= self.page_size:
+				self.add_status_text(hint, highlighted, selected=selected)
 				self.add_status_text('  ', False)
 			elif highlighted:
 				self.add_status_text(' ' * (self.page_size - 3) + '', False)
