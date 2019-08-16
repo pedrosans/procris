@@ -173,7 +173,7 @@ class Reading:
 			self.hint_status.clear_state()
 
 		if self.hint_status.hinting:
-			self.view.hint(self.hint_status.hints, self.hint_status.highlight_index, self.configurations.is_auto_select_first_hint())
+			self.view.hint(self.hint_status.hints, self.hint_status.highlight_index, self.hint_status.should_auto_hint())
 		else:
 			self.view.clean_hints()
 
@@ -200,7 +200,7 @@ class Reading:
 			if len(self.hint_status.hints) == 1:
 				self.view.clean_hints()
 			else:
-				self.view.hint(self.hint_status.hints, self.hint_status.highlight_index, self.configurations.is_auto_select_first_hint())
+				self.view.hint(self.hint_status.hints, self.hint_status.highlight_index, self.hint_status.should_auto_hint())
 			self.view.set_command(self.hint_status.mount_input())
 
 		return True
@@ -209,33 +209,31 @@ class Reading:
 		if not self.reading_command:
 			return
 
-		time = Gtk.get_current_event_time()
+		gtk_time = Gtk.get_current_event_time()
 		cmd = self.view.get_command()
-		command_input = CommandInput(time=time, text=cmd).parse()
 
-		self.command_history.append(cmd)
-
-		if (self.configurations.is_auto_select_first_hint()
-				and self.hint_status.highlight_index == -1
-				and self.hint_status.hinting ):
+		if self.hint_status.should_auto_hint():
 			self.hint_status.cycle(1)
 			cmd = self.hint_status.mount_input()
+
+		self.command_history.append(cmd)
 
 		if Command.has_multiple_commands(cmd):
 			raise Exception('TODO: iterate multiple commands')
 
 		command = Command.get_matching_command(cmd)
+		command_input = CommandInput(time=gtk_time, text=cmd).parse()
 
 		if command:
 			try:
 				command.function(command_input)
-				self.windows.commit_navigation(time)
+				self.windows.commit_navigation(gtk_time)
 			except Exception as inst:
 				msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
 				print(traceback.format_exc())
-				self.set_key_mode(time, error_message=msg)
+				self.set_key_mode(gtk_time, error_message=msg)
 		else:
-			self.set_key_mode(time, error_message='Not an editor command: ' + cmd)
+			self.set_key_mode(gtk_time, error_message='Not an editor command: ' + cmd)
 
 	#
 	# COMMANDS

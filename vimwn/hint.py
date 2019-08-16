@@ -37,6 +37,10 @@ class HintStatus:
 		self.highlight_index = -1
 		self.original_input = None
 
+	def should_auto_hint(self):
+		return self.controller.configurations.is_auto_select_first_hint()\
+				and self.highlight_index == -1 and self.hinting
+
 	def hint(self, parsed_input):
 		self.original_input = parsed_input
 		self.highlight_index = -1

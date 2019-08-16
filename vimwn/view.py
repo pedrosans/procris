@@ -83,7 +83,7 @@ class NavigatorWindow(Gtk.Window):
 		if any comple command
 		"""
 		self._calculate_width()
-		self.hint_line.show(hints, highlight_index, 0 if auto_select_first_hint and highlight_index == -1 else None)
+		self.hint_line.show(hints, highlight_index, 0 if auto_select_first_hint else None)
 
 	def clean_hints(self):
 		"""
