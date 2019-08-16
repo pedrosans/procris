@@ -34,16 +34,20 @@ case "$1" in
 		python3 $SETUP_SCRIPT --command-packages=stdeb.command bdist_deb 1>/dev/null && echo "Binaries packaged"
 		;;
 	sources)
+		sudo apt-get install python3-distutils python3-stdeb -y 1>/dev/null
 		echo "Packaging sources version $VERSION Last package were: $LAST_VERSION"
 		$DIR/package delete
 		python3 $SETUP_SCRIPT --command-packages=stdeb.command sdist_dsc --forced-upstream-version $VERSION 1>/dev/null \
 		&& echo "New version is built" \
-		&& sed -i '15,16d' deb_dist/vimwn_$VERSION-1_source.changes \
-		&& CHANGES=$(git log master --oneline  --reverse --not $LAST_VERSION) \
-		&& xargs -I{} sed -i '15i\   * {}' deb_dist/vimwn_$VERSION-1_source.changes <<<"$CHANGES" \
+		&& CHANGES=$(git log develop --oneline  --reverse --not $LAST_VERSION) \
+		&& echo "$CHANGES" >> deb_dist/vimwn_$VERSION-1_source.changes \
 		&& echo "changes file is up to date, the package is ready to be signed/published"
+		# && sed -i '15,16d' deb_dist/vimwn_$VERSION-1_source.changes \
+		# && CHANGES=$(git log develop --oneline  --reverse --not $LAST_VERSION) \
+		# && xargs -I{} sed -i '15i\   * {}' deb_dist/vimwn_$VERSION-1_source.changes <<<"$CHANGES" \
 		;;
 	publish)
+		sudo apt-get install devscripts gnupg2 -y 1>/dev/null
 		debsign -pgpg2 "$PYTHONPATH"/deb_dist/vimwn_$VERSION-1_source.changes && echo "Signed" \
 		&& cd "$PYTHONPATH"/deb_dist && dput ppa:pedrosans/vimwn vimwn_$VERSION-1_source.changes && echo "Published"
 		;;
