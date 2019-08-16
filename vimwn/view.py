@@ -316,17 +316,19 @@ class HintLine(Gtk.Box):
 
 			if self.page_items + len(hint) + 3 > self.page_size:
 				if shown:
+					if highlight_index == -1:
+						self.add_status_text(' ' * (self.page_size - 1), False)
 					self.add_status_text('>', False)
 					break
 				else:
 					self.clear_status_line()
-					self.add_status_text('< ', False)
+					self.add_status_text('< ' if highlight_index > 0 else '  ', False)
 
 			if self.page_items + len(hint) + 3 <= self.page_size:
 				self.add_status_text(hint, highlighted, selected=selected)
 				self.add_status_text('  ', False)
 			elif highlighted:
-				self.add_status_text(' ' * (self.page_size - 3) + '', False)
+				self.add_status_text(' ' * (self.page_size - 3), False)
 
 		self.show_all()
 

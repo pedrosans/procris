@@ -39,7 +39,6 @@ HISTORY_NAVIGATION_KEYS = [Gdk.KEY_Up, Gdk.KEY_Down]
 
 
 # TODO chain commands
-# TODO hint line shows only '>' if you type :b <long window title start>
 class Reading:
 
 	def __init__(self, service=None):
