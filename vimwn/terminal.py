@@ -16,9 +16,13 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os, glob, subprocess, shlex, re, traceback
+from subprocess import PIPE
+
 from vimwn.command import Command
 
 COMMANDS_GLOB = ["/usr/bin/*", "/snap/bin/*", os.path.expanduser('~/.local/bin')+'/*']
+ALIAS_PATTERN = r'^\s*alias\s+.*$'
+ALIAS_DEFINITION_GROUP = r'^\s*alias\s+(.*)$'
 
 
 class Terminal:
@@ -36,16 +40,20 @@ class Terminal:
 		self._read_commands()
 
 	def _read_aliases(self):
-		proc = subprocess.Popen(LIST_ALIASE, executable='bash', shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+		proc = subprocess.Popen(['bash', '-ic', 'alias'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
 		result = proc.communicate()[0].decode('utf-8')
-		for alias_line in result.splitlines():
-			name, cmd = Terminal.parse_alias_line(alias_line)
-			self.aliases_map[name] = cmd
+		for stdout_line in result.splitlines():
+			if not re.match(ALIAS_PATTERN, stdout_line):
+				continue
+			aliases_definition = Terminal.parse_alias_line(stdout_line)
+			for alias_definition in aliases_definition:
+				name, cmd = alias_definition
+				self.aliases_map[name] = cmd
 
 	@staticmethod
 	def parse_alias_line(line):
-		aliases_definition = re.search(r'^\s*alias\s+(.*)$', line).group(1)
-		aliases = re.compile(r'(?<=\')\s+(?=[^\']+=\$?\'.*\')').split(aliases_definition)
+		aliases_definition = re.search(ALIAS_DEFINITION_GROUP, line).group(1)
+		aliases = re.split(r'(?<=\')\s+(?=[^\']+=\$?\'.*\')', aliases_definition)
 		result = []
 		for alias in aliases:
 			name = re.search(r'(.*?)=', alias).group(1)
@@ -64,23 +72,25 @@ class Terminal:
 
 	def list_completions(self, command_input):
 		if command_input.terminal_command_parameter:
-			return self.query_command_parameters(command_input)
+			return Terminal.query_command_parameters(command_input)
 		else:
 			return self.query_command_names(command_input.terminal_command)
 
-	def query_command_parameters(self, command_input):
+	@staticmethod
+	def query_command_parameters(command_input):
 
-		completions = self.list_bash_completions(command_input.vim_command_parameter)
+		completions = Terminal.list_bash_completions(command_input.vim_command_parameter)
 
-		completions = filter(lambda x : x.startswith(command_input.terminal_command_parameter), completions)
-		completions = filter(lambda x : x != command_input.terminal_command_parameter, completions)
+		completions = filter(lambda x: x.startswith(command_input.terminal_command_parameter), completions)
+		completions = filter(lambda x: x != command_input.terminal_command_parameter, completions)
 		return sorted(list(set(completions)))
 
-	def list_bash_completions(self, text):
-		cmd = SOURCE + 'get_completions \'' + text + '\''
-		proc = subprocess.Popen(cmd, executable='bash', shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
+	@staticmethod
+	def list_bash_completions(text):
+		cmd = COMPLETIONS_FUNCTION + 'get_completions \'' + text + '\''
+		proc = subprocess.Popen(cmd, executable='bash', shell=True, stdin=PIPE, stdout=PIPE)
 		result = proc.communicate()[0].decode('utf-8')
-		return map(lambda x : x.strip(), result.splitlines())
+		return map(lambda x: x.strip(), result.splitlines())
 
 	def query_command_names(self, name_filter):
 		names = list(self.name_map.keys()) + list(self.aliases_map.keys())
@@ -90,10 +100,10 @@ class Terminal:
 		return sorted(list(set(names)))
 
 	def execute(self, cmd):
-		if cmd in self.aliases_map.keys:
+		if cmd in self.aliases_map.keys():
 			cmd = self.aliases_map[cmd]
 		try:
-			process = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
+			process = subprocess.Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
 			stdout, stderr = process.communicate(timeout=3)
 			if stdout:
 				stdout = stdout.decode('utf-8')
@@ -108,15 +118,13 @@ class Terminal:
 
 
 LIST_ALIASE = """
-source $HOME/.bash_aliases 2>/dev/null
-alias
 """
 #
 # Author: Brian Beffa <brbsix@gmail.com>
 # Original source: https://brbsix.github.io/2015/11/29/accessing-tab-completion-programmatically-in-bash/
 # License: LGPLv3 (http://www.gnu.org/licenses/lgpl-3.0.txt)
 #
-SOURCE = """
+COMPLETIONS_FUNCTION = """
 get_completions(){
 	local completion COMP_CWORD COMP_LINE COMP_POINT COMP_WORDS COMPREPLY=()
 

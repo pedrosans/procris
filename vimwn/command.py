@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import gi, re
+gi.require_version('Gdk', '3.0')
 from gi.repository import Gdk
 
 VIM_COMMAND_PATTERN = r'^\s*(\w+|!)'
