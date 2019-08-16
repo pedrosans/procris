@@ -49,28 +49,24 @@ class HintStatus:
 
 	def list_hints(self, parsed_input):
 		command = Command.get_matching_command(parsed_input.text)
-		if not parsed_input.vim_command_spacer and (not command or command.name != '!'):
-			return Command.hint_vim_command(parsed_input.text)
-		if not command:
-			return None
-		if parsed_input.vim_command_spacer or command.name == '!':
+		if command and (parsed_input.vim_command_spacer or command.name == '!'):
 			return command.hint_vim_command_parameter(self.controller, parsed_input)
+		elif not parsed_input.vim_command_spacer:
+			return Command.hint_vim_command(parsed_input.text)
+		else:
+			return None
 
 	def mount_input(self):
-		o_in = self.original_input
-		if self.highlight_index == -1:
-			return o_in.text
 		i = self.highlight_index
-		if o_in.terminal_command_spacer:
-			return o_in.vim_command + o_in.vim_command_spacer + o_in.terminal_command + o_in.terminal_command_spacer + (
-					self.hints[i] if i > -1 else
-					o_in.terminal_command_parameter)
-		elif o_in.vim_command_spacer or (o_in.vim_command == '!' and i > -1):
-			return o_in.vim_command + o_in.vim_command_spacer + (
-					self.hints[i] if i > -1 else
-					o_in.vim_command_parameter)
+		o_in = self.original_input
+		if i == -1:
+			return o_in.text
+		elif o_in.terminal_command_spacer:
+			return o_in.mount_vim_command() + o_in.terminal_command + o_in.terminal_command_spacer + self.hints[i]
+		elif o_in.vim_command_spacer or o_in.vim_command == '!':
+			return o_in.mount_vim_command() + self.hints[i]
 		else:
-			return self.hints[i] if i > -1 else o_in.vim_command
+			return o_in.colon_spacer + self.hints[i]
 
 	def cycle(self, direction):
 		if len(self.hints) == 1:

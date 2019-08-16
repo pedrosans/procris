@@ -19,8 +19,6 @@ import gi, re
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gdk
 
-VIM_COMMAND_PATTERN = r'^\s*(\w+|!)'
-
 
 class Command:
 
@@ -134,7 +132,7 @@ class CommandInput:
 		self.time = time
 		self.text = text
 		self.keyval = keyval
-		self.vim_command_left_pad = None
+		self.colon_spacer = None
 		self.vim_command = None
 		self.vim_command_spacer = None
 		self.vim_command_parameter = None
@@ -146,23 +144,29 @@ class CommandInput:
 		if not self.text:
 			return self
 
-		match = re.match(VIM_COMMAND_PATTERN, self.text)
+		match = re.match(r'^(\s*)(\w+|!)(.*)', self.text)
 
 		if not match:
 			return self
 
-		self.vim_command = match.group(1)
+		self.colon_spacer = match.group(1)
+		self.vim_command = match.group(2)
+		parameter_text = match.group(3)
 
-		parameter_text = self.text.replace(self.vim_command, '', 1)
-		self.vim_command_spacer = re.match(r'^\s*', parameter_text).group()
-		self.vim_command_parameter = parameter_text.replace(self.vim_command_spacer, '', 1)
+		grouped_parameter = re.match(r'^(\s*)(.*)', parameter_text)
+		self.vim_command_spacer = grouped_parameter.group(1)
+		self.vim_command_parameter = grouped_parameter.group(2)
+
 		if self.vim_command == '!' and self.vim_command_parameter:
-			self.terminal_command = re.match(r'^\s*\w+', self.vim_command_parameter).group()
-			parameter_text = self.vim_command_parameter.replace(self.terminal_command, '', 1)
-			self.terminal_command_spacer = re.match(r'^\s*', parameter_text).group()
-			self.terminal_command_parameter = parameter_text.replace(self.terminal_command_spacer, '', 1)
-		# self.print()
+			grouped_terminal_command = re.match(r'^(\w+)(\s*)(.*)', self.vim_command_parameter)
+			self.terminal_command = grouped_terminal_command.group(1)
+			self.terminal_command_spacer = grouped_terminal_command.group(2)
+			self.terminal_command_parameter = grouped_terminal_command.group(3)
+
 		return self
+
+	def mount_vim_command(self):
+		return self.colon_spacer + self.vim_command + self.vim_command_spacer
 
 	def print(self):
 		print('------------------------------------------')
