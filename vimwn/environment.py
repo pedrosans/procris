@@ -24,7 +24,7 @@ VIMWN_DESKTOP = 'vimwn.desktop'
 VIMWN_PACKAGE = 'vimwn'
 DEFAULT_PREFIX_KEY = '<ctrl>q'
 DEFAULT_LIST_WORKSPACES = 'true'
-DEFAULT_COMPACT_OPTION = 'false'
+DEFAULT_COMPACT_OPTION = 'true'
 DEFAULT_POSITION = 'bottom'
 DEFAULT_WIDTH = '800'
 DEFAULT_AUTO_HINT = 'true'
@@ -40,7 +40,7 @@ class Configurations:
 		self.autostart_file = os.path.join(autostart_dir, VIMWN_DESKTOP)
 
 		self.parser = ConfigParser(interpolation=None)
-		self.parser.read(self.get_config_file())
+		self.parser.read(self.get_config_file_path())
 		need_write = False
 		if not self.parser.has_section('interface'):
 			self.parser.add_section('interface')
@@ -70,11 +70,17 @@ class Configurations:
 			self.parser.set('interface', 'icon', 'default')
 			need_write = True
 		if need_write:
-			with open(self.get_config_file(), 'w') as f:
+			with open(self.get_config_file_path(), 'w') as f:
 				self.parser.write(f)
 
+	def get_config_dir(self):
+		d = base.load_first_config(VIMWN_PACKAGE)
+		if not d:
+			d = base.save_config_path(VIMWN_PACKAGE)
+		return d
+
 	def reload(self):
-		self.parser.read(self.get_config_file())
+		self.parser.read(self.get_config_file_path())
 
 	def is_list_workspaces(self):
 		return self.parser.getboolean('interface', 'list_workspaces')
@@ -87,12 +93,6 @@ class Configurations:
 
 	def get_prefix_key(self):
 		return self.parser.get('interface', 'prefix_key')
-
-	def get_command_prefix_key(self):
-		try:
-			return self.parser.get('interface', 'command_prefix_key')
-		except configparser.NoOptionError:
-			return None
 
 	def get_position(self):
 		return self.parser.get('interface', 'position')
@@ -120,21 +120,14 @@ class Configurations:
 
 	def set_icon(self, icon):
 		self.parser.set('interface', 'icon', icon)
-		with open(self.get_config_file(), 'w') as f:
+		with open(self.get_config_file_path(), 'w') as f:
 			self.parser.write(f)
 
-	def get_css_file(self):
-		try:
-			path = self.parser.get('interface', 'css_file')
-			return os.path.expanduser(path)
-		except configparser.NoOptionError:
-			return None
+	def get_css_file_path(self):
+		return os.path.join(self.get_config_dir(), "vimwn.css")
 
-	def get_config_file(self):
-		d = base.load_first_config(VIMWN_PACKAGE)
-		if not d:
-			d = base.save_config_path(VIMWN_PACKAGE)
-		return os.path.join(d, "vimwn.cfg")
+	def get_config_file_path(self):
+		return os.path.join(self.get_config_dir(), "vimwn.cfg")
 
 	def is_autostart(self):
 		dfile = desktop.DesktopEntry(self.autostart_file)

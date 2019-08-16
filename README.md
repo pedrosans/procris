@@ -2,13 +2,16 @@
 Maps Vim window commands to Libwnck functions to move and navigate around X windows. As vimwn uses Libwnck to manipulate windows, it only works on X11
 
 ## Usage
-X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q</kbd> by default, followed by:
+X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q</kbd> by default, followed by a command
 
-### Navigation key combinations
+### Commands
+
+##### Windows
+
 
 <kbd>prefix key</kbd> + <kbd>w</kbd> Move focus to the window below/right of the current one
 
-<kbd>prefix key</kbd> + <kbd>o</kbd> Make the current window the only one on the screen.  All other windows are minimized.
+<kbd>prefix key</kbd> + <kbd>prefix key</kbd> Also move focus to the window below/right of the current one to emulate the <kbd>ctrl + w</kbd> + <kbd>ctrl + w</kbd> sequence in Vim, even if the prefix key is not mapped to <kbd>ctrl + w</kbd>
 
 <kbd>prefix key</kbd> + <kbd>h</kbd> Move to the window on the left
 
@@ -32,31 +35,36 @@ X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q<
 
 <kbd>prefix key</kbd> + <kbd>=</kbd> Make top 2 windows equally high and wide
 
-### Command key combinations
+`:bd[elete] {winname}` Close window {winname} (default: current buffer)
 
-<kbd>prefix key</kbd> + <kbd>q</kbd> Quit current window
+`:bd[elete] [N]` Close window [N] (default: current buffer) and delete it from the window list
 
-### Usage key combinations
-
-<kbd>prefix key</kbd> + <kbd>esq</kbd> or <kbd>prefix key</kbd> + <kbd>ctrl + [</kbd> Quit vimwn operation and close its UI
-
-### Window commands
-
-`:buffers` `:ls` List windows
-
-`:only` `:on` Make the current window the only one on the screen
-
-`:b[uffer] {bufname}` Open window for {bufname}
+`:b[uffer] {winname}` Open window {winname}
 
 `:b[uffer] [N]` Open window [N] from the window list
 
-`:bd[elete] {bufname}` Close window for {bufname} (default: corrent buffer) and delete it from the window list
+`:buffers` `:ls` List windows
 
-`:bd[elete] [N]` Close window [N] (default: corrent buffer) and delete it from the window list
+`:centralize` `:ce` Centralize the active window
 
-`:maximizes` `:ma` Maximize active window
+`:only` `:on` 
 
-`:centralize` `:ce` Centralize active window
+<kbd>prefix key</kbd> + <kbd>o</kbd> Make the active window the only one on the screen.  All other windows are minimized.
+
+`:maximize` `:ma` Maximize the active window
+
+`:q[uit]` 
+
+<kbd>prefix key</kbd> + <kbd>q</kbd> Minimize the active window
+
+##### General
+
+`:!{cmd}` Execute {cmd} with the shell
+
+`:e[dit] {appname}` Launch {appname}
+
+<kbd>prefix key</kbd> + <kbd>esq</kbd> or <kbd>prefix key</kbd> + <kbd>ctrl + [</kbd> Quit vimwn operation and close its UI
+
 
 ## Installation
 
@@ -79,7 +87,7 @@ X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q<
 
 		on Unbuntu:
 
-		```
+		```bash
 		sudo apt-get install python3-distutils gir1.2-gtk-3.0 gir1.2-wnck-3.0 \
 		gir1.2-appindicator3-0.1 gir1.2-keybinder-3.0 libwnck-3-0             \
 		python3-gi-cairo python3-xdg python3-dbus python3-setproctitle
@@ -113,20 +121,19 @@ X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q<
 
 ## Customization
 
-Configuration file is located at `$HOME/.config/vimwn/vimwn.cfg` and enables:
+##### Configuration file is located at `$HOME/.config/vimwn/vimwn.cfg` and enables:
 
 Section `[interface]` | Customization options
 -|-
-`prefix_key`| comma separated list of prefix keybindings, defauld is <kbd>ctrl+q</kbd>
-`command_prefix_key`| <kbd>prefix key</kbd> for opening vimwn in command line mode
-`list_workspaces`| if buffers command should list windows from all workspaces, default is `true`
-`auto_hint`| automatic command hints in the status line, default is `true`
+`prefix_key`| comma separated list of prefix keybindings. Defauld is <kbd>ctrl+q</kbd>
+`list_workspaces`| if buffers command should list windows from all workspaces. Default is `true`
 `position`| `top`, `middle` and `bottom`. Default is `bottom`
-`width`| interface width in pixels or `100%` if the it should span the entire screen
-`auto_hint` | show hints for the command being typed. Default is `true`
+`width`| interface width in pixels or `100%` if the it should span the entire screen. Default is 800
+`compact`| `false` to large icons like Alt + Tab window switcher or `true` for a compact version listing apps in the status line. Default is `true`
+`auto_hint` | show hints for the command as it is being typed. Default is `true`
 `auto_select_first_hint` | if the fist option offered in the hint bar should be selected automatically. Default is `true`
 
-Example:
+`vimwn.cfg` example:
 
 ```
 [interface]
@@ -134,5 +141,17 @@ prefix_key = <ctrl>q,<ctrl>w
 auto_hint = true
 list_workspaces = true
 position = midle
-width = 800
+width = 100%
+```
+
+##### The style can be customized by creating and editing `$HOME/.config/vimwn/vimwn.css`
+
+The default CSS can be found and used as a reference at [vimwn/view.py](vimwn/view.py)
+
+`vimwn.css` example:
+
+```css
+* {
+	font-size: 14pt;
+}
 ```

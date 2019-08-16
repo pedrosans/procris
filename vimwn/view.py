@@ -238,11 +238,13 @@ class NavigatorWindow(Gtk.Window):
 		if Gtk.get_major_version() >= 3 and Gtk.get_minor_version() >= 20:
 			self.apply_css(GTK_3_20_CSS)
 
-		css_file = self.controller.configurations.get_css_file()
-		if css_file:
-			with open(css_file, 'r') as custom_css:
+		css_file_path = self.controller.configurations.get_css_file_path()
+		try:
+			with open(css_file_path, 'r') as custom_css:
 				s = custom_css.read()
 				self.apply_css(bytes(s, 'utf-8'))
+		except FileNotFoundError:
+			print('warn: to customize the interface, create and edit the file {}'.format(css_file_path))
 
 	def apply_css(self, css):
 		provider = Gtk.CssProvider()
