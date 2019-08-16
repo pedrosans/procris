@@ -280,7 +280,7 @@ class Reading:
 		if not cmd:
 			self.set_key_mode(time, error_message='ERROR: empty command')
 			return
-		stdout, stderr = Terminal.execute(cmd)
+		stdout, stderr = self.terminal.execute(cmd)
 		if stdout:
 			for line in stdout.splitlines():
 				self.messages.add(line, None)

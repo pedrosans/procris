@@ -39,9 +39,19 @@ class Terminal:
 		proc = subprocess.Popen(LIST_ALIASE, executable='bash', shell=True, stdin=subprocess.PIPE, stdout=subprocess.PIPE)
 		result = proc.communicate()[0].decode('utf-8')
 		for alias_line in result.splitlines():
-			name = re.search(r'^\s*alias\s(.*?)\s*=', alias_line).group(1)
-			cmd = re.search(r'=\s*\'(.*?)\'', alias_line).group(1)
+			name, cmd = Terminal.parse_alias_line(alias_line)
 			self.aliases_map[name] = cmd
+
+	@staticmethod
+	def parse_alias_line(line):
+		aliases_definition = re.search(r'^\s*alias\s+(.*)$', line).group(1)
+		aliases = re.compile(r'(?<=\')\s+(?=[^\']+=\$?\'.*\')').split(aliases_definition)
+		result = []
+		for alias in aliases:
+			name = re.search(r'(.*?)=', alias).group(1)
+			cmd = re.search(r'=\$?\'(.*)\'', alias).group(1)
+			result.append([name, cmd])
+		return result
 
 	def _read_commands(self):
 		for commands_glob in COMMANDS_GLOB:
@@ -73,17 +83,18 @@ class Terminal:
 		return map(lambda x : x.strip(), result.splitlines())
 
 	def query_command_names(self, name_filter):
-		names = self.name_map.keys()
+		names = list(self.name_map.keys()) + list(self.aliases_map.keys())
 		if name_filter:
 			names = filter(lambda x: x.startswith(name_filter), names)
 			names = filter(lambda x: x.strip() != name_filter, names)
 		return sorted(list(set(names)))
 
-	@staticmethod
-	def execute(cmd):
+	def execute(self, cmd):
+		if cmd in self.aliases_map.keys:
+			cmd = self.aliases_map[cmd]
 		try:
 			process = subprocess.Popen(shlex.split(cmd), stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
-			stdout, stderr = process.communicate()
+			stdout, stderr = process.communicate(timeout=3)
 			if stdout:
 				stdout = stdout.decode('utf-8')
 			if stderr:
