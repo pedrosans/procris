@@ -49,7 +49,6 @@ class Command:
 		['maximize'		,'^\s*(maximize|ma)\s*$'			,None									,windows.maximize			    	],
 		['reload'		,'^\s*(reload)\s*$'					,None									,controller.reload					],
 		['decorate'		,'^\s*(decorate)\s+\w+.*$'			,None									,windows.decorate					],
-		['decorate'		,'^\s*(decorate)\s*$'	    		,None									,windows.decorate					],
 		['report'		,'^\s*(report)\s*$'	          		,None									,controller.debug					],
 		['move'			,'^\s*(move)\s+\w+.*$'				,None									,windows.move						],
 		['quit'			,'^\s*(quit|q)\s*$'					,[Gdk.KEY_q]							,controller.quit					],

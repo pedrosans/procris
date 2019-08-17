@@ -244,7 +244,7 @@ class NavigatorWindow(Gtk.Window):
 				s = custom_css.read()
 				self.apply_css(bytes(s, 'utf-8'))
 		except FileNotFoundError:
-			print('warn: to customize the interface, create and edit the file {}'.format(css_file_path))
+			print('info: to customize the interface, create and edit the file {}'.format(css_file_path))
 
 	def apply_css(self, css):
 		provider = Gtk.CssProvider()

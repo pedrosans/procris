@@ -42,7 +42,8 @@ DECORATION_MAP = {'ALL': Gdk.WMDecoration.ALL,
 					'MENU': Gdk.WMDecoration.MENU,
 					'MINIMIZE ': Gdk.WMDecoration.MINIMIZE,
 					'RESIZEH': Gdk.WMDecoration.RESIZEH,
-					'TITLE': Gdk.WMDecoration.TITLE}
+					'TITLE': Gdk.WMDecoration.TITLE,
+					'NONE': 0}
 
 INCREMENT = 0.1
 DECREMENT = -0.1
@@ -259,10 +260,8 @@ class Windows:
 	def navigate_down(self, c_in):
 		self.navigate(1, VERTICAL)
 
-	#  TODO add NONE option
 	def decorate(self, c_in):
 		decoration_parameter = c_in.vim_command_parameter
-		decoration = 0
 		if decoration_parameter in DECORATION_MAP.keys():
 			decoration = DECORATION_MAP[decoration_parameter]
 		gdk_window = gdk_window_for(self.active)
