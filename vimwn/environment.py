@@ -31,6 +31,7 @@ DEFAULT_AUTO_HINT = 'true'
 DEFAULT_AUTO_SELECT_FIRST_HINT = 'true'
 
 
+# TODO default place for css file
 class Configurations:
 
 	def __init__(self):
@@ -96,7 +97,6 @@ class Configurations:
 	def get_position(self):
 		return self.parser.get('interface', 'position')
 
-	#TODO how to avoid to need to scape %
 	def get_width(self):
 		return self.parser.get('interface', 'width')
 

@@ -20,7 +20,6 @@ from vimwn.command import CommandInput
 from vimwn.terminal import Terminal
 
 
-# TODO move to status.py
 class HintStatus:
 
 	def __init__(self, controller):

@@ -259,8 +259,9 @@ class Windows:
 	def navigate_down(self, c_in):
 		self.navigate(1, VERTICAL)
 
+	#  TODO add NONE option
 	def decorate(self, c_in):
-		decoration_parameter = Command.extract_text_parameter(c_in.text)
+		decoration_parameter = c_in.vim_command_parameter
 		decoration = 0
 		if decoration_parameter in DECORATION_MAP.keys():
 			decoration = DECORATION_MAP[decoration_parameter]
@@ -269,7 +270,7 @@ class Windows:
 		self.staging = True
 
 	def move(self, c_in):
-		parameter = Command.extract_text_parameter(c_in.text)
+		parameter = c_in.vim_command_parameter
 		parameter_a = parameter.split()
 		self.move_to(int(parameter_a[0]), int(parameter_a[1]))
 

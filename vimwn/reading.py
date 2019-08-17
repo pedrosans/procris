@@ -249,7 +249,7 @@ class Reading:
 			self.service.reload()
 
 	def edit(self, c_in):
-		name = Command.extract_text_parameter(c_in.text)
+		name = c_in.vim_command_parameter
 		if not name or not name.strip():
 			self.set_normal_mode()
 			return
@@ -316,7 +316,7 @@ class Reading:
 		self.set_key_mode(c_in.time)
 
 	def open_indexed_buffer(self, c_in):
-		buffer_number = Command.extract_number_parameter(c_in.text)
+		buffer_number = c_in.vim_command_parameter
 		index = int(buffer_number) - 1
 		if index < len(self.windows.buffers):
 			self.windows.show(self.windows.buffers[index])
@@ -324,7 +324,7 @@ class Reading:
 			self.set_key_mode(time, error_message='Buffer {} does not exist'.format(buffer_number))
 
 	def open_named_buffer(self, c_in):
-		window_title = Command.extract_text_parameter(c_in.text)
+		window_title = c_in.vim_command_parameter
 		w = self.windows.find_by_name(window_title)
 		if w:
 			self.windows.show(w)
@@ -352,7 +352,7 @@ class Reading:
 		self.set_normal_mode()
 
 	def delete_named_buffer(self, c_in):
-		window_title = Command.extract_text_parameter(c_in.text)
+		window_title = c_in.vim_command_parameter
 		w = self.windows.find_by_name(window_title)
 		if w:
 			self.windows.remove(w, c_in.time)

@@ -110,21 +110,6 @@ class Command:
 				return command
 		return None
 
-	@staticmethod
-	def extract_number_parameter(cmd):
-		return re.findall(r'\d+', cmd)[0]
-
-	# TODO remove and make it the input minus the detected command
-	@staticmethod
-	def extract_text_parameter(cmd):
-		if not cmd:
-			return None
-		command_match = re.findall(r'\s*\w+\s+', cmd)
-		if len(command_match) == 0:
-			return None
-		else:
-			return cmd[len(command_match[0]):]
-
 
 class CommandInput:
 

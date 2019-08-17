@@ -21,7 +21,6 @@ from gi.repository import Gtk, Pango
 ENTER_TO_CONTINUE = 'Press ENTER or type command to continue'
 
 
-# TODO move to status.py
 class Messages:
 
 	def __init__(self, controller, windows):
