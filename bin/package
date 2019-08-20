@@ -24,6 +24,7 @@ case "$1" in
 		[ -f $PYTHONPATH/vimwn-*.tar.gz ] && rm $PYTHONPATH/vimwn-*.tar.gz && echo "	build artifact - removed"
 		[ -d $PYTHONPATH/build ] && sudo rm -rf $PYTHONPATH/build && echo "	build directory - removed"
 		[ -d $PYTHONPATH/deb_dist ] && rm -r $PYTHONPATH/deb_dist && echo "	build dependency dirs - removed"
+		[ -d $PYTHONPATH/dist ] && rm -r $PYTHONPATH/dist && echo "	source package dir - removed"
 		[ -f $PYTHONPATH/installed_files.txt -o -f $PYTHONPATH/tags -o -f $PYTHONPATH/vimwn-*.tar.gz -o  -d $PYTHONPATH/build -o -d $PYTHONPATH/deb_dist ] \
 			&& echo "	ERROR: failed to delete build artfacts" && exit 1
 		echo "	OK:	package files are gone"
