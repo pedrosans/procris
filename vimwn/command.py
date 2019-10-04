@@ -59,13 +59,14 @@ class Command:
 
 	@staticmethod
 	def get_matching_command(command_input):
+		vim_command = command_input.vim_command
 		"""
 		Returns matching command function if any
 		"""
-		if command_input in NAME_MAP.keys():
-			return NAME_MAP[command_input]
-		elif command_input in ALIAS_MAP.keys():
-			return ALIAS_MAP[command_input]
+		if vim_command in NAME_MAP.keys():
+			return NAME_MAP[vim_command]
+		elif vim_command in ALIAS_MAP.keys():
+			return ALIAS_MAP[vim_command]
 
 		return None
 

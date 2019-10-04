@@ -47,7 +47,7 @@ class HintStatus:
 		self.hinting = self.hints and len(self.hints) > 0
 
 	def list_hints(self, parsed_input):
-		command = Command.get_matching_command(parsed_input.text)
+		command = Command.get_matching_command(parsed_input)
 		if command and (parsed_input.vim_command_spacer or command.name == '!'):
 			return command.hint_vim_command_parameter(self.controller, parsed_input)
 		elif not parsed_input.vim_command_spacer:

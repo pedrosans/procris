@@ -194,8 +194,8 @@ class Reading:
 		if Command.has_multiple_commands(cmd):
 			raise Exception('TODO: iterate multiple commands')
 
-		command = Command.get_matching_command(cmd)
 		command_input = CommandInput(time=gtk_time, text=cmd).parse()
+		command = Command.get_matching_command(command_input)
 
 		if command:
 			try:
@@ -210,8 +210,8 @@ class Reading:
 
 	def execute(self, cmd):
 		self.windows.read_screen()
-		command = Command.get_matching_command(cmd)
 		command_input = CommandInput(time=None, text=cmd).parse()
+		command = Command.get_matching_command(command_input)
 		command.function(command_input)
 
 	#
@@ -291,50 +291,49 @@ class Reading:
 		self.set_key_mode(c_in.time)
 
 	def buffer(self, c_in):
-		self.set_key_mode(c_in.time)
-
-	def open_indexed_buffer(self, c_in):
-		buffer_number = re.match(vimwn.command.GROUPED_INDEXED_BUFFER_REGEX, c_in.text).group(2)
-		index = int(buffer_number) - 1
-		if index < len(self.windows.buffers):
-			self.windows.show(self.windows.buffers[index])
-		else:
-			self.set_key_mode(time, error_message='Buffer {} does not exist'.format(buffer_number))
-
-	def open_named_buffer(self, c_in):
-		window_title = c_in.vim_command_parameter
-		w = self.windows.find_by_name(window_title)
-		if w:
-			self.windows.show(w)
-		else:
-			self.set_key_mode(c_in.time, error_message='No matching buffer for ' + window_title)
-
-	def delete_current_buffer(self, c_in):
-		if self.windows.active:
-			self.windows.remove(self.windows.active, c_in.time)
-			self.set_normal_mode()
-		else:
-			self.set_key_mode(c_in.time, error_message='There is no active window')
-
-	def delete_indexed_buffer(self, c_in):
-		to_delete = []
-		for number in re.findall(r'\d+', c_in.text):
-			index = int(number) - 1
+		buffer_number_match = re.match(vimwn.command.GROUPED_INDEXED_BUFFER_REGEX, c_in.text)
+		if buffer_number_match:
+			buffer_number = buffer_number_match.group(2)
+			index = int(buffer_number) - 1
 			if index < len(self.windows.buffers):
-				to_delete.append(self.windows.buffers[index])
+				self.windows.show(self.windows.buffers[index])
 			else:
-				self.set_key_mode(c_in.time, error_message='No buffers were deleted')
-				return
-		for window in to_delete:
-			self.windows.remove(window, c_in.time)
-		self.set_normal_mode()
-
-	def delete_named_buffer(self, c_in):
-		window_title = c_in.vim_command_parameter
-		w = self.windows.find_by_name(window_title)
-		if w:
-			self.windows.remove(w, c_in.time)
-			self.set_normal_mode()
+				self.set_key_mode(time, error_message='Buffer {} does not exist'.format(buffer_number))
+		elif c_in.vim_command_parameter:
+			window_title = c_in.vim_command_parameter
+			w = self.windows.find_by_name(window_title)
+			if w:
+				self.windows.show(w)
+			else:
+				self.set_key_mode(c_in.time, error_message='No matching buffer for ' + window_title)
 		else:
-			self.set_key_mode(c_in.time, error_message='No matching buffer for ' + window_title)
+			self.set_key_mode(c_in.time)
+
+	def delete_buffer(self, c_in):
+		if re.match('^\s*(bdelete|bd)\s*([0-9]+\s*)+$', c_in.text):
+			to_delete = []
+			for number in re.findall(r'\d+', c_in.text):
+				index = int(number) - 1
+				if index < len(self.windows.buffers):
+					to_delete.append(self.windows.buffers[index])
+				else:
+					self.set_key_mode(c_in.time, error_message='No buffers were deleted')
+					return
+			for window in to_delete:
+				self.windows.remove(window, c_in.time)
+			self.set_normal_mode()
+		elif re.match('^\s*(bdelete|bd)\s+\w+\s*$', c_in.text):
+			window_title = c_in.vim_command_parameter
+			w = self.windows.find_by_name(window_title)
+			if w:
+				self.windows.remove(w, c_in.time)
+				self.set_normal_mode()
+			else:
+				self.set_key_mode(c_in.time, error_message='No matching buffer for ' + window_title)
+		else:
+			if self.windows.active:
+				self.windows.remove(self.windows.active, c_in.time)
+				self.set_normal_mode()
+			else:
+				self.set_key_mode(c_in.time, error_message='There is no active window')
 
