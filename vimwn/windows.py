@@ -57,7 +57,9 @@ STRETCH = 1000
 
 
 def gdk_window_for(window):
-	return GdkX11.X11Window.foreign_new_for_display(GdkX11.X11Display.get_default(), window.get_xid())
+	display = GdkX11.X11Display.get_default()
+	xid = window.get_xid()
+	return GdkX11.X11Window.foreign_new_for_display(display, xid)
 
 
 def monitor_work_area_for(window):
@@ -100,15 +102,14 @@ class Windows:
 		self.screen = None
 		self.line = self.column = None
 
-	def read_screen(self, force_update=True):
+	def read_screen(self):
 		del self.buffers[:]
 		del self.visible[:]
 		self.visible_map.clear()
 		if not self.screen:
 			self.screen = Wnck.Screen.get_default()
 
-		if force_update:
-			self.screen.force_update()  # make sure we query X server
+		self.screen.force_update()  # make sure we query X server
 
 		active_workspace = self.screen.get_active_workspace()
 		for wnck_window in self.screen.get_windows():

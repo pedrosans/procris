@@ -97,6 +97,12 @@ class LayoutManager:
 
 		self.state_json = self.serializer.deserialize()
 		if self.state_json:
+			copy = self.stack.copy()
+			self.stack.sort(
+				key=lambda xid:
+					self.state_json['stack_state'][str(xid)]['stack_index']
+					if str(xid) in self.state_json['stack_state']
+					else copy.index(xid))
 			self.monitor.nmaster = self.state_json['nmaster']
 			self.monitor.mfact = self.state_json['mfact']
 		self._persist_internal_state()
@@ -108,6 +114,9 @@ class LayoutManager:
 		self.windows.screen.connect("window-closed", self._window_closed)
 		self.window_monitor_map = {}
 
+	#
+	# INTERNAL INTERFACE
+	#
 	def _persist_internal_state(self):
 		self.state_json = to_json(self.monitor, self.windows.buffers, self.stack, old_state=self.state_json)
 		self.serializer.serialize(self.state_json)
@@ -118,36 +127,67 @@ class LayoutManager:
 		else:
 			self.windows.restore_decorations(self.state_json)
 
+	#
+	# CALLBACKS
+	#
 	def _window_closed(self, screen, window):
 		if window.get_xid() in self.stack:
 			self.stack.remove(window.get_xid())
 		if window.get_pid() != os.getpid():
-			self.windows.read_screen(force_update=False)
+			self.windows.read_screen()
 			self.layout()
 
 	def _window_opened(self, screen, window):
 		if window.get_pid() != os.getpid():
-			self.windows.read_screen(force_update=False)
+			self.windows.read_screen()
 			if window not in self.windows.visible:
 				return
 			self.stack.insert(0, window.get_xid())
-			self._persist_internal_state()
 			self.apply_decoration_config()
 			self.layout()
 
 	def _state_changed(self, window, changed_mask, new_state):
 		if changed_mask & Wnck.WindowState.MINIMIZED:
-			self.windows.read_screen(force_update=False)
+			self.windows.read_screen()
 			if window in self.windows.visible:
 				self.stack.insert(0, window.get_xid())
 			else:
 				self.stack.remove(window.get_xid())
 			self.layout()
 
-	def layout(self):
+	#
+	# COMMANDS
+	#
+	def move_to_master(self, w):
+		self.windows.read_screen()
+		active = self.windows.active
+		if active:
+			old_index = self.stack.index(active.get_xid())
+			self.stack.insert(0, self.stack.pop(old_index))
+		self.layout()
 
-		for window in self.windows.buffers:
+	def increase_master_area(self, c_in):
+		self.windows.read_screen()
+		increment = c_in.parameters[0]
+		self.monitor.mfact += increment
+		self.monitor.mfact = max(0.1, self.monitor.mfact)
+		self.monitor.mfact = min(0.9, self.monitor.mfact)
+		self.layout()
+
+	def increment_master(self, c_in):
+		self.windows.read_screen()
+		increment = c_in.parameters[0]
+		self.monitor.nmaster += increment
+		self.monitor.nmaster = max(0, self.monitor.nmaster)
+		self.monitor.nmaster = min(len(self.stack), self.monitor.nmaster)
+		self.layout()
+
+	def layout(self):
+		self._persist_internal_state()
+
+		for window in self.windows.visible:
 			if window.get_xid() not in self.window_monitor_map:
+				print('adding {}-{}'.format(window.get_xid(), window.get_name()))
 				handler_id = window.connect("state-changed", self._state_changed)
 				self.window_monitor_map[window.get_xid()] = handler_id
 
@@ -170,32 +210,6 @@ class LayoutManager:
 			w = w_stack[i]
 			self.windows.set_geometry(
 				w, x=a[0] + self.gap, y=a[1] + self.gap, w=a[2] - self.gap * 2, h=a[3] - self.gap * 2)
-
-	def move_to_master(self, w):
-		self.windows.read_screen()
-		active = self.windows.active
-		if active:
-			old_index = self.stack.index(active.get_xid())
-			self.stack.insert(0, self.stack.pop(old_index))
-		self.layout()
-
-	def increase_master_area(self, c_in):
-		self.windows.read_screen()
-		increment = c_in.parameters[0]
-		self.monitor.mfact += increment
-		self.monitor.mfact = max(0.1, self.monitor.mfact)
-		self.monitor.mfact = min(0.9, self.monitor.mfact)
-		self._persist_internal_state()
-		self.layout()
-
-	def increment_master(self, c_in):
-		self.windows.read_screen()
-		increment = c_in.parameters[0]
-		self.monitor.nmaster += increment
-		self.monitor.nmaster = max(0, self.monitor.nmaster)
-		self.monitor.nmaster = min(len(self.stack), self.monitor.nmaster)
-		self._persist_internal_state()
-		self.layout()
 
 
 def centeredmaster(stack, monitor):

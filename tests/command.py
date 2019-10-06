@@ -34,6 +34,24 @@ class CommandInputTestCase(unittest.TestCase):
 		self.assertEqual(i.terminal_command_spacer, None)
 		self.assertEqual(i.terminal_command_parameter, None)
 
+	def test_parse_vim_command_with_number_parameter_without_separation(self):
+		i = CommandInput(text='b2').parse()
+		self.assertEqual(i.vim_command, 'b')
+		self.assertEqual(i.vim_command_spacer, '')
+		self.assertEqual(i.vim_command_parameter, '2')
+		self.assertEqual(i.terminal_command, None)
+		self.assertEqual(i.terminal_command_spacer, None)
+		self.assertEqual(i.terminal_command_parameter, None)
+
+	def test_parse_terminal_command(self):
+		i = CommandInput(text='!foo').parse()
+		self.assertEqual(i.vim_command, '!')
+		self.assertEqual(i.vim_command_spacer, '')
+		self.assertEqual(i.vim_command_parameter, 'foo')
+		self.assertEqual(i.terminal_command, 'foo')
+		self.assertEqual(i.terminal_command_spacer, '')
+		self.assertEqual(i.terminal_command_parameter, '')
+
 	def test_parse_empty_terminal_command(self):
 		i = CommandInput(text='!  ').parse()
 		self.assertEqual(i.vim_command, '!')

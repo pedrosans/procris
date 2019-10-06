@@ -129,9 +129,9 @@ def install_glib_handler(sig):
 		print("Can't install GLib signal handler, too old gi.")
 
 
-def unix_signal_handler(self, *args):
-	signal = args[0]
-	if signal in (1, SIGHUP, 2, SIGINT, 15, SIGTERM):
+def unix_signal_handler(*args):
+	signal_val = args[0]
+	if signal_val in (1, SIGHUP, 2, SIGINT, 15, SIGTERM):
 		stop()
 
 

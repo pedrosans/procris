@@ -219,9 +219,8 @@ class Reading:
 	#
 	def start(self, c_in):
 		event_time = c_in.time
-		self.set_key_mode(event_time)
-
 		self.view.present_with_time(event_time)
+		self.set_key_mode(event_time)
 		self.view.get_window().focus(event_time)
 
 	def reload(self, c_in):
@@ -310,7 +309,7 @@ class Reading:
 			self.set_key_mode(c_in.time)
 
 	def delete_buffer(self, c_in):
-		if re.match('^\s*(bdelete|bd)\s*([0-9]+\s*)+$', c_in.text):
+		if re.match(r'^\s*(bdelete|bd)\s*([0-9]+\s*)+$', c_in.text):
 			to_delete = []
 			for number in re.findall(r'\d+', c_in.text):
 				index = int(number) - 1
@@ -322,7 +321,7 @@ class Reading:
 			for window in to_delete:
 				self.windows.remove(window, c_in.time)
 			self.set_normal_mode()
-		elif re.match('^\s*(bdelete|bd)\s+\w+\s*$', c_in.text):
+		elif re.match(r'^\s*(bdelete|bd)\s+\w+\s*$', c_in.text):
 			window_title = c_in.vim_command_parameter
 			w = self.windows.find_by_name(window_title)
 			if w:

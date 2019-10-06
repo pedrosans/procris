@@ -90,18 +90,19 @@ class CommandInput:
 		if not self.text:
 			return self
 
-		match = re.match(r'^(\s*)(\w+|!)(.*)', self.text)
+		match = re.match(r'^(\s*)([a-zA-Z]+|!)(.*)', self.text)
 
 		if not match:
 			return self
 
 		self.colon_spacer = match.group(1)
 		self.vim_command = match.group(2)
-		parameter_text = match.group(3)
 
-		grouped_parameter = re.match(r'^(\s*)(.*)', parameter_text)
-		self.vim_command_spacer = grouped_parameter.group(1)
-		self.vim_command_parameter = grouped_parameter.group(2)
+		vim_command_parameter_text = match.group(3)
+		parameters_match = re.match(r'^(\s*)(.*)', vim_command_parameter_text)
+
+		self.vim_command_spacer = parameters_match.group(1)
+		self.vim_command_parameter = parameters_match.group(2)
 
 		if self.vim_command == '!' and self.vim_command_parameter:
 			grouped_terminal_command = re.match(r'^(\w+)(\s*)(.*)', self.vim_command_parameter)
