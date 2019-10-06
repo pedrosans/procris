@@ -17,7 +17,7 @@ delete:
 	echo "	OK: package files are gone"
 #	installs locally
 install: delete
-	sudo apt-get install -y python3 gir1.2-gtk-3.0 gir1.2-wnck-3.0 gir1.2-appindicator3-0.1 gir1.2-keybinder-3.0 libwnck-3-0 python3-gi-cairo python3-xdg python3-dbus python3-setproctitle 1>/dev/null
+	sudo apt-get install -y python3 gir1.2-gtk-3.0 gir1.2-wnck-3.0 gir1.2-appindicator3-0.1 libwnck-3-0 python3-gi-cairo python3-xdg python3-dbus python3-setproctitle python3-xlib 1>/dev/null
 	sudo apt-get install -y python3-distutils 1>/dev/null
 	echo "	OK: vimwn dependencies"
 	sudo ${SETUP_SCRIPT} install --record $(PYTHONPATH)/installed_files.txt 1>/dev/null

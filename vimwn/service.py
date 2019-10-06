@@ -17,12 +17,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os, gi, dbus, dbus.service, signal, setproctitle, logging
 gi.require_version('Gtk', '3.0')
-gi.require_version("Keybinder", "3.0")
 from vimwn.reading import Reading
-from gi.repository import GObject, Gtk, GLib, Keybinder
+from gi.repository import GObject, Gtk, GLib
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus.gi_service import ExportedGObject
 from vimwn.status import StatusIcon
+from vimwn.keyboard import KeyboardListener
 
 SERVICE_NAME = "io.github.vimwn"
 SERVICE_OBJECT_PATH = "/io/github/vimwn"
@@ -37,19 +37,27 @@ class NavigatorService:
 		self.bus_object = None
 		self.reading = None
 		self.status_icon = None
-
-	def start(self):
-		self.reading = Reading(service=self)
-
+		self.listener = None
 		# https://lazka.github.io/pgi-docs/GLib-2.0/functions.html#GLib.log_set_handler
 		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_WARNING, self.log_function)
 		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, self.log_function)
 		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, self.log_function)
 
-		self.configure_process()
-		self.listen_user_events()
+	def start(self):
+		GObject.threads_init()
 
-		self.status_icon = StatusIcon(self.reading.configurations)
+		self.reading = Reading(service=self)
+
+		configurations = self.reading.configurations
+		normal_prefix = configurations.get_prefix_key()
+
+		self.listener = KeyboardListener(normal_prefix, callback=self.handle_key_press)
+		self.listener.start()
+		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
+
+		self.configure_process()
+
+		self.status_icon = StatusIcon(configurations)
 		self.status_icon.activate(self)
 
 		self.export_bus_object()
@@ -60,19 +68,15 @@ class NavigatorService:
 	def reload(self):
 		self.status_icon.reload()
 
-	def listen_user_events(self):
-		configurations = self.reading.configurations
-		normal_prefix = configurations.get_prefix_key()
-		Keybinder.init()
+	def handle_key_press(self, xlib_key_event):
+		GLib.idle_add(self.forward_to_main_loop, xlib_key_event, priority=GLib.PRIORITY_HIGH);
 
-		for hotkey in normal_prefix.split(","):
-			if not Keybinder.bind(hotkey, self.handle_prefix_key, None):
-				raise Exception("Could not bind the hotkey: " + hotkey)
-
-		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
-
-	def handle_prefix_key(self, key, data):
-		self.reading.start(Keybinder.get_current_event_time())
+	def forward_to_main_loop(self, xlib_key_event):
+		if xlib_key_event.hot_key:
+			self.reading.start(xlib_key_event.time)
+		else:
+			self.reading.on_window_key(xlib_key_event)
+		return False  # so GLib stops calling this callback
 
 	def log_function(self, log_domain, log_level, message):
 		if log_level is GLib.LogLevelFlags.LEVEL_WARNING:
@@ -116,6 +120,7 @@ class NavigatorService:
 
 	def stop(self):
 		Gtk.main_quit()
+		self.listener.stop()
 		self.release_bus_object()
 
 
