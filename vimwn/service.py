@@ -77,18 +77,16 @@ class NavigatorService:
 		GObject.threads_init()
 
 		self.reading = Reading(service=self)
+		self.layout_manager = LayoutManager(self.reading.windows)
 
 		configurations = self.reading.configurations
 		normal_prefix = configurations.get_prefix_key()
 
-		self.listener = KeyboardListener(normal_prefix, callback=self.handle_key_press, on_error=self.keyboard_error)
+		self.listener = KeyboardListener(unmapped_callback=self.on_x_key, on_error=self.keyboard_error)
+		self.listener.bind(normal_prefix, self.start_reading)
+		self.listener.bind('<Ctrl>Return', self.handle_layout)
 		self.listener.start()
 		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
-
-		self.layout_manager = LayoutManager(self.reading.windows)
-		
-		# TODO
-		# Keybinder.bind('<Ctrl>Return', self.handle_layout, None)
 
 		self.configure_process()
 
@@ -100,27 +98,24 @@ class NavigatorService:
 
 		print("Ending vimwn service, pid: {}".format(os.getpid()))
 
-	def reload(self):
-		self.status_icon.reload()
-
 	def keyboard_error(self, exception, *args):
 		print('Unable to listen to {}'.format(self.reading.configurations.get_prefix_key()))
 		self.stop()
 
-	def handle_key_press(self, xlib_key_event):
-		GLib.idle_add(self.forward_to_main_loop, xlib_key_event, priority=GLib.PRIORITY_HIGH);
+	def start_reading(self, x_key_event):
+		self.reading.start(x_key_event.time)
 
-	def forward_to_main_loop(self, xlib_key_event):
-		if xlib_key_event.hot_key:
-			self.reading.start(xlib_key_event.time)
-		else:
-			self.reading.on_window_key(xlib_key_event)
-		return False  # so GLib stops calling this callback
+	def on_x_key(self, x_key_event):
+		self.reading.on_window_key(x_key_event)
 
-	def handle_layout(self, key, data):
+	def handle_layout(self, x_key_event):
 		self.reading.windows.read_screen()
 		self.layout_manager.move_to_master(self.reading.windows.active)
 		self.layout_manager.layout()
+		return False
+
+	def reload(self):
+		self.status_icon.reload()
 
 	def configure_process(self):
 		setproctitle.setproctitle("vimwn")
