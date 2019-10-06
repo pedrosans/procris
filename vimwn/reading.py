@@ -49,6 +49,7 @@ class Mode:
 class Reading:
 
 	def __init__(self, service=None):
+		self.cmd_handler_ids = []
 		self.mode = Mode.NORMAL
 		self.view = None
 		self.last_out = self.last_start = 0
@@ -70,6 +71,9 @@ class Reading:
 		self.multiplier = ''
 
 	def _clean_command_state(self):
+		for handler_id in self.cmd_handler_ids:
+			self.view.entry.disconnect(handler_id)
+		self.cmd_handler_ids.clear()
 		self.hint_status.clear_state()
 
 	def _internal_reload(self, time):
@@ -82,8 +86,6 @@ class Reading:
 	def create_and_install_view(self):
 		self.view = NavigatorWindow(self, self.windows, self.messages)
 		self.view.connect("focus-out-event", self.end)
-		self.view.entry.connect("key-release-event", self.on_entry_key_release)
-		self.view.entry.connect("key-press-event", self.on_entry_key_press)
 		self.view.entry.connect("activate", self.on_command, None)
 
 	def start(self, event_time=0):
@@ -123,7 +125,14 @@ class Reading:
 
 	def set_command_mode(self, time):
 		self.mode = Mode.COMMAND
+
 		self.view.show(time)
+
+		r_id = self.view.entry.connect("key-release-event", self.on_entry_key_release)
+		p_id = self.view.entry.connect("key-press-event", self.on_entry_key_press)
+
+		self.cmd_handler_ids.append(r_id)
+		self.cmd_handler_ids.append(p_id)
 
 	def in_command_mode(self):
 		return self.mode == Mode.COMMAND
@@ -165,11 +174,6 @@ class Reading:
 			return False
 
 		if not self.view.entry.get_text().strip():
-			if event.keyval == Gdk.KEY_colon:
-				# colon key test: it's an edge case, the key press was sent to open the command entry
-				self.view.entry.set_text(':')
-				self.view.entry.set_position(-1)
-				return True
 			self.set_key_mode(event.time)
 			return True
 

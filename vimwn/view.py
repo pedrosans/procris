@@ -145,11 +145,10 @@ class NavigatorWindow(Gtk.Window):
 		if self.controller.in_command_mode():
 			self.entry.set_can_focus(True)
 			self.entry.grab_focus()
-			self.entry.set_text('')
-			self.entry.set_position(0)
+			self.entry.set_text(':')
+			self.entry.set_position(-1)
 		else:
 			self.entry.set_text(self.messages.command_placeholder)
-			# self.entry.set_position(-1)
 			self.entry.hide()
 			self.entry.show()  # cause entry to lose focus
 			self.entry.set_can_focus(False)
