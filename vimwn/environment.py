@@ -64,6 +64,12 @@ class Configurations:
 		if not self.parser.has_option('interface', 'icon'):
 			self.parser.set('interface', 'icon', 'default')
 			need_write = True
+		if not self.parser.has_section('layout'):
+			self.parser.add_section('layout')
+			need_write = True
+		if not self.parser.has_option('layout', 'remove_decorations'):
+			self.parser.set('layout', 'remove_decorations', 'false')
+			need_write = True
 		if need_write:
 			with open(self.get_config_file_path(), 'w') as f:
 				self.parser.write(f)
@@ -109,6 +115,15 @@ class Configurations:
 
 	def set_icon(self, icon):
 		self.parser.set('interface', 'icon', icon)
+		with open(self.get_config_file_path(), 'w') as f:
+			self.parser.write(f)
+
+	def is_remove_decorations(self):
+		return self.parser.getboolean('layout', 'remove_decorations')
+
+	def set_remove_decorations(self, remove):
+		self.parser.set('layout', 'remove_decorations', str(remove).lower())
+		# TODO: extract method
 		with open(self.get_config_file_path(), 'w') as f:
 			self.parser.write(f)
 

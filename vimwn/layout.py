@@ -14,18 +14,45 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, os
+import gi, os, json
 gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck
+from gi.repository import Wnck, GLib, Gdk
+
 
 from vimwn.windows import monitor_work_area_for
+from vimwn .windows import gdk_window_for
+
+
+def to_json(monitor, buffers, stack, old_state=None):
+	state = old_state if old_state else {'nmaster': monitor.nmaster, 'mfact': monitor.mfact, 'stack_state': {}}
+	stack_state = state['stack_state']
+	for w in buffers:
+		gdk_w = gdk_window_for(w)
+		is_decorated, decorations = gdk_w.get_decorations()
+		if not is_decorated:
+			# edge case: no decoration info, assume it's decorated
+			decorations = Gdk.WMDecoration.ALL
+		w_id = w.get_xid()
+		key = str(w_id)
+		if key not in stack_state:
+			stack_state[key] = {}
+			stack_state[key]['name'] = w.get_name()
+			stack_state[key]['original_decorations'] = decorations
+		stack_state[key]['decorations'] = decorations
+		stack_state[key]['stack_index'] = stack.index(w_id) if w_id in stack else -1
+
+	for client_key in list(stack_state.keys()):
+		if client_key not in map(lambda x: str(x.get_xid()), buffers):
+			del stack_state[client_key]
+
+	return state
 
 
 class Monitor:
 
 	def __init__(self):
 		self.nmaster = 1
-		self.mfact = 0.55
+		self.mfact = 0.5
 		self.wx = self.wy = self.ww = self.wh = None
 
 	def set_workarea(self, x, y, width, height):
@@ -35,20 +62,55 @@ class Monitor:
 		self.wh = height
 
 
+class Serializer:
+
+	def __init__(self, persistence_file):
+		self.persistence_file = persistence_file
+
+	def serialize(self, state):
+		with open(self.persistence_file, 'w') as f:
+			json.dump(state, f, indent=True)
+
+	def deserialize(self):
+		if os.path.exists(self.persistence_file):
+			with open(self.persistence_file, 'r') as f:
+				return json.load(f)
+		return None
+
+
 class LayoutManager:
 
-	def __init__(self, windows):
+	def __init__(self, windows, remove_decorations=False,  persistence_file='/tmp/vimify_windows_state.json'):
 		self.gap = 10
+		self.remove_decorations = remove_decorations
+		self.serializer = Serializer(persistence_file)
 		self.windows = windows
-		self.layout_function = centeredmaster
-		self.layout_monitor = Monitor()
+		self.persistence_file = persistence_file
+		self.function = centeredmaster
+		self.monitor = Monitor()
+
 		self.windows.read_screen()
 		self.stack = list(map(lambda x: x.get_xid(), self.windows.visible))
+
+		self.state_json = self.serializer.deserialize()
+		self._persist_internal_state()
+		self.apply_decoration_config()
+
 		# self.screen.connect("active-window-changed", self._active_window_changed)
 		# def _active_window_changed(self, screen, previously_active_window):
 		self.windows.screen.connect("window-opened", self._window_opened)
 		self.windows.screen.connect("window-closed", self._window_closed)
 		self.window_monitor_map = {}
+
+	def _persist_internal_state(self):
+		self.state_json = to_json(self.monitor, self.windows.buffers, self.stack, old_state=self.state_json)
+		self.serializer.serialize(self.state_json)
+
+	def apply_decoration_config(self):
+		if self.remove_decorations:
+			self.windows.remove_decorations()
+		else:
+			self.windows.restore_decorations(self.state_json)
 
 	def _window_closed(self, screen, window):
 		if window.get_xid() in self.stack:
@@ -62,6 +124,8 @@ class LayoutManager:
 			self.windows.read_screen(force_update=False)
 			if window in self.windows.visible:
 				self.stack.insert(0, window.get_xid())
+			self._persist_internal_state()
+			self.apply_decoration_config()
 			self.layout()
 
 	def _state_changed(self, window, changed_mask, new_state):
@@ -89,10 +153,10 @@ class LayoutManager:
 
 		wa = monitor_work_area_for(w_stack[0])
 
-		self.layout_monitor.set_workarea(x=wa.x + self.gap, y=wa.y + self.gap,
-										width=wa.width - self.gap * 2, height=wa.height - self.gap * 2)
+		self.monitor.set_workarea(x=wa.x + self.gap, y=wa.y + self.gap,
+		                          width=wa.width - self.gap * 2, height=wa.height - self.gap * 2)
 
-		arrange = self.layout_function(w_stack, self.layout_monitor)
+		arrange = self.function(w_stack, self.monitor)
 
 		for i in range(len(arrange)):
 			a = arrange[i]

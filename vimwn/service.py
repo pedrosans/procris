@@ -77,11 +77,10 @@ class NavigatorService:
 		GObject.threads_init()
 
 		self.reading = Reading(service=self)
-		self.layout_manager = LayoutManager(self.reading.windows)
-
 		configurations = self.reading.configurations
+		self.layout_manager = LayoutManager(self.reading.windows,
+												remove_decorations=configurations.is_remove_decorations())
 		normal_prefix = configurations.get_prefix_key()
-
 		self.listener = KeyboardListener(unmapped_callback=self.on_x_key, on_error=self.keyboard_error)
 		self.listener.bind(normal_prefix, self.start_reading)
 		self.listener.bind('<Ctrl>Return', self.handle_layout)
@@ -90,9 +89,10 @@ class NavigatorService:
 
 		self.configure_process()
 
-		self.status_icon = StatusIcon(configurations)
-		self.status_icon.activate(self)
+		self.status_icon = StatusIcon(self, configurations, self.layout_manager)
+		self.status_icon.activate()
 
+		# TODO: move higher in the start routine to fail faster
 		self.export_bus_object()
 		Gtk.main()
 

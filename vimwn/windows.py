@@ -97,7 +97,6 @@ class Windows:
 		self.visible = []
 		self.visible_map = {}
 		self.buffers = []
-		self.window_original_decorations = {}
 		self.screen = None
 		self.line = self.column = None
 
@@ -174,6 +173,22 @@ class Windows:
 		self.visible.remove(window)
 		self.buffers.remove(window)
 		self._update_internal_state()
+
+	def remove_decorations(self):
+		for w in self.buffers:
+			gdk_w = gdk_window_for(w)
+			is_decorated, decorations = gdk_w.get_decorations()
+			if not is_decorated or decorations & Gdk.WMDecoration.TITLE or decorations & Gdk.WMDecoration.ALL:
+				gdk_w.set_decorations(Gdk.WMDecoration.BORDER)
+
+	def restore_decorations(self, state_json):
+		for w in self.buffers:
+			gdk_w = gdk_window_for(w)
+			is_decorated, decorations = gdk_w.get_decorations()
+			if decorations == Gdk.WMDecoration.BORDER:
+				id = str(w.get_xid())
+				original = state_json['stack_state'][id]['original_decorations']
+				gdk_w.set_decorations(Gdk.WMDecoration(original))
 
 	#
 	# Query API
