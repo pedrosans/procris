@@ -52,7 +52,6 @@ class Reading:
 		self.cmd_handler_ids = []
 		self.mode = Mode.NORMAL
 		self.view = None
-		self.last_out = self.last_start = 0
 		self.multiplier = None
 		self.service = service
 		self.windows = Windows(self)
@@ -66,6 +65,15 @@ class Reading:
 		self._clean_command_state()
 		self.messages.clean()
 		Command.map_to(self, self.windows)
+
+	def start(self, event_time=0):
+		self.set_key_mode(event_time)
+
+		self.view.present_with_time(event_time)
+		self.view.get_window().focus(event_time)
+
+	def end(self, widget, event):
+		self.set_normal_mode()
 
 	def clean_key_combination_state(self):
 		self.multiplier = ''
@@ -87,26 +95,6 @@ class Reading:
 		self.view = NavigatorWindow(self, self.windows, self.messages)
 		self.view.connect("focus-out-event", self.end)
 		self.view.entry.connect("activate", self.on_command, None)
-
-	def start(self, event_time=0):
-		self.last_start = time.time()
-		time_since_focus_out = self.last_start - self.last_out
-
-		if time_since_focus_out < 0.1:
-			# TODO test if the prefix is ctrl-w
-			self.windows.cycle(None)
-			self.windows.commit_navigation(event_time)
-			self.set_normal_mode()
-			return
-
-		self.set_key_mode(event_time)
-
-		self.view.present_with_time(event_time)
-		self.view.get_window().focus(event_time)
-
-	def end(self, widget, event):
-		self.last_out = time.time()
-		self.set_normal_mode()
 
 	def set_normal_mode(self):
 		self.mode = Mode.NORMAL
