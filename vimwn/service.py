@@ -17,8 +17,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os, gi, dbus, dbus.service, signal, setproctitle, logging
 gi.require_version('Gtk', '3.0')
+gi.require_version('Gdk', '3.0')
 from vimwn.reading import Reading
-from gi.repository import GObject, Gtk, GLib
+from gi.repository import GObject, Gtk, GLib, Gdk
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus.gi_service import ExportedGObject
 from vimwn.status import StatusIcon
@@ -84,6 +85,10 @@ class NavigatorService:
 		self.listener = KeyboardListener(unmapped_callback=self.on_x_key, on_error=self.keyboard_error)
 		self.listener.bind(normal_prefix, self.start_reading)
 		self.listener.bind('<Ctrl>Return', self.handle_layout)
+		self.listener.bind('<Ctrl>i', self.handle_layout)
+		self.listener.bind('<Ctrl>d', self.handle_layout)
+		self.listener.bind('<Ctrl>l', self.handle_layout)
+		self.listener.bind('<Ctrl>h', self.handle_layout)
 		self.listener.start()
 		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
 
@@ -110,7 +115,17 @@ class NavigatorService:
 
 	def handle_layout(self, x_key_event):
 		self.reading.windows.read_screen()
-		self.layout_manager.move_to_master(self.reading.windows.active)
+		keyval = x_key_event.keyval
+		if keyval == Gdk.KEY_Return:
+			self.layout_manager.move_to_master(self.reading.windows.active)
+		elif keyval == Gdk.KEY_i:
+			self.layout_manager.increment_master(1)
+		elif keyval == Gdk.KEY_d:
+			self.layout_manager.increment_master(-1)
+		elif keyval == Gdk.KEY_l:
+			self.layout_manager.increase_master_area(0.05)
+		elif keyval == Gdk.KEY_h:
+			self.layout_manager.increase_master_area(-0.05)
 		self.layout_manager.layout()
 		return False
 

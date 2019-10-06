@@ -24,7 +24,9 @@ from vimwn .windows import gdk_window_for
 
 
 def to_json(monitor, buffers, stack, old_state=None):
-	state = old_state if old_state else {'nmaster': monitor.nmaster, 'mfact': monitor.mfact, 'stack_state': {}}
+	state = old_state if old_state else {'stack_state': {}}
+	state['nmaster'] = monitor.nmaster
+	state['mfact'] = monitor.mfact
 	stack_state = state['stack_state']
 	for w in buffers:
 		gdk_w = gdk_window_for(w)
@@ -93,6 +95,9 @@ class LayoutManager:
 		self.stack = list(map(lambda x: x.get_xid(), self.windows.visible))
 
 		self.state_json = self.serializer.deserialize()
+		if self.state_json:
+			self.monitor.nmaster = self.state_json['nmaster']
+			self.monitor.mfact = self.state_json['mfact']
 		self._persist_internal_state()
 		self.apply_decoration_config()
 
@@ -169,6 +174,18 @@ class LayoutManager:
 		if w:
 			old_index = self.stack.index(w.get_xid())
 			self.stack.insert(0, self.stack.pop(old_index))
+
+	def increase_master_area(self, increment):
+		self.monitor.mfact += increment
+		self.monitor.mfact = max(0.1, self.monitor.mfact)
+		self.monitor.mfact = min(0.9, self.monitor.mfact)
+		self._persist_internal_state()
+
+	def increment_master(self, increment):
+		self.monitor.nmaster += increment
+		self.monitor.nmaster = max(0, self.monitor.nmaster)
+		self.monitor.nmaster = min(len(self.stack), self.monitor.nmaster)
+		self._persist_internal_state()
 
 
 def centeredmaster(stack, monitor):
