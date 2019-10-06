@@ -17,9 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import argparse, vimwn, subprocess
-from vimwn.reading import Reading
-from vimwn.service import NavigatorService
-from vimwn.service import RemoteInterface
+import vimwn.service
 
 parser = argparse.ArgumentParser()
 commands_parser = parser.add_subparsers(help='vimwn sub-commands help', dest='action')
@@ -32,15 +30,18 @@ exec.add_argument('--command')
 args = parser.parse_args()
 
 if args.action == 'start':
-	NavigatorService().start()
+	vimwn.service.start()
 elif args.action == 'stop':
-	RemoteInterface().stop_running_instance()
+	# RemoteInterface().stop_running_instance()
+	print('todo')
 elif args.action == 'status':
-	print(RemoteInterface().get_status())
+	# print(RemoteInterface().get_status())
+	print('todo')
 elif args.action == 'execute':
-	reading = Reading()
-	reading.execute(args.command)
-	for m in reading.messages.list:
-		print(m.content)
+	print('todo')
+	# reading = Reading()
+	# reading.execute(args.command)
+	# for m in reading.messages.list:
+	# 	print(m.content)
 else:
 	parser.print_help()

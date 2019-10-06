@@ -26,8 +26,8 @@ ICONNAME = 'vimwn'
 
 class StatusIcon:
 
-	def __init__(self, service, configurations, layout_manager):
-		self.service = service
+	def __init__(self, configurations, layout_manager, stop_function=None):
+		self.stop_function = stop_function
 		self.configurations = configurations
 		self.layout_manager = layout_manager
 		self.menu = Gtk.Menu()
@@ -102,4 +102,4 @@ class StatusIcon:
 		self.layout_manager.apply_decoration_config()
 
 	def _quit(self, data):
-		self.service.stop()
+		self.stop_function()

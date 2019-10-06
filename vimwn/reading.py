@@ -47,8 +47,7 @@ class Mode:
 # TODO chain commands
 class Reading:
 
-	def __init__(self, service=None, configurations=None, windows=None):
-		self.service = service
+	def __init__(self, configurations=None, windows=None):
 		self.configurations = configurations
 		self.cmd_handler_ids = []
 		self.mode = Mode.NORMAL
@@ -226,7 +225,8 @@ class Reading:
 		self.view.get_window().focus(event_time)
 
 	def reload(self, c_in):
-		self.service.reload()
+		# TODO: add service reload
+		# self.service.reload()
 		self.applications.reload()
 		self.terminal.reload()
 		self.messages.clean()

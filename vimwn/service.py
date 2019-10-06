@@ -15,27 +15,138 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import os, gi, dbus, dbus.service, signal, setproctitle, logging
-import vimwn.mapping as mappings
+import os, gi, signal, setproctitle, logging
 import vimwn.command
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from vimwn.reading import Reading
 from gi.repository import GObject, Gtk, GLib, Gdk
-from dbus.mainloop.glib import DBusGMainLoop
-from dbus.gi_service import ExportedGObject
 from vimwn.status import StatusIcon
 from vimwn.keyboard import KeyboardListener
 from vimwn.layout import LayoutManager
 from vimwn.environment import Configurations
 from vimwn.windows import Windows
 from vimwn.command import CommandInput
+from vimwn.remote import NavigatorBusService
 
-SERVICE_NAME = "io.github.vimwn"
-SERVICE_OBJECT_PATH = "/io/github/vimwn"
-SIGINT  = getattr(signal, "SIGINT", None)
+SIGINT = getattr(signal, "SIGINT", None)
 SIGTERM = getattr(signal, "SIGTERM", None)
-SIGHUP  = getattr(signal, "SIGHUP", None)
+SIGHUP = getattr(signal, "SIGHUP", None)
+
+
+listener = None
+bus_object = None
+status_icon = None
+configurations = Configurations()
+windows = Windows(configurations.is_list_workspaces())
+GObject.threads_init()
+reading = Reading(configurations=configurations, windows=windows)
+layout_manager = LayoutManager(
+	reading.windows, remove_decorations=configurations.is_remove_decorations())
+
+
+def start():
+	global listener, bus_object, status_icon
+	import vimwn.mapping as mappings
+
+	# as soon as possible so new instances as notified
+	bus_object = NavigatorBusService(stop)
+	configure_process()
+
+	for command in mappings.commands:
+		vimwn.command.add(command)
+
+	listener = KeyboardListener(callback=keyboard_listener, on_error=keyboard_error)
+
+	for key in mappings.keys:
+		listener.bind(key)
+
+	listener.start()
+
+	status_icon = StatusIcon(configurations, layout_manager, stop_function=quit)
+	status_icon.activate()
+
+	Gtk.main()
+
+	print("Ending vimwn service, pid: {}".format(os.getpid()))
+
+
+def keyboard_error(exception, *args):
+	print('Unable to listen to {}'.format(configurations.get_prefix_key()))
+	stop()
+
+
+def keyboard_listener(key, x_key_event, multiplier=1):
+	GLib.idle_add(
+		_inside_main_loop, key, x_key_event, multiplier,
+		priority=GLib.PRIORITY_HIGH);
+
+
+def _inside_main_loop(key, x_key_event, multiplier):
+
+	command_input = CommandInput(
+		time=x_key_event.time, keyval=x_key_event.keyval, parameters=key.parameters)
+
+	for i in range(multiplier):
+		key.function(command_input)
+
+	windows.commit_navigation(x_key_event.time)
+
+	if len(key.accelerators) > 1:
+		reading.set_normal_mode()
+
+	return False
+
+
+# TODO: remove
+def reload():
+	configurations.reload()
+	status_icon.reload()
+
+
+def configure_process():
+	# https://lazka.github.io/pgi-docs/GLib-2.0/functions.html#GLib.log_set_handler
+	GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_WARNING, log_function)
+	GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, log_function)
+	GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, log_function)
+
+	setproctitle.setproctitle("vimwn")
+
+	for sig in (SIGINT, SIGTERM, SIGHUP):
+		install_glib_handler(sig)
+
+
+def install_glib_handler(sig):
+	unix_signal_add = None
+
+	if hasattr(GLib, "unix_signal_add"):
+		unix_signal_add = GLib.unix_signal_add
+	elif hasattr(GLib, "unix_signal_add_full"):
+		unix_signal_add = GLib.unix_signal_add_full
+
+	if unix_signal_add:
+		unix_signal_add(GLib.PRIORITY_HIGH, sig, unix_signal_handler, sig)
+	else:
+		print("Can't install GLib signal handler, too old gi.")
+
+
+def unix_signal_handler(self, *args):
+	signal = args[0]
+	if signal in (1, SIGHUP, 2, SIGINT, 15, SIGTERM):
+		stop()
+
+
+def release_bus_object():
+	global bus_object
+	if bus_object:
+		bus_object.release()
+		bus_object = None
+
+
+def stop():
+	Gtk.main_quit()
+	listener.stop()
+	release_bus_object()
 
 
 def show_warning(error):
@@ -62,173 +173,3 @@ def log_function(log_domain, log_level, message):
 	else:
 		logging.warning('GLib log[%s]:%s',log_domain, message)
 		show_warning(message)
-
-
-# https://lazka.github.io/pgi-docs/GLib-2.0/functions.html#GLib.log_set_handler
-GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_WARNING, log_function)
-GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, log_function)
-GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, log_function)
-
-
-class NavigatorService:
-
-	def __init__(self):
-		self.bus_object = None
-		self.reading = None
-		self.status_icon = None
-		self.listener = None
-		self.layout_manager = None
-		self.configurations = Configurations()
-		self.windows = Windows(self.configurations.is_list_workspaces())
-		GObject.threads_init()
-		self.reading = Reading(
-			service=self, configurations=self.configurations, windows=self.windows)
-		self.layout_manager = LayoutManager(
-			self.reading.windows, remove_decorations=self.configurations.is_remove_decorations())
-
-	def start(self):
-		# as soon as possible so new instances as notified
-		self.export_bus_object()
-		self.configure_process()
-
-		keys, commands = mappings.map(self.configurations, self.reading.windows, self.reading, self.layout_manager)
-
-		self.listener = KeyboardListener(callback=self.keyboard_listener, on_error=self.keyboard_error)
-		for key in keys:
-			self.listener.bind(key)
-		self.listener.start()
-
-		for command in commands:
-			vimwn.command.add(command)
-
-		self.status_icon = StatusIcon(self, self.configurations, self.layout_manager)
-		self.status_icon.activate()
-
-		Gtk.main()
-
-		print("Ending vimwn service, pid: {}".format(os.getpid()))
-
-	def keyboard_error(self, exception, *args):
-		print('Unable to listen to {}'.format(self.configurations.get_prefix_key()))
-		self.stop()
-
-	def keyboard_listener(self, key, x_key_event, multiplier=1):
-		GLib.idle_add(
-			self._inside_main_loop, key, x_key_event, multiplier,
-			priority=GLib.PRIORITY_HIGH);
-
-	def _inside_main_loop(self, key, x_key_event, multiplier):
-
-		command_input = CommandInput(
-			time=x_key_event.time, keyval=x_key_event.keyval, parameters=key.parameters)
-
-		for i in range(multiplier):
-			key.function(command_input)
-
-		self.windows.commit_navigation(x_key_event.time)
-
-		if len(key.accelerators) > 1:
-			reading.set_normal_mode()
-
-		return False
-
-	def reload(self):
-		self.configurations.reload()
-		self.status_icon.reload()
-
-	def configure_process(self):
-		setproctitle.setproctitle("vimwn")
-		for sig in (SIGINT, SIGTERM, SIGHUP):
-			self.install_glib_handler(sig)
-
-	def install_glib_handler(self, sig):
-		unix_signal_add = None
-
-		if hasattr(GLib, "unix_signal_add"):
-			unix_signal_add = GLib.unix_signal_add
-		elif hasattr(GLib, "unix_signal_add_full"):
-			unix_signal_add = GLib.unix_signal_add_full
-
-		if unix_signal_add:
-			unix_signal_add(GLib.PRIORITY_HIGH, sig, self.unix_signal_handler, sig)
-		else:
-			print("Can't install GLib signal handler, too old gi.")
-
-	def unix_signal_handler(self, *args):
-		signal = args[0]
-		if signal in (1, SIGHUP, 2, SIGINT, 15, SIGTERM):
-			self.stop()
-
-	def export_bus_object(self):
-		self.bus_object = NavigatorBusService(self)
-
-	def release_bus_object(self):
-		if self.bus_object:
-			self.bus_object.release()
-			self.bus_object = None
-
-	def stop(self):
-		Gtk.main_quit()
-		self.listener.stop()
-		self.release_bus_object()
-
-
-class NavigatorBusService (ExportedGObject):
-
-	def __init__(self, service):
-		self.service = service
-		self.main_loop = DBusGMainLoop(set_as_default=True)
-		dbus.mainloop.glib.threads_init()
-		self.bus = dbus.Bus()
-
-		if not self.bus:
-			print("no session")
-			quit()
-
-		if self.bus.name_has_owner(SERVICE_NAME):
-			pid = RemoteInterface().get_running_instance_id()
-			print("vimwn is already running, pid: " + pid)
-			quit()
-
-		bus_name = dbus.service.BusName(SERVICE_NAME, self.bus)
-		super(NavigatorBusService, self).__init__(conn=self.bus, object_path=SERVICE_OBJECT_PATH, bus_name=bus_name)
-
-	@dbus.service.method("io.github.vimwn.Service", in_signature='', out_signature='s')
-	def get_id(self):
-		return str(os.getpid())
-
-	@dbus.service.method("io.github.vimwn.Service", in_signature='', out_signature='')
-	def stop_vimwn(self):
-		self.service.stop()
-
-	def release(self):
-		self.bus.release_name(SERVICE_NAME)
-		print('vimwn service were released from bus')
-
-class RemoteInterface():
-
-	def __init__(self):
-		self.bus = dbus.Bus()
-		if not self.bus:
-			print("no session")
-			quit()
-
-	def get_status(self):
-		if self.bus.name_has_owner(SERVICE_NAME):
-			return "Active, pid: " + self.get_running_instance_id()
-		else:
-			return "Inactive"
-
-	def get_running_instance_id(self):
-		service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
-		get_remote_id = service.get_dbus_method('get_id', 'io.github.vimwn.Service')
-		return get_remote_id()
-
-	def stop_running_instance(self):
-		if self.bus.name_has_owner(SERVICE_NAME):
-			service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
-			quit_function = service.get_dbus_method('stop_vimwn', 'io.github.vimwn.Service')
-			quit_function()
-			print("Remote instance were stopped")
-		else:
-			print("vimwn is not running")
