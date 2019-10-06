@@ -45,7 +45,6 @@ class NavigatorWindow(Gtk.Window):
 		self.controller = controller
 		self.windows = windows
 		self.messages = messages
-		self.single_line_view = self.controller.configurations.is_compact_interface()
 		self.show_app_name = False
 
 		self.set_keep_above(True)
@@ -119,12 +118,8 @@ class NavigatorWindow(Gtk.Window):
 
 		self._render_command_line()
 
-		if self.windows.active:
-			if self.single_line_view:
-				if not self.messages.list and not self.controller.in_command_mode():
-					self.list_navigation_windows()
-			else:
-				self.populate_navigation_options()
+		if not self.messages.list and not self.controller.in_command_mode():
+			self.list_navigation_windows()
 
 		self.v_box.show_all()
 
@@ -141,22 +136,6 @@ class NavigatorWindow(Gtk.Window):
 			self.hint_line.add_status_text(position, active)
 			self.hint_line.add_status_text(name, active)
 			self.hint_line.add_status_text(' ', False)
-
-	def populate_navigation_options(self):
-		line = Gtk.HBox(homogeneous=False, spacing=0);
-		line.set_halign(Gtk.Align.CENTER)
-		self.output_box.pack_start(line, expand=True, fill=True, padding=0)
-
-		for window in self.windows.line:
-			column_box = Gtk.VBox(homogeneous=False, spacing=0)
-			column_box.set_valign(Gtk.Align.CENTER)
-			column_box.pack_start(WindowBtn(self.controller, window), expand=False, fill=False, padding=2)
-
-			navigation_hint = Gtk.Label(self._navigation_index(window))
-			navigation_hint.get_style_context().add_class('window-relative-number')
-			column_box.pack_start(navigation_hint, expand=False, fill=False, padding=0)
-
-			line.pack_start(column_box, expand=False, fill=False, padding=4)
 
 	def show_messages(self, time):
 		for message in self.messages.list:
@@ -256,21 +235,6 @@ class NavigatorWindow(Gtk.Window):
 		icon.set_from_pixbuf(window.get_mini_icon() if self.char_size < 14 else window.get_icon())
 		icon.get_style_context().add_class('application-icon')
 		return icon
-
-
-class WindowBtn(Gtk.Button):
-	def __init__(self, controller, window):
-		Gtk.Button.__init__(self)
-		self.get_style_context().add_class("window-btn")
-		self.window = window
-		self.controller = controller
-		icon = Gtk.Image()
-		icon.set_from_pixbuf( window.get_icon() )
-		self.add(icon)
-		self.connect("clicked", self.on_clicked)
-
-	def on_clicked(self, btn):
-		self.window.activate_transient(self.controller.get_current_event_time())
 
 
 class HintLine(Gtk.Box):

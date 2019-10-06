@@ -24,7 +24,6 @@ VIMWN_DESKTOP = 'vimwn.desktop'
 VIMWN_PACKAGE = 'vimwn'
 DEFAULT_PREFIX_KEY = '<ctrl>q'
 DEFAULT_LIST_WORKSPACES = 'true'
-DEFAULT_COMPACT_OPTION = 'true'
 DEFAULT_POSITION = 'bottom'
 DEFAULT_WIDTH = '800'
 DEFAULT_AUTO_HINT = 'true'
@@ -46,9 +45,6 @@ class Configurations:
 			need_write = True
 		if not self.parser.has_option('interface', 'prefix_key'):
 			self.parser.set('interface', 'prefix_key', DEFAULT_PREFIX_KEY)
-			need_write = True
-		if not self.parser.has_option('interface', 'compact'):
-			self.parser.set('interface', 'compact', DEFAULT_COMPACT_OPTION)
 			need_write = True
 		if not self.parser.has_option('interface', 'list_workspaces'):
 			self.parser.set('interface', 'list_workspaces', DEFAULT_LIST_WORKSPACES)
@@ -83,12 +79,6 @@ class Configurations:
 
 	def is_list_workspaces(self):
 		return self.parser.getboolean('interface', 'list_workspaces')
-
-	def is_compact_interface(self):
-		try:
-			return self.parser.getboolean('interface', 'compact')
-		except configparser.NoOptionError:
-			return False
 
 	def get_prefix_key(self):
 		return self.parser.get('interface', 'prefix_key')

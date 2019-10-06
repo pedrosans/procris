@@ -129,7 +129,6 @@ Section `[interface]` | Customization options
 `list_workspaces`| if buffers command should list windows from all workspaces. Default is `true`
 `position`| `top`, `middle` and `bottom`. Default is `bottom`
 `width`| interface width in pixels or `100%` if the it should span the entire screen. Default is 800
-`compact`| `false` to large icons like Alt + Tab window switcher or `true` for a compact version listing apps in the status line. Default is `true`
 `auto_hint` | show hints for the command as it is being typed. Default is `true`
 `auto_select_first_hint` | if the fist option offered in the hint bar should be selected automatically. Default is `true`
 
