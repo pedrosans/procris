@@ -127,8 +127,9 @@ class LayoutManager:
 	def _window_opened(self, screen, window):
 		if window.get_pid() != os.getpid():
 			self.windows.read_screen(force_update=False)
-			if window in self.windows.visible:
-				self.stack.insert(0, window.get_xid())
+			if window not in self.windows.visible:
+				return
+			self.stack.insert(0, window.get_xid())
 			self._persist_internal_state()
 			self.apply_decoration_config()
 			self.layout()
@@ -149,26 +150,25 @@ class LayoutManager:
 				handler_id = window.connect("state-changed", self._state_changed)
 				self.window_monitor_map[window.get_xid()] = handler_id
 
-		w_stack = map(lambda x: self.windows.visible_map[x] if x in self.windows.visible_map else None, self.stack)
-		w_stack = filter(lambda x: x is not None, w_stack)
-		w_stack = list(w_stack)
+		w_stack = list(filter(
+			lambda x: x is not None,
+			map(lambda xid: self.windows.visible_map[xid] if xid in self.windows.visible_map else None, self.stack)))
 
 		if not w_stack:
 			return
 
 		wa = monitor_work_area_for(w_stack[0])
 
-		self.monitor.set_workarea(x=wa.x + self.gap, y=wa.y + self.gap,
-		                          width=wa.width - self.gap * 2, height=wa.height - self.gap * 2)
+		self.monitor.set_workarea(
+			x=wa.x + self.gap, y=wa.y + self.gap, width=wa.width - self.gap * 2, height=wa.height - self.gap * 2)
 
 		arrange = self.function(w_stack, self.monitor)
 
 		for i in range(len(arrange)):
 			a = arrange[i]
 			w = w_stack[i]
-			# print('w({}): {:30}  x: {:10}   y: {:10}   w: {:10}   h: {:10}'.format(i, w.get_name(), a[0], a[1], a[2], a[3]))
-			self.windows.set_geometry(w, x=a[0] + self.gap, y=a[1] + self.gap,
-										w=a[2] - self.gap * 2, h=a[3] - self.gap * 2)
+			self.windows.set_geometry(
+				w, x=a[0] + self.gap, y=a[1] + self.gap, w=a[2] - self.gap * 2, h=a[3] - self.gap * 2)
 
 	def move_to_master(self, w):
 		if w:
