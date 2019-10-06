@@ -23,6 +23,7 @@ from dbus.mainloop.glib import DBusGMainLoop
 from dbus.gi_service import ExportedGObject
 from vimwn.status import StatusIcon
 from vimwn.keyboard import KeyboardListener
+from vimwn.layout import LayoutManager
 
 SERVICE_NAME = "io.github.vimwn"
 SERVICE_OBJECT_PATH = "/io/github/vimwn"
@@ -70,6 +71,7 @@ class NavigatorService:
 		self.reading = None
 		self.status_icon = None
 		self.listener = None
+		self.layout_manager = None
 
 	def start(self):
 		GObject.threads_init()
@@ -82,6 +84,11 @@ class NavigatorService:
 		self.listener = KeyboardListener(normal_prefix, callback=self.handle_key_press, on_error=self.keyboard_error)
 		self.listener.start()
 		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
+
+		self.layout_manager = LayoutManager(self.reading.windows)
+		
+		# TODO
+		# Keybinder.bind('<Ctrl>Return', self.handle_layout, None)
 
 		self.configure_process()
 
@@ -109,6 +116,11 @@ class NavigatorService:
 		else:
 			self.reading.on_window_key(xlib_key_event)
 		return False  # so GLib stops calling this callback
+
+	def handle_layout(self, key, data):
+		self.reading.windows.read_screen()
+		self.layout_manager.move_to_master(self.reading.windows.active)
+		self.layout_manager.layout()
 
 	def configure_process(self):
 		setproctitle.setproctitle("vimwn")

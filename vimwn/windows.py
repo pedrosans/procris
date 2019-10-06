@@ -15,10 +15,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import gi, time, logging, os
+import gi, os
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
-from vimwn.command import Command
 
 
 class Axis:
@@ -64,8 +63,8 @@ def gdk_window_for(window):
 def monitor_work_area_for(window):
 	gdk_window = gdk_window_for(window)
 	gdk_display = gdk_window.get_display()
-	gtk_monitor = gdk_display.get_monitor_at_window(gdk_window)
-	return gtk_monitor.get_workarea()
+	gdk_monitor = gdk_display.get_monitor_at_window(gdk_window)
+	return gdk_monitor.get_workarea()
 
 
 def decoration_size_for(window):
@@ -76,14 +75,7 @@ def decoration_size_for(window):
 	decoration_width = cx - x
 	decoration_height = cy - y
 
-	if decorations:
-		has_frame = True
-	elif is_decorated:
-		has_frame = False
-	else:
-		has_frame = gdk_w.get_type_hint() is Gdk.WindowTypeHint.NORMAL
-
-	return has_frame, decoration_width, decoration_height
+	return is_decorated, decorations, decoration_width, decoration_height
 
 
 def unsnap(window):
@@ -103,24 +95,25 @@ class Windows:
 		self.active = None
 		self.staging = False
 		self.visible = []
+		self.visible_map = {}
 		self.buffers = []
-		self.read_itself = False
 		self.window_original_decorations = {}
 		self.screen = None
 		self.line = self.column = None
 
-	def read_screen(self):
-		del self.visible[:]
+	def read_screen(self, force_update=True):
 		del self.buffers[:]
-		self.read_itself = False
+		del self.visible[:]
+		self.visible_map.clear()
 		if not self.screen:
 			self.screen = Wnck.Screen.get_default()
-		self.screen.force_update()  # make sure we query X server
+
+		if force_update:
+			self.screen.force_update()  # make sure we query X server
 
 		active_workspace = self.screen.get_active_workspace()
 		for wnck_window in self.screen.get_windows():
 			if wnck_window.get_pid() == os.getpid():
-				self.read_itself = True
 				continue
 			if wnck_window.is_skip_tasklist():
 				continue
@@ -129,6 +122,7 @@ class Windows:
 				self.buffers.append(wnck_window)
 			if in_active_workspace and not wnck_window.is_minimized():
 				self.visible.append(wnck_window)
+				self.visible_map[wnck_window.get_xid()] = wnck_window
 		self._update_internal_state()
 
 	def _update_internal_state(self):
@@ -324,32 +318,32 @@ class Windows:
 		new_height = int(work_area.height * height_ratio)
 
 		self.set_geometry(window, x=new_x, y=new_y, w=new_width, h=new_height)
+		self.staging = True
 
 	def move_to(self, to_x, to_y):
 		work_area = monitor_work_area_for(self.active)
 		x = to_x + work_area.x
 		y = to_y + work_area.y
 		self.set_geometry(self.active, x=x, y=y)
+		self.staging = True
 
 	def set_geometry(self, window, x=None, y=None, w=None, h=None):
-		has_frame, decoration_width, decoration_height = decoration_size_for(window)
-		if not has_frame and decoration_width >= 0 and decoration_height >= 0:
-			x -= decoration_width
-			y -= decoration_height
-			if w and h:
-				w += decoration_width
-				h += decoration_height
-
 		if not w and not h:
 			geometry = window.get_geometry()
 			w = geometry.widthp
 			h = geometry.heightp
 
+		is_decorated, decorations, decoration_width, decoration_height = decoration_size_for(window)
+		if is_decorated and not decorations and decoration_width >= 0 and decoration_height >= 0:
+			x -= decoration_width
+			y -= decoration_height
+			w += decoration_width
+			h += decoration_height
+
 		# print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
-		# print("window: x={} y={} width={} height={}".format(new_x, new_y, new_width, new_height))
+		# print("window: x={} y={} width={} height={}".format(x, y, w, h))
 
 		window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
-		self.staging = True
 
 	def navigate(self, increment, axis):
 		oriented_list = self.line if axis is HORIZONTAL else self.column
@@ -368,11 +362,14 @@ class Windows:
 			is_decorated, decorations = gdk_w.get_decorations()
 			x, y, w, h = wn.get_geometry()
 			cx, cy, cw, ch = wn.get_client_window_geometry()
-			has_frame, decoration_width, decoration_height = decoration_size_for(wn)
-			resume += '{:10} ({:5} {:3d},{:3d}) g({:3d},{:3d}) c_g({:3d},{:3d}) hint({:8}) dec({} {})\n'.format(
-				str(wn.get_name()[:10]),
-				str(has_frame), decoration_width, decoration_height,
-				x, y, cx, cy,
+			is_decorated, decorations, decoration_width, decoration_height = decoration_size_for(wn)
+			compensate = is_decorated and not decorations and decoration_width >= 0 and decoration_height >= 0
+			resume += '{:10} - {:20}\n'.format(
+				wn.get_xid(), wn.get_name()[:10])
+			resume += '\tcompensate({:5} {:3d},{:3d}) g({:3d},{:3d}) c_g({:3d},{:3d})\n'.format(
+				str(compensate), decoration_width, decoration_height,
+				x, y, cx, cy)
+			resume += '\thint({:8}) dec({} {})\n'.format(
 				gdk_w.get_type_hint().value_name.replace('GDK_WINDOW_TYPE_HINT_', '')[:8],
 				is_decorated, decorations.value_names)
 		return resume
