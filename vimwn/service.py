@@ -31,6 +31,38 @@ SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP  = getattr(signal, "SIGHUP", None)
 
 
+def show_warning(error):
+	error_dialog = Gtk.MessageDialog(
+		None, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING,
+		Gtk.ButtonsType.CLOSE, error, title="vimwn - warning")
+	error_dialog.run()
+	error_dialog.destroy()
+
+
+def show_error(error):
+	error_dialog = Gtk.MessageDialog(
+		None, Gtk.DialogFlags.MODAL, Gtk.MessageType.ERROR,
+		Gtk.ButtonsType.CLOSE, error, title="vimwn error")
+	error_dialog.run()
+	error_dialog.destroy()
+
+
+def log_function(log_domain, log_level, message):
+	if log_level in (GLib.LogLevelFlags.LEVEL_ERROR, GLib.LogLevelFlags.LEVEL_CRITICAL):
+		logging.error('GLib log[%s]:%s',log_domain, message)
+		show_error(message)
+		Exception(message)
+	else:
+		logging.warning('GLib log[%s]:%s',log_domain, message)
+		show_warning(message)
+
+
+# https://lazka.github.io/pgi-docs/GLib-2.0/functions.html#GLib.log_set_handler
+GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_WARNING, log_function)
+GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, log_function)
+GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, log_function)
+
+
 class NavigatorService:
 
 	def __init__(self):
@@ -38,10 +70,6 @@ class NavigatorService:
 		self.reading = None
 		self.status_icon = None
 		self.listener = None
-		# https://lazka.github.io/pgi-docs/GLib-2.0/functions.html#GLib.log_set_handler
-		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_WARNING, self.log_function)
-		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, self.log_function)
-		GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, self.log_function)
 
 	def start(self):
 		GObject.threads_init()
@@ -81,16 +109,6 @@ class NavigatorService:
 		else:
 			self.reading.on_window_key(xlib_key_event)
 		return False  # so GLib stops calling this callback
-
-	def log_function(self, log_domain, log_level, message):
-		if log_level is GLib.LogLevelFlags.LEVEL_WARNING:
-			logging.warning('GLib log[%s]:%s',log_domain, message)
-			self.reading.view.show_warning(message)
-		elif log_level in (GLib.LogLevelFlags.LEVEL_ERROR, GLib.LogLevelFlags.LEVEL_CRITICAL):
-			logging.error('GLib log[%s]:%s',log_domain, message)
-			self.reading.view.show_error(message)
-		else:
-			raise Exception(message)
 
 	def configure_process(self):
 		setproctitle.setproctitle("vimwn")

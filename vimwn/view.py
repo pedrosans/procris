@@ -23,20 +23,6 @@ from vimwn.message import BufferName
 # TODO show 'no name' active buffer if no active window at the buffers list
 class NavigatorWindow(Gtk.Window):
 
-	def show_warning(self, error):
-		error_dialog = Gtk.MessageDialog(
-			self, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING,
-			Gtk.ButtonsType.CLOSE, error, title="vimwn - warning")
-		error_dialog.run()
-		error_dialog.destroy()
-
-	def show_error(self, error):
-		error_dialog = Gtk.MessageDialog(
-			self, Gtk.DialogFlags.MODAL, Gtk.MessageType.ERROR,
-			Gtk.ButtonsType.CLOSE, error, title="vimwn error")
-		error_dialog.run()
-		error_dialog.destroy()
-
 	def __init__(self, controller, windows, messages):
 		Gtk.Window.__init__(self, title="vimwn")
 
