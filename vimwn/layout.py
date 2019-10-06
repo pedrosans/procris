@@ -36,6 +36,7 @@ class Monitor:
 class LayoutManager:
 
 	def __init__(self, windows):
+		self.gap = 10
 		self.windows = windows
 		self.layout_function = centeredmaster
 		self.layout_monitor = Monitor()
@@ -47,15 +48,17 @@ class LayoutManager:
 		self.windows.screen.connect("window-closed", self._window_closed)
 
 	def layout(self):
-		if not self.windows.visible:
-			return
-
 		w_stack = map(lambda x: self.windows.visible_map[x] if x in self.windows.visible_map else None, self.stack)
 		w_stack = filter(lambda x: x is not None, w_stack)
 		w_stack = list(w_stack)
 
+		if not w_stack:
+			return
+
 		wa = monitor_work_area_for(w_stack[0])
-		self.layout_monitor.set_workarea(x=wa.x, y=wa.y, width=wa.width, height=wa.height)
+
+		self.layout_monitor.set_workarea(x=wa.x + self.gap, y=wa.y + self.gap,
+										width=wa.width - self.gap * 2, height=wa.height - self.gap * 2)
 
 		arrange = self.layout_function(w_stack, self.layout_monitor)
 
@@ -63,11 +66,13 @@ class LayoutManager:
 			a = arrange[i]
 			w = w_stack[i]
 			# print('w({}): {:30}  x: {:10}   y: {:10}   w: {:10}   h: {:10}'.format(i, w.get_name(), a[0], a[1], a[2], a[3]))
-			self.windows.set_geometry(w, x=a[0], y=a[1], w=a[2], h=a[3])
+			self.windows.set_geometry(w, x=a[0] + self.gap, y=a[1] + self.gap,
+										w=a[2] - self.gap * 2, h=a[3] - self.gap * 2)
 
 	def move_to_master(self, w):
-		old_index = self.stack.index(w.get_xid())
-		self.stack.insert(0, self.stack.pop(old_index))
+		if w:
+			old_index = self.stack.index(w.get_xid())
+			self.stack.insert(0, self.stack.pop(old_index))
 
 	def _window_opened(self, screen, window):
 		if window.get_pid() != os.getpid():
@@ -106,7 +111,7 @@ def centeredmaster(stack, monitor):
 			# only one client
 			mx = (monitor.ww - mw) / 2
 			tw = (monitor.ww - mw) / 2
-#  +
+	#  +
 	oty = 0;
 	ety = 0;
 	for i in range(len(stack)):
@@ -115,17 +120,17 @@ def centeredmaster(stack, monitor):
 		if i < monitor.nmaster:
 			# nmaster clients are stacked vertically, in the center of the screen
 			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i);
-			layout.append([monitor.wx + mx, monitor.wy + my, mw - (2*c.bw), h - (2*c.bw), 0])
+			layout.append([monitor.wx + mx, monitor.wy + my, mw - (2 * c.bw), h - (2 * c.bw), 0])
 			my += layout[-1][3]
 		else:
 			# stack clients are stacked vertically
 			if (i - monitor.nmaster) % 2:
 				h = (monitor.wh - ety) / int((1 + n - i) / 2)
-				layout.append([monitor.wx, monitor.wy + ety, tw - (2*c.bw), h - (2*c.bw), 0])
+				layout.append([monitor.wx, monitor.wy + ety, tw - (2 * c.bw), h - (2 * c.bw), 0])
 				ety += layout[-1][3]
 			else:
 				h = (monitor.wh - oty) / int((1 + n - i) / 2)
-				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw - (2*c.bw), h - (2*c.bw), 0])
+				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw - (2 * c.bw), h - (2 * c.bw), 0])
 				oty += layout[-1][3]
 
 	return layout
