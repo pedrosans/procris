@@ -22,14 +22,16 @@ CONTEXT_FILTER = [{
 
 class KeyboardListener:
 
-	def __init__(self, hotkey, callback=None):
+	def __init__(self, hotkey, callback=None, on_error=None):
 		self.callback = callback
+		self.on_error = on_error
 
 		self.record_thread = threading.Thread(target=self.record, name='x keyboard listener thread')
 		self.well_thread = threading.Thread(target=self.drop_hot_key, daemon=True, name='hotkey well thread')
 
 		self.record_display = Display()
 		self.local_display = Display()
+		self.local_display.set_error_handler(self.on_error)
 
 		a = Gtk.accelerator_parse_with_keycode(hotkey)
 
@@ -85,7 +87,7 @@ class KeyboardListener:
 		self.record_thread.start()
 
 	def drop_hot_key(self):
-		while True:
+		while self.local_display:
 			event = self.local_display.next_event()
 
 	def record(self):

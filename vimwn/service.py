@@ -51,7 +51,7 @@ class NavigatorService:
 		configurations = self.reading.configurations
 		normal_prefix = configurations.get_prefix_key()
 
-		self.listener = KeyboardListener(normal_prefix, callback=self.handle_key_press)
+		self.listener = KeyboardListener(normal_prefix, callback=self.handle_key_press, on_error=self.keyboard_error)
 		self.listener.start()
 		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
 
@@ -67,6 +67,10 @@ class NavigatorService:
 
 	def reload(self):
 		self.status_icon.reload()
+
+	def keyboard_error(self, exception, *args):
+		print('Unable to listen to {}'.format(self.reading.configurations.get_prefix_key()))
+		self.stop()
 
 	def handle_key_press(self, xlib_key_event):
 		GLib.idle_add(self.forward_to_main_loop, xlib_key_event, priority=GLib.PRIORITY_HIGH);
@@ -115,8 +119,9 @@ class NavigatorService:
 		self.bus_object = NavigatorBusService(self)
 
 	def release_bus_object(self):
-		self.bus_object.release()
-		self.bus_object = None
+		if self.bus_object:
+			self.bus_object.release()
+			self.bus_object = None
 
 	def stop(self):
 		Gtk.main_quit()
