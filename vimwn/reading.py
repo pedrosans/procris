@@ -38,14 +38,21 @@ HINT_OPERATION_KEYS = [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R, Gdk.KEY_Return] + HINT_
 HISTORY_NAVIGATION_KEYS = [Gdk.KEY_Up, Gdk.KEY_Down]
 
 
+class Mode:
+
+	NORMAL = 0
+	KEY = 1
+	COMMAND = 2
+
+
 # TODO chain commands
 class Reading:
 
 	def __init__(self, service=None):
-		self.view = self.pressed_key = None
+		self.mode = Mode.NORMAL
+		self.view = None
 		self.last_out = self.last_start = 0
-		self.reading_command = self.multiplier = None
-		self.running_as_service = True if service else False
+		self.multiplier = None
 		self.service = service
 		self.windows = Windows(self)
 		self.configurations = Configurations()
@@ -55,28 +62,29 @@ class Reading:
 		self.messages = Messages(self, self.windows)
 		self.command_history = CommandHistory()
 		self.create_and_install_view()
-		self.clean_command_state()
+		self._clean_command_state()
 		self.messages.clean()
 		Command.map_to(self, self.windows)
 
 	def clean_key_combination_state(self):
 		self.multiplier = ''
 
-	def clean_command_state(self):
+	def _clean_command_state(self):
 		self.hint_status.clear_state()
-		self.reading_command = False
 
-	def create_and_install_view(self):
+	def _internal_reload(self, time):
 		if self.view:
 			self.view.close()
+		self.create_and_install_view()
+		self.view.present_with_time(time)
+		self.set_key_mode(time)
+
+	def create_and_install_view(self):
 		self.view = NavigatorWindow(self, self.windows, self.messages)
+		self.view.connect("focus-out-event", self.end)
 		self.view.entry.connect("key-release-event", self.on_entry_key_release)
 		self.view.entry.connect("key-press-event", self.on_entry_key_press)
 		self.view.entry.connect("activate", self.on_command, None)
-		self.view.connect("key-press-event", self.on_window_key_press)
-		self.view.connect("key-release-event", self.on_window_key_release)
-		self.view.connect("focus-out-event", Gtk.main_quit if not self.service else self.end)
-		self.view.connect("focus-in-event", self.focus_in)
 
 	def start(self, event_time=0):
 		self.last_start = time.time()
@@ -89,63 +97,54 @@ class Reading:
 			self.set_normal_mode()
 			return
 
-		if not self.view.get_window():
-			self.view.show(event_time)
+		self.set_key_mode(event_time)
 
 		self.view.present_with_time(event_time)
 		self.view.get_window().focus(event_time)
-
-		if not self.running_as_service:
-			Gtk.main()
 
 	def end(self, widget, event):
 		self.last_out = time.time()
 		self.set_normal_mode()
 
 	def set_normal_mode(self):
+		self.mode = Mode.NORMAL
 		self.view.hide()
 		self.messages.clean()
-		self.clean_command_state()
-		self.pressed_key = None
+		self._clean_command_state()
 
 	def set_key_mode(self, event_time, error_message=None):
+		self.mode = Mode.KEY
 		self.windows.read_screen()
 		if error_message:
 			self.messages.add(error_message, 'error')
-		self.clean_command_state()
+		self._clean_command_state()
 		self.clean_key_combination_state()
 		self.view.show(event_time)
 
 	def set_command_mode(self, time):
-		self.reading_command = True
+		self.mode = Mode.COMMAND
 		self.view.show(time)
+
+	def in_command_mode(self):
+		return self.mode == Mode.COMMAND
 
 	#
 	# CALLBACKS
 	#
-	def focus_in(self, widget, event):
-		self.set_key_mode(event.get_time())
-
-	def on_window_key_release(self, widget, event):
-		if not self.pressed_key or self.pressed_key != event.keyval:
-			# print('got -> {}'.format(Gdk.keyval_name(event.keyval)))
-			self.on_window_key(event)
-		self.pressed_key = None
-
-	def on_window_key_press(self, widget, event):
-		self.pressed_key = event.keyval
-		# print('got <- {}'.format(Gdk.keyval_name(event.keyval)))
-		self.on_window_key(event)
-
 	def on_window_key(self, event):
+		if self.mode == Mode.NORMAL:
+			return
+
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
 		key_name = Gdk.keyval_name(event.keyval)
-
+		# print('keycode {}'.format(event.get_keycode()))
+		# print('scancode {}'.format(event.get_scancode()))
+		# print('keyval {}'.format(event.keyval))
 		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft):
 			self.escape(None)
 			return
 
-		if self.reading_command:
+		if self.mode == Mode.COMMAND:
 			return
 
 		if key_name and key_name.isdigit():
@@ -156,13 +155,21 @@ class Reading:
 			multiplier_int = int(self.multiplier) if self.multiplier else 1
 			for i in range(multiplier_int):
 				Command.KEY_MAP[event.keyval].function(CommandInput(time=event.time, keyval=event.keyval))
+			staging_changes = self.windows.staging
 			self.windows.commit_navigation(event.time)
+			if staging_changes:
+				self.set_normal_mode()
 
 	def on_entry_key_release(self, widget, event):
 		if event.keyval in HINT_OPERATION_KEYS:
 			return False
 
 		if not self.view.entry.get_text().strip():
+			if event.keyval == Gdk.KEY_colon:
+				# colon key test: it's an edge case, the key press was sent to open the command entry
+				self.view.entry.set_text(':')
+				self.view.entry.set_position(-1)
+				return True
 			self.set_key_mode(event.time)
 			return True
 
@@ -205,7 +212,7 @@ class Reading:
 		return True
 
 	def on_command(self, pane_owner, current):
-		if not self.reading_command:
+		if self.mode != Mode.COMMAND:
 			return
 
 		gtk_time = Gtk.get_current_event_time()
@@ -234,6 +241,12 @@ class Reading:
 		else:
 			self.set_key_mode(gtk_time, error_message='Not an editor command: ' + cmd)
 
+	def execute(self, cmd):
+		self.windows.read_screen()
+		command = Command.get_matching_command(cmd)
+		command_input = CommandInput(time=None, text=cmd).parse()
+		command.function(command_input)
+
 	#
 	# COMMANDS
 	#
@@ -242,11 +255,8 @@ class Reading:
 		self.applications.reload()
 		self.terminal.reload()
 		self.messages.clean()
-		self.create_and_install_view()
-		self.view.present_with_time(c_in.time)
-		self.set_key_mode(c_in.time)
-		if self.running_as_service:
-			self.service.reload()
+		self._internal_reload(c_in.time)
+		self.service.reload()
 
 	def edit(self, c_in):
 		name = c_in.vim_command_parameter

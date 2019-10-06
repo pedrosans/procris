@@ -26,7 +26,8 @@ commands_parser = parser.add_subparsers(help='vimwn sub-commands help', dest='ac
 commands_parser.add_parser('start',	help='Start vimwn service')
 commands_parser.add_parser('stop',	help='Stop the running vimwn service if any')
 commands_parser.add_parser('status',help='Show the status of vimwn service')
-commands_parser.add_parser('open',	help='Open vimwn main window for an one-time action')
+exec = commands_parser.add_parser('execute', help='Open vimwn main window for an one-time action')
+exec.add_argument('--command')
 
 args = parser.parse_args()
 
@@ -36,7 +37,10 @@ elif args.action == 'stop':
 	RemoteInterface().stop_running_instance()
 elif args.action == 'status':
 	print(RemoteInterface().get_status())
-elif args.action == 'open':
-	Reading().start()
+elif args.action == 'execute':
+	reading = Reading()
+	reading.execute(args.command)
+	for m in reading.messages.list:
+		print(m.content)
 else:
 	parser.print_help()

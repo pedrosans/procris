@@ -121,7 +121,7 @@ class NavigatorWindow(Gtk.Window):
 
 		if self.windows.active:
 			if self.single_line_view:
-				if not self.messages.list and not self.controller.reading_command:
+				if not self.messages.list and not self.controller.in_command_mode():
 					self.list_navigation_windows()
 			else:
 				self.populate_navigation_options()
@@ -177,7 +177,7 @@ class NavigatorWindow(Gtk.Window):
 			line.pack_start(label, expand=False, fill=False, padding=0)
 
 	def _render_command_line(self):
-		if self.controller.reading_command is True:
+		if self.controller.in_command_mode():
 			self.entry.set_can_focus(True)
 			self.entry.grab_focus()
 			self.entry.set_text('')
