@@ -51,9 +51,7 @@ def start():
 	# as soon as possible so new instances as notified
 	bus_object = NavigatorBusService(stop)
 	configure_process()
-
-	for command in mappings.commands:
-		vimwn.commands.add(command)
+	map_commands()
 
 	listener = KeyboardListener(callback=keyboard_listener, on_error=keyboard_error)
 
@@ -68,6 +66,12 @@ def start():
 	Gtk.main()
 
 	print("Ending vimwn service, pid: {}".format(os.getpid()))
+
+
+def map_commands():
+	import vimwn.mapping as mappings
+	for command in mappings.commands:
+		vimwn.commands.add(command)
 
 
 def keyboard_error(exception, *args):

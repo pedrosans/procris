@@ -16,8 +16,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import argparse, vimwn, subprocess
-import vimwn.service
+import argparse
 
 parser = argparse.ArgumentParser()
 commands_parser = parser.add_subparsers(help='vimwn sub-commands help', dest='action')
@@ -30,18 +29,21 @@ exec.add_argument('--command')
 args = parser.parse_args()
 
 if args.action == 'start':
+	import vimwn.service
 	vimwn.service.start()
 elif args.action == 'stop':
-	# RemoteInterface().stop_running_instance()
-	print('todo')
+	from vimwn.remote import RemoteInterface
+	RemoteInterface().stop_running_instance()
 elif args.action == 'status':
-	# print(RemoteInterface().get_status())
-	print('todo')
+	from vimwn.remote import RemoteInterface
+	print(RemoteInterface().get_status())
 elif args.action == 'execute':
-	print('todo')
-	# reading = Reading()
-	# reading.execute(args.command)
-	# for m in reading.messages.list:
-	# 	print(m.content)
+	import vimwn.service
+	vimwn.service.map_commands()
+	windows = vimwn.service.windows
+	reading = vimwn.service.reading
+	reading.execute(args.command)
+	for m in reading.messages.list:
+		print(m.content)
 else:
 	parser.print_help()
