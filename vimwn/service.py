@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import os, gi, signal, setproctitle, logging
 import vimwn.command
+import vimwn.configurations as configurations
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from vimwn.reading import Reading
@@ -24,7 +25,6 @@ from gi.repository import GObject, Gtk, GLib, Gdk
 from vimwn.status import StatusIcon
 from vimwn.keyboard import KeyboardListener
 from vimwn.layout import LayoutManager
-from vimwn.environment import Configurations
 from vimwn.windows import Windows
 from vimwn.command import CommandInput
 from vimwn.remote import NavigatorBusService
@@ -37,7 +37,6 @@ SIGHUP = getattr(signal, "SIGHUP", None)
 listener = None
 bus_object = None
 status_icon = None
-configurations = Configurations()
 windows = Windows(configurations.is_list_workspaces())
 GObject.threads_init()
 reading = Reading(configurations=configurations, windows=windows)

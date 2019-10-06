@@ -17,18 +17,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os, dbus, dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus.gi_service import ExportedGObject
-from vimwn.status import StatusIcon
-from vimwn.keyboard import KeyboardListener
-from vimwn.layout import LayoutManager
-from vimwn.environment import Configurations
-from vimwn.windows import Windows
-from vimwn.command import CommandInput
 
 SERVICE_NAME = "io.github.vimwn"
 SERVICE_OBJECT_PATH = "/io/github/vimwn"
-SIGINT  = getattr(signal, "SIGINT", None)
-SIGTERM = getattr(signal, "SIGTERM", None)
-SIGHUP  = getattr(signal, "SIGHUP", None)
 
 
 class NavigatorBusService (ExportedGObject):
@@ -63,7 +54,8 @@ class NavigatorBusService (ExportedGObject):
 		self.bus.release_name(SERVICE_NAME)
 		print('vimwn service were released from bus')
 
-class RemoteInterface():
+
+class RemoteInterface:
 
 	def __init__(self):
 		self.bus = dbus.Bus()

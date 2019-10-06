@@ -1,11 +1,11 @@
 from vimwn.keyboard import Key
 from vimwn.command import Command
 import vimwn.service
+import vimwn.configurations as configurations
 
 termkey = '<Primary>e'
 
 
-configurations = vimwn.service.configurations
 windows = vimwn.service.windows
 reading = vimwn.service.reading
 layout_manager = vimwn.service.layout_manager
