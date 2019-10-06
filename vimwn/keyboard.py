@@ -59,6 +59,7 @@ class KeyboardListener:
 		self.root = self.local_display.screen().root
 		self.root.change_attributes(event_mask=X.KeyPressMask | X.KeyReleaseMask)
 		self.callback_map = {}
+		self.modifiers = self.modified = 0
 
 	def bind(self, accelerator_string, callback):
 		a = Gtk.accelerator_parse_with_keycode(accelerator_string)
@@ -84,11 +85,20 @@ class KeyboardListener:
 		data = reply.data
 		while len(data):
 			event, data = rq.EventField(None).parse_binary_value(data, self.record_display.display, None, None)
-			if event.type == X.KeyPress and event.detail not in self.mod_keys_set:
+
+			if event.detail in self.mod_keys_set:
+				self.modifiers += 1 if event.type == X.KeyPress else -1
+				self.modified = 0
+				continue
+
+			if self.modifiers:
+				self.modified += 1 if event.type == X.KeyPress else -1
+
+			if event.type == X.KeyPress:
 				event.keyval = self.local_display.keycode_to_keysym(event.detail, event.state & Gdk.ModifierType.SHIFT_MASK)
 				normalized_state = normalize_state(event.state)
 				callback = None
-				if event.detail in self.callback_map and normalized_state in self.callback_map[event.detail]:
+				if self.modified == 1 and event.detail in self.callback_map and normalized_state in self.callback_map[event.detail]:
 					callback = self.callback_map[event.detail][normalized_state]
 				else:
 					callback = self.unmapped_callback
