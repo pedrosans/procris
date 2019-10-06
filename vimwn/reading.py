@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, re, time, traceback
+import gi, re, time, traceback, vimwn.command
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
@@ -316,7 +316,7 @@ class Reading:
 		self.set_key_mode(c_in.time)
 
 	def open_indexed_buffer(self, c_in):
-		buffer_number = c_in.vim_command_parameter
+		buffer_number = re.match(vimwn.command.GROUPED_INDEXED_BUFFER_REGEX, c_in.text).group(2)
 		index = int(buffer_number) - 1
 		if index < len(self.windows.buffers):
 			self.windows.show(self.windows.buffers[index])

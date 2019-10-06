@@ -19,6 +19,8 @@ import gi, re
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gdk
 
+GROUPED_INDEXED_BUFFER_REGEX = r'^\s*(buffer|b)\s*([0-9]+)\s*$'
+
 
 class Command:
 
@@ -43,7 +45,7 @@ class Command:
 		['bdelete'		,'^\s*(bdelete|bd)\s*([0-9]+\s*)+$'	,None									,controller.delete_indexed_buffer	],
 		['bdelete'		,'^\s*(bdelete|bd)\s+\w+\s*$'		,None									,controller.delete_named_buffer		],
 		['buffer'		,'^\s*(buffer|b)\s*$'				,None									,controller.buffer					],
-		['buffer'		,'^\s*(buffer|b)\s*[0-9]+\s*$'		,None									,controller.open_indexed_buffer		],
+		['buffer'		,GROUPED_INDEXED_BUFFER_REGEX		,None									,controller.open_indexed_buffer		],
 		['buffer'		,'^\s*(buffer|b)\s+\w+.*$'			,None									,controller.open_named_buffer		],
 		['centralize'	,'^\s*(centralize|ce)\s*$'			,None									,windows.centralize			    	],
 		['maximize'		,'^\s*(maximize|ma)\s*$'			,None									,windows.maximize			    	],
