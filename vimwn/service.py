@@ -25,6 +25,7 @@ from dbus.gi_service import ExportedGObject
 from vimwn.status import StatusIcon
 from vimwn.keyboard import KeyboardListener
 from vimwn.layout import LayoutManager
+from vimwn.environment import Configurations
 
 SERVICE_NAME = "io.github.vimwn"
 SERVICE_OBJECT_PATH = "/io/github/vimwn"
@@ -73,15 +74,20 @@ class NavigatorService:
 		self.status_icon = None
 		self.listener = None
 		self.layout_manager = None
+		self.configurations = None
 
 	def start(self):
+		# as soon as possible so new instances as notified
+		self.export_bus_object()
+		self.configure_process()
+
 		GObject.threads_init()
 
-		self.reading = Reading(service=self)
-		configurations = self.reading.configurations
+		self.configurations = Configurations()
+		self.reading = Reading(service=self, configurations=self.configurations)
 		self.layout_manager = LayoutManager(self.reading.windows,
-												remove_decorations=configurations.is_remove_decorations())
-		normal_prefix = configurations.get_prefix_key()
+												remove_decorations=self.configurations.is_remove_decorations())
+		normal_prefix = self.configurations.get_prefix_key()
 		self.listener = KeyboardListener(unmapped_callback=self.on_x_key, on_error=self.keyboard_error)
 		self.listener.bind(normal_prefix, self.start_reading)
 		self.listener.bind('<Ctrl>Return', self.handle_layout)
@@ -92,19 +98,16 @@ class NavigatorService:
 		self.listener.start()
 		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
 
-		self.configure_process()
-
-		self.status_icon = StatusIcon(self, configurations, self.layout_manager)
+		self.status_icon = StatusIcon(self, self.configurations, self.layout_manager)
 		self.status_icon.activate()
 
 		# TODO: move higher in the start routine to fail faster
-		self.export_bus_object()
 		Gtk.main()
 
 		print("Ending vimwn service, pid: {}".format(os.getpid()))
 
 	def keyboard_error(self, exception, *args):
-		print('Unable to listen to {}'.format(self.reading.configurations.get_prefix_key()))
+		print('Unable to listen to {}'.format(self.configurations.get_prefix_key()))
 		self.stop()
 
 	def start_reading(self, x_key_event):
@@ -130,6 +133,7 @@ class NavigatorService:
 		return False
 
 	def reload(self):
+		self.configurations.reload()
 		self.status_icon.reload()
 
 	def configure_process(self):

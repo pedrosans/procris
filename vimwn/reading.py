@@ -20,7 +20,6 @@ gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from vimwn.view import NavigatorWindow
 from vimwn.windows import Windows
-from vimwn.environment import Configurations
 from vimwn.applications import Applications
 from vimwn.terminal import Terminal
 from vimwn.hint import HintStatus
@@ -48,14 +47,14 @@ class Mode:
 # TODO chain commands
 class Reading:
 
-	def __init__(self, service=None):
+	def __init__(self, service=None, configurations=None):
+		self.service = service
+		self.configurations = configurations
 		self.cmd_handler_ids = []
 		self.mode = Mode.NORMAL
 		self.view = None
 		self.multiplier = None
-		self.service = service
 		self.windows = Windows(self)
-		self.configurations = Configurations()
 		self.applications = Applications()
 		self.terminal = Terminal()
 		self.hint_status = HintStatus(self)
@@ -85,11 +84,11 @@ class Reading:
 		self.hint_status.clear_state()
 
 	def _internal_reload(self, time):
+		self._clean_command_state()
 		if self.view:
 			self.view.close()
 		self.create_and_install_view()
-		self.view.present_with_time(time)
-		self.set_key_mode(time)
+		self.start(time)
 
 	def create_and_install_view(self):
 		self.view = NavigatorWindow(self, self.windows, self.messages)
@@ -243,12 +242,11 @@ class Reading:
 	# COMMANDS
 	#
 	def reload(self, c_in):
-		self.configurations.reload()
+		self.service.reload()
 		self.applications.reload()
 		self.terminal.reload()
 		self.messages.clean()
 		self._internal_reload(c_in.time)
-		self.service.reload()
 
 	def edit(self, c_in):
 		name = c_in.vim_command_parameter
