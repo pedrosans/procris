@@ -26,21 +26,35 @@ def normalize_state(state):
 	return normalized
 
 
-def run_inside_x_main_loop(callback, x_key_event):
-	GLib.idle_add(callback, x_key_event, priority=GLib.PRIORITY_HIGH);
-	return False
+def parse_accelerator(accelerator_string, keymap=Gdk.Keymap.get_default()):
+	a = Gtk.accelerator_parse_with_keycode(accelerator_string)
+
+	if not a.accelerator_codes:
+		raise Exception('Can not parse the accelerator string')
+	if len(a.accelerator_codes) > 1:
+		# https://mail.gnome.org/archives/gtk-devel-list/2000-December/msg00034.html
+		raise Exception('Support to keycodes with multiple keyvalues not implemented')
+
+	gdk_keyval = a.accelerator_key
+	if Gdk.keyval_to_upper(gdk_keyval) != Gdk.keyval_to_lower(gdk_keyval):
+		gdk_keyval = Gdk.keyval_from_name(accelerator_string[-1])
+	code = a.accelerator_codes[0]
+	mapped_the_same, non_virtual_counterpart = keymap.map_virtual_modifiers(a.accelerator_mods)
+	mask = normalize_state(non_virtual_counterpart)
+	return gdk_keyval, code, mask
 
 
 class KeyboardListener:
 
-	def __init__(self, unmapped_callback=None, on_error=None):
+	def __init__(self, callback=None, on_error=None):
 		self.on_error = on_error
-		self.unmapped_callback = unmapped_callback
+		self.callback = callback
 
 		self.record_thread = threading.Thread(target=self.record, name='x keyboard listener thread')
 		self.well_thread = threading.Thread(target=self.drop_hot_key, daemon=True, name='hotkey well thread')
 
 		self.record_display = Display()
+		self.record_display.set_error_handler(self.on_error)
 		self.local_display = Display()
 		self.local_display.set_error_handler(self.on_error)
 
@@ -58,51 +72,104 @@ class KeyboardListener:
 
 		self.root = self.local_display.screen().root
 		self.root.change_attributes(event_mask=X.KeyPressMask | X.KeyReleaseMask)
-		self.callback_map = {}
-		self.modifiers = self.modified = 0
+		self.modifiers_count = self.modified_count = 0
+		self.key_map = {}
+		self.composed_key_map = {}
+		self.composed_mapping_first_keys = set()
+		self.composed_mapping_first_key = None
+		self.multiplier = ''
+		self.keymap = Gdk.Keymap.get_default()
 
-	def bind(self, accelerator_string, callback):
-		a = Gtk.accelerator_parse_with_keycode(accelerator_string)
+	def grab_keys(self, code, mask):
+		self.root.grab_key(code, mask, True, X.GrabModeAsync, X.GrabModeAsync)
+		self.root.grab_key(code, mask | X.Mod2Mask, True, X.GrabModeAsync, X.GrabModeAsync)
 
-		if not a.accelerator_codes:
-			raise Exception('Can not parse the accelerator string')
-		if len(a.accelerator_codes) > 1:
-			# https://mail.gnome.org/archives/gtk-devel-list/2000-December/msg00034.html
-			raise Exception('Support to keycodes with multiple keyvalues not implemented')
+	def bind(self, key):
+		if len(key.accelerators) == 1:
+			self.bind_single_accelerator(key)
+		elif len(key.accelerators) == 2:
+			self.bind_composed_accelerator(key)
+		else:
+			raise Exception('Cant bind the key')
 
-		accelerator_code = a.accelerator_codes[0]
-		mapped_the_same, non_virtual_counterpart = Gdk.Keymap.get_default().map_virtual_modifiers(a.accelerator_mods)
-		accelerator_mask = normalize_state(non_virtual_counterpart)
+	def bind_single_accelerator(self, key):
+		gdk_keyval, code, mask = parse_accelerator(key.accelerators[0], self.keymap)
 
-		self.root.grab_key(accelerator_code, accelerator_mask, True, X.GrabModeAsync, X.GrabModeAsync)
-		self.root.grab_key(accelerator_code, accelerator_mask | X.Mod2Mask, True, X.GrabModeAsync, X.GrabModeAsync)
-		if accelerator_code not in self.callback_map:
-			self.callback_map[accelerator_code] = {}
+		self.grab_keys(code, mask)
 
-		self.callback_map[accelerator_code][accelerator_mask] = callback
+		if gdk_keyval not in self.key_map:
+			self.key_map[gdk_keyval] = {}
+
+		self.key_map[gdk_keyval][mask] = key
+
+	def bind_composed_accelerator(self, key):
+		gdk_keyval, code, mask = parse_accelerator(key.accelerators[0], self.keymap)
+		second_gdk_keyval, second_code, second_mask = parse_accelerator(key.accelerators[1], self.keymap)
+
+		self.grab_keys(code, mask)
+
+		if gdk_keyval not in self.composed_key_map:
+			self.composed_key_map[gdk_keyval] = {}
+		if mask not in self.composed_key_map[gdk_keyval]:
+			self.composed_key_map[gdk_keyval][mask] = {}
+		if second_gdk_keyval not in self.composed_key_map[gdk_keyval][mask]:
+			self.composed_key_map[gdk_keyval][mask][second_gdk_keyval] = {}
+
+		if second_mask in self.composed_key_map[gdk_keyval][mask][second_gdk_keyval]:
+			raise Exception('key ({}) already mapped'.format(', '.join(key.accelerators)))
+
+		self.composed_key_map[gdk_keyval][mask][second_gdk_keyval][second_mask] = key
 
 	def handler(self, reply):
 		data = reply.data
 		while len(data):
-			event, data = rq.EventField(None).parse_binary_value(data, self.record_display.display, None, None)
+			event, data = rq.EventField(None).parse_binary_value(
+				data, self.record_display.display, None, None)
+
+			_wasmapped, keyval, egroup, level, consumed = self.keymap.translate_keyboard_state(
+				event.detail, Gdk.ModifierType(event.state), 0)
 
 			if event.detail in self.mod_keys_set:
-				self.modifiers += 1 if event.type == X.KeyPress else -1
-				self.modified = 0
+				self.modifiers_count += 1 if event.type == X.KeyPress else -1
+				self.modified_count = 0
 				continue
 
-			if self.modifiers:
-				self.modified += 1 if event.type == X.KeyPress else -1
+			if self.modifiers_count:
+				self.modified_count += 1 if event.type == X.KeyPress else -1
 
 			if event.type == X.KeyPress:
-				event.keyval = self.local_display.keycode_to_keysym(event.detail, event.state & Gdk.ModifierType.SHIFT_MASK)
-				normalized_state = normalize_state(event.state)
-				callback = None
-				if self.modified == 1 and event.detail in self.callback_map and normalized_state in self.callback_map[event.detail]:
-					callback = self.callback_map[event.detail][normalized_state]
-				else:
-					callback = self.unmapped_callback
-				run_inside_x_main_loop(callback, event)
+				self.handle_keypress(event)
+
+	def handle_keypress(self, event):
+		_wasmapped, keyval, egroup, level, consumed = self.keymap.translate_keyboard_state(
+			event.detail, Gdk.ModifierType(event.state), 0)
+
+		event.keyval = keyval
+		mask = normalize_state(event.state) & ~consumed
+
+		if self.composed_mapping_first_key:
+
+			key_name = Gdk.keyval_name(event.keyval)
+			if not mask and key_name and key_name.isdigit():
+				self.multiplier = self.multiplier + key_name
+				return
+
+			second_key_map = self.composed_key_map[self.composed_mapping_first_key[0]][self.composed_mapping_first_key[1]]
+			if keyval in second_key_map and mask in second_key_map[keyval]:
+				multiplier_int = int(self.multiplier) if self.multiplier else 1
+				self.callback(second_key_map[keyval][mask], event, multiplier=multiplier_int)
+
+			self.composed_mapping_first_key = None
+
+		elif self.modified_count == 1:
+
+			if keyval in self.key_map and mask in self.key_map[keyval]:
+				self.callback(self.key_map[keyval][mask], event)
+
+			if keyval in self.composed_key_map and mask in self.composed_key_map[keyval]:
+				self.composed_mapping_first_key = (keyval, mask)
+
+		self.multiplier = ''
 
 	def stop(self):
 		self.local_display.record_disable_context(self.context)
@@ -124,3 +191,10 @@ class KeyboardListener:
 		self.record_display.record_free_context(self.context)
 		self.record_display.close()
 
+
+class Key:
+
+	def __init__(self, accelerators, function, *parameters):
+		self.accelerators = accelerators
+		self.function = function
+		self.parameters = parameters[0] if parameters else None

@@ -80,6 +80,7 @@ class Serializer:
 		return None
 
 
+# TODO: the the window is maximized, the layout function fails
 class LayoutManager:
 
 	def __init__(self, windows, remove_decorations=False,  persistence_file='/tmp/vimify_windows_state.json'):
@@ -171,21 +172,30 @@ class LayoutManager:
 				w, x=a[0] + self.gap, y=a[1] + self.gap, w=a[2] - self.gap * 2, h=a[3] - self.gap * 2)
 
 	def move_to_master(self, w):
-		if w:
-			old_index = self.stack.index(w.get_xid())
+		self.windows.read_screen()
+		active = self.windows.active
+		if active:
+			old_index = self.stack.index(active.get_xid())
 			self.stack.insert(0, self.stack.pop(old_index))
+		self.layout()
 
-	def increase_master_area(self, increment):
+	def increase_master_area(self, c_in):
+		self.windows.read_screen()
+		increment = c_in.parameters[0]
 		self.monitor.mfact += increment
 		self.monitor.mfact = max(0.1, self.monitor.mfact)
 		self.monitor.mfact = min(0.9, self.monitor.mfact)
 		self._persist_internal_state()
+		self.layout()
 
-	def increment_master(self, increment):
+	def increment_master(self, c_in):
+		self.windows.read_screen()
+		increment = c_in.parameters[0]
 		self.monitor.nmaster += increment
 		self.monitor.nmaster = max(0, self.monitor.nmaster)
 		self.monitor.nmaster = min(len(self.stack), self.monitor.nmaster)
 		self._persist_internal_state()
+		self.layout()
 
 
 def centeredmaster(stack, monitor):

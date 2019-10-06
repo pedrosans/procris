@@ -89,8 +89,8 @@ def unsnap(window):
 
 class Windows:
 
-	def __init__(self, controller):
-		self.controller = controller
+	def __init__(self, list_workspaces=False):
+		self.list_workspaces = list_workspaces
 		Wnck.set_client_type(Wnck.ClientType.PAGER)
 		self.active = None
 		self.staging = False
@@ -117,7 +117,7 @@ class Windows:
 			if wnck_window.is_skip_tasklist():
 				continue
 			in_active_workspace = wnck_window.is_in_viewport(active_workspace)
-			if in_active_workspace or self.controller.configurations.is_list_workspaces():
+			if in_active_workspace or self.list_workspaces:
 				self.buffers.append(wnck_window)
 			if in_active_workspace and not wnck_window.is_minimized():
 				self.visible.append(wnck_window)
@@ -213,11 +213,15 @@ class Windows:
 				w.minimize()
 		self.show(self.active)
 
+	def minimize_active_window(self, c_in):
+		if self.active:
+			self.active.minimize()
+
 	def navigate_to_previous(self, c_in):
-		top, below = self.get_top_two_windows()
-		if below:
-			self.active = below
-			self.staging = True
+		stack = list(filter(lambda x: x in self.visible, self.screen.get_windows_stacked()))
+		i = stack.index(self.active)
+		self.active = stack[i - 1]
+		self.staging = True
 
 	def cycle(self, c_in):
 		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
@@ -258,7 +262,7 @@ class Windows:
 		self.resize(self.active, 0.1, 0.1, 0.8, 0.8)
 
 	def navigate_right(self, c_in):
-		self.navigate( 1, HORIZONTAL)
+		self.navigate(1, HORIZONTAL)
 
 	def navigate_left(self, c_in):
 		self.navigate(-1, HORIZONTAL)
@@ -298,10 +302,13 @@ class Windows:
 	def get_top_two_windows(self):
 		top = self.active
 		below = None
+		after_top = False
 		for w in reversed(self.screen.get_windows_stacked()):
-			if w in self.visible and w is not top:
+			if w in self.visible and after_top:
 				below = w
 				break
+			if w is top:
+				after_top = True
 		return top, below
 
 	def get_left_right_top_windows(self):

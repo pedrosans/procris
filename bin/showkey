@@ -1,0 +1,49 @@
+#!/usr/bin/env python3
+import gi, threading
+from Xlib import X
+from Xlib.ext import record
+from Xlib.display import Display
+from Xlib.protocol import rq
+gi.require_version('Gtk', '3.0')
+gi.require_version('Gdk', '3.0')
+from gi.repository import Gtk, Gdk, GObject, GLib
+from vimwn.keyboard import KeyboardListener
+import vimwn.keyboard
+
+
+def handle(event):
+	print('ORIGINAL:')
+	print('     detail: {}'.format(event.detail))
+	print('     state: {}'.format(event.state))
+
+	keyval = listener.local_display.keycode_to_keysym(event.detail, event.state & Gdk.ModifierType.SHIFT_MASK)
+	code = event.detail
+	mask = vimwn.keyboard.normalize_state(event.state)
+	key_name = Gdk.keyval_name(keyval)
+	print('NORMALIZED:')
+	print('     keyval: {}'.format(keyval))
+	print('     code: {}'.format(code))
+	print('     mask: {}'.format(mask))
+	print('     key_name: {}'.format(key_name))
+
+	keymap = Gdk.Keymap.get_default()
+	_wasmapped, keyval, egroup, level, consumed = keymap.translate_keyboard_state(event.detail, Gdk.ModifierType(event.state), 0)
+	modifiers = Gtk.accelerator_get_default_mod_mask() & ~consumed
+	state = event.state & modifiers
+	print('TRANSLATED:')
+	print('     wasmapped: {}'.format(_wasmapped))
+	print('     keyval: {}'.format(keyval))
+	print('     egroup: {}'.format(egroup))
+	print('     level: {}'.format(level))
+	print('     consumed {}'.format(consumed))
+	print('     modifiers {}'.format(modifiers))
+	print('     state {}'.format(state))
+
+
+listener = KeyboardListener()
+listener.handle_keypress = handle
+listener.start()
+input('type to exit')
+listener.stop()
+print('end')
+

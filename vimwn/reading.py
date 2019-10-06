@@ -47,14 +47,13 @@ class Mode:
 # TODO chain commands
 class Reading:
 
-	def __init__(self, service=None, configurations=None):
+	def __init__(self, service=None, configurations=None, windows=None):
 		self.service = service
 		self.configurations = configurations
 		self.cmd_handler_ids = []
 		self.mode = Mode.NORMAL
 		self.view = None
-		self.multiplier = None
-		self.windows = Windows(self)
+		self.windows = windows
 		self.applications = Applications()
 		self.terminal = Terminal()
 		self.hint_status = HintStatus(self)
@@ -63,19 +62,6 @@ class Reading:
 		self.create_and_install_view()
 		self._clean_command_state()
 		self.messages.clean()
-		Command.map_to(self, self.windows)
-
-	def start(self, event_time=0):
-		self.set_key_mode(event_time)
-
-		self.view.present_with_time(event_time)
-		self.view.get_window().focus(event_time)
-
-	def end(self, widget, event):
-		self.set_normal_mode()
-
-	def clean_key_combination_state(self):
-		self.multiplier = ''
 
 	def _clean_command_state(self):
 		for handler_id in self.cmd_handler_ids:
@@ -92,8 +78,8 @@ class Reading:
 
 	def create_and_install_view(self):
 		self.view = NavigatorWindow(self, self.windows, self.messages)
-		self.view.connect("focus-out-event", self.end)
-		self.view.entry.connect("activate", self.on_command, None)
+		self.view.connect("focus-out-event", self._focus_out_callback)
+		self.view.connect("key-press-event", self._window_key_press_callback)
 
 	def set_normal_mode(self):
 		self.mode = Mode.NORMAL
@@ -107,7 +93,6 @@ class Reading:
 		if error_message:
 			self.messages.add(error_message, 'error')
 		self._clean_command_state()
-		self.clean_key_combination_state()
 		self.view.show(event_time)
 
 	def set_command_mode(self, time):
@@ -117,9 +102,9 @@ class Reading:
 
 		r_id = self.view.entry.connect("key-release-event", self.on_entry_key_release)
 		p_id = self.view.entry.connect("key-press-event", self.on_entry_key_press)
+		a_id = self.view.entry.connect("activate", self.on_command, None)
 
-		self.cmd_handler_ids.append(r_id)
-		self.cmd_handler_ids.append(p_id)
+		self.cmd_handler_ids.extend([r_id, p_id, a_id])
 
 	def in_command_mode(self):
 		return self.mode == Mode.COMMAND
@@ -127,34 +112,26 @@ class Reading:
 	#
 	# CALLBACKS
 	#
-	def on_window_key(self, event):
-		if self.mode == Mode.NORMAL:
-			return
+	def _focus_out_callback(self, widget, event):
+		self.set_normal_mode()
 
+	def _window_key_press_callback(self, widget, event):
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
-		key_name = Gdk.keyval_name(event.keyval)
-		# print('keycode {}'.format(event.get_keycode()))
-		# print('scancode {}'.format(event.get_scancode()))
-		# print('keyval {}'.format(event.keyval))
+
 		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft):
-			self.escape(None)
+			self.escape(CommandInput(time=event.time, keyval=event.keyval))
 			return
 
-		if self.mode == Mode.COMMAND:
+		if self.in_command_mode():
 			return
 
-		if key_name and key_name.isdigit():
-			self.multiplier = self.multiplier + key_name
-			return
+		if event.keyval == Gdk.KEY_colon and not ctrl:
+			self.colon(CommandInput(time=event.time, keyval=event.keyval))
+			return True
 
-		if event.keyval in Command.KEY_MAP:
-			multiplier_int = int(self.multiplier) if self.multiplier else 1
-			for i in range(multiplier_int):
-				Command.KEY_MAP[event.keyval].function(CommandInput(time=event.time, keyval=event.keyval))
-			staging_changes = self.windows.staging
-			self.windows.commit_navigation(event.time)
-			if staging_changes:
-				self.set_normal_mode()
+		if event.keyval == Gdk.KEY_Return:
+			self.enter(CommandInput(time=event.time, keyval=event.keyval))
+			return True
 
 	def on_entry_key_release(self, widget, event):
 		if event.keyval in HINT_OPERATION_KEYS:
@@ -241,6 +218,13 @@ class Reading:
 	#
 	# COMMANDS
 	#
+	def start(self, c_in):
+		event_time = c_in.time
+		self.set_key_mode(event_time)
+
+		self.view.present_with_time(event_time)
+		self.view.get_window().focus(event_time)
+
 	def reload(self, c_in):
 		self.service.reload()
 		self.applications.reload()
@@ -288,7 +272,8 @@ class Reading:
 		self.set_key_mode(c_in.time)
 
 	def colon(self, c_in):
-		self.set_command_mode(c_in.time)
+		if self.mode == Mode.KEY:
+			self.set_command_mode(c_in.time)
 
 	def enter(self, c_in):
 		self.messages.clean()
@@ -296,13 +281,6 @@ class Reading:
 
 	def escape(self, c_in):
 		self.set_normal_mode()
-
-	def quit(self, c_in):
-		if self.windows.active:
-			self.windows.active.minimize()
-			self.set_normal_mode()
-		else:
-			self.set_key_mode(c_in.time, error_message='No active window')
 
 	def buffers(self, c_in):
 		self.messages.list_buffers()

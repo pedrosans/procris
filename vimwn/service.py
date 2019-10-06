@@ -16,6 +16,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os, gi, dbus, dbus.service, signal, setproctitle, logging
+import vimwn.mapping as mappings
+import vimwn.command
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from vimwn.reading import Reading
@@ -26,6 +28,8 @@ from vimwn.status import StatusIcon
 from vimwn.keyboard import KeyboardListener
 from vimwn.layout import LayoutManager
 from vimwn.environment import Configurations
+from vimwn.windows import Windows
+from vimwn.command import CommandInput
 
 SERVICE_NAME = "io.github.vimwn"
 SERVICE_OBJECT_PATH = "/io/github/vimwn"
@@ -74,34 +78,32 @@ class NavigatorService:
 		self.status_icon = None
 		self.listener = None
 		self.layout_manager = None
-		self.configurations = None
+		self.configurations = Configurations()
+		self.windows = Windows(self.configurations.is_list_workspaces())
+		GObject.threads_init()
+		self.reading = Reading(
+			service=self, configurations=self.configurations, windows=self.windows)
+		self.layout_manager = LayoutManager(
+			self.reading.windows, remove_decorations=self.configurations.is_remove_decorations())
 
 	def start(self):
 		# as soon as possible so new instances as notified
 		self.export_bus_object()
 		self.configure_process()
 
-		GObject.threads_init()
+		keys, commands = mappings.map(self.configurations, self.reading.windows, self.reading, self.layout_manager)
 
-		self.configurations = Configurations()
-		self.reading = Reading(service=self, configurations=self.configurations)
-		self.layout_manager = LayoutManager(self.reading.windows,
-												remove_decorations=self.configurations.is_remove_decorations())
-		normal_prefix = self.configurations.get_prefix_key()
-		self.listener = KeyboardListener(unmapped_callback=self.on_x_key, on_error=self.keyboard_error)
-		self.listener.bind(normal_prefix, self.start_reading)
-		self.listener.bind('<Ctrl>Return', self.handle_layout)
-		self.listener.bind('<Ctrl>i', self.handle_layout)
-		self.listener.bind('<Ctrl>d', self.handle_layout)
-		self.listener.bind('<Ctrl>l', self.handle_layout)
-		self.listener.bind('<Ctrl>h', self.handle_layout)
+		self.listener = KeyboardListener(callback=self.keyboard_listener, on_error=self.keyboard_error)
+		for key in keys:
+			self.listener.bind(key)
 		self.listener.start()
-		print("Listening keys: '{}', pid: {} ".format(normal_prefix, os.getpid()))
+
+		for command in commands:
+			vimwn.command.add(command)
 
 		self.status_icon = StatusIcon(self, self.configurations, self.layout_manager)
 		self.status_icon.activate()
 
-		# TODO: move higher in the start routine to fail faster
 		Gtk.main()
 
 		print("Ending vimwn service, pid: {}".format(os.getpid()))
@@ -110,26 +112,24 @@ class NavigatorService:
 		print('Unable to listen to {}'.format(self.configurations.get_prefix_key()))
 		self.stop()
 
-	def start_reading(self, x_key_event):
-		self.reading.start(x_key_event.time)
+	def keyboard_listener(self, key, x_key_event, multiplier=1):
+		GLib.idle_add(
+			self._inside_main_loop, key, x_key_event, multiplier,
+			priority=GLib.PRIORITY_HIGH);
 
-	def on_x_key(self, x_key_event):
-		self.reading.on_window_key(x_key_event)
+	def _inside_main_loop(self, key, x_key_event, multiplier):
 
-	def handle_layout(self, x_key_event):
-		self.reading.windows.read_screen()
-		keyval = x_key_event.keyval
-		if keyval == Gdk.KEY_Return:
-			self.layout_manager.move_to_master(self.reading.windows.active)
-		elif keyval == Gdk.KEY_i:
-			self.layout_manager.increment_master(1)
-		elif keyval == Gdk.KEY_d:
-			self.layout_manager.increment_master(-1)
-		elif keyval == Gdk.KEY_l:
-			self.layout_manager.increase_master_area(0.05)
-		elif keyval == Gdk.KEY_h:
-			self.layout_manager.increase_master_area(-0.05)
-		self.layout_manager.layout()
+		command_input = CommandInput(
+			time=x_key_event.time, keyval=x_key_event.keyval, parameters=key.parameters)
+
+		for i in range(multiplier):
+			key.function(command_input)
+
+		self.windows.commit_navigation(x_key_event.time)
+
+		if len(key.accelerators) > 1:
+			reading.set_normal_mode()
+
 		return False
 
 	def reload(self):
