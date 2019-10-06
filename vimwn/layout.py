@@ -14,7 +14,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import os
+import gi, os
+gi.require_version('Wnck', '3.0')
+from gi.repository import Wnck
 
 from vimwn.windows import monitor_work_area_for
 
@@ -46,8 +48,38 @@ class LayoutManager:
 		# def _active_window_changed(self, screen, previously_active_window):
 		self.windows.screen.connect("window-opened", self._window_opened)
 		self.windows.screen.connect("window-closed", self._window_closed)
+		self.window_monitor_map = {}
+
+	def _window_closed(self, screen, window):
+		if window.get_xid() in self.stack:
+			self.stack.remove(window.get_xid())
+		if window.get_pid() != os.getpid():
+			self.windows.read_screen(force_update=False)
+			self.layout()
+
+	def _window_opened(self, screen, window):
+		if window.get_pid() != os.getpid():
+			self.windows.read_screen(force_update=False)
+			if window in self.windows.visible:
+				self.stack.insert(0, window.get_xid())
+			self.layout()
+
+	def _state_changed(self, window, changed_mask, new_state):
+		if changed_mask & Wnck.WindowState.MINIMIZED:
+			self.windows.read_screen(force_update=False)
+			if window in self.windows.visible:
+				self.stack.insert(0, window.get_xid())
+			else:
+				self.stack.remove(window.get_xid())
+			self.layout()
 
 	def layout(self):
+
+		for window in self.windows.buffers:
+			if window.get_xid() not in self.window_monitor_map:
+				handler_id = window.connect("state-changed", self._state_changed)
+				self.window_monitor_map[window.get_xid()] = handler_id
+
 		w_stack = map(lambda x: self.windows.visible_map[x] if x in self.windows.visible_map else None, self.stack)
 		w_stack = filter(lambda x: x is not None, w_stack)
 		w_stack = list(w_stack)
@@ -73,20 +105,6 @@ class LayoutManager:
 		if w:
 			old_index = self.stack.index(w.get_xid())
 			self.stack.insert(0, self.stack.pop(old_index))
-
-	def _window_opened(self, screen, window):
-		if window.get_pid() != os.getpid():
-			self.windows.read_screen(force_update=False)
-			if window in self.windows.visible:
-				self.stack.insert(0, window.get_xid())
-			self.layout()
-
-	def _window_closed(self, screen, window):
-		if window.get_xid() in self.stack:
-			self.stack.remove(window.get_xid())
-		if window.get_pid() != os.getpid():
-			self.windows.read_screen(force_update=False)
-			self.layout()
 
 
 def centeredmaster(stack, monitor):
