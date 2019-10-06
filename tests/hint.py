@@ -2,8 +2,8 @@ import unittest
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from vimwn.hint import HintStatus
-from vimwn.command import Command
-from vimwn.command import CommandInput
+from vimwn.commands import Command
+from vimwn.commands import CommandInput
 
 
 class HintTestCase(unittest.TestCase):

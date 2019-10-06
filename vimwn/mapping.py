@@ -1,5 +1,5 @@
 from vimwn.keyboard import Key
-from vimwn.command import Command
+from vimwn.commands import Command
 import vimwn.service
 import vimwn.configurations as configurations
 

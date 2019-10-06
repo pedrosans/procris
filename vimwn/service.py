@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import os, gi, signal, setproctitle, logging
-import vimwn.command
+import vimwn.commands
 import vimwn.configurations as configurations
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
@@ -26,7 +26,7 @@ from vimwn.status import StatusIcon
 from vimwn.keyboard import KeyboardListener
 from vimwn.layout import LayoutManager
 from vimwn.windows import Windows
-from vimwn.command import CommandInput
+from vimwn.commands import CommandInput
 from vimwn.remote import NavigatorBusService
 
 SIGINT = getattr(signal, "SIGINT", None)
@@ -53,7 +53,7 @@ def start():
 	configure_process()
 
 	for command in mappings.commands:
-		vimwn.command.add(command)
+		vimwn.commands.add(command)
 
 	listener = KeyboardListener(callback=keyboard_listener, on_error=keyboard_error)
 

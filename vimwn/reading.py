@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, re, time, traceback, vimwn.command
+import gi, re, time, traceback, vimwn.commands
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
@@ -23,10 +23,10 @@ from vimwn.windows import Windows
 from vimwn.applications import Applications
 from vimwn.terminal import Terminal
 from vimwn.hint import HintStatus
-from vimwn.command import Command
-from vimwn.command import CommandHistory
+from vimwn.commands import Command
+from vimwn.commands import CommandHistory
 from vimwn.message import Messages
-from vimwn.command import CommandInput
+from vimwn.commands import CommandInput
 
 HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]
 HINT_LEFT = [Gdk.KEY_Left]
@@ -291,7 +291,7 @@ class Reading:
 		self.set_key_mode(c_in.time)
 
 	def buffer(self, c_in):
-		buffer_number_match = re.match(vimwn.command.GROUPED_INDEXED_BUFFER_REGEX, c_in.text)
+		buffer_number_match = re.match(vimwn.commands.GROUPED_INDEXED_BUFFER_REGEX, c_in.text)
 		if buffer_number_match:
 			buffer_number = buffer_number_match.group(2)
 			index = int(buffer_number) - 1

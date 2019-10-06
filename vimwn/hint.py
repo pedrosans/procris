@@ -15,8 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import re
-from vimwn.command import Command
-from vimwn.command import CommandInput
+from vimwn.commands import Command
+from vimwn.commands import CommandInput
 from vimwn.terminal import Terminal
 
 

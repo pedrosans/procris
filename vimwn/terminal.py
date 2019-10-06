@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os, glob, subprocess, shlex, re, traceback
 from subprocess import PIPE
 
-from vimwn.command import Command
+from vimwn.commands import Command
 
 COMMANDS_GLOB = ["/usr/bin/*", "/snap/bin/*", os.path.expanduser('~/.local/bin')+'/*']
 ALIAS_PATTERN = r'^\s*alias\s+.*$'
