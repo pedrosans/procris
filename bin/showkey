@@ -16,7 +16,7 @@ def handle(event):
 	print('     detail: {}'.format(event.detail))
 	print('     state: {}'.format(event.state))
 
-	keyval = listener.local_display.keycode_to_keysym(event.detail, event.state & Gdk.ModifierType.SHIFT_MASK)
+	keyval = listener.well_connection.keycode_to_keysym(event.detail, event.state & Gdk.ModifierType.SHIFT_MASK)
 	code = event.detail
 	mask = vimwn.keyboard.normalize_state(event.state)
 	key_name = Gdk.keyval_name(keyval)

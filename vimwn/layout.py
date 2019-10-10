@@ -104,9 +104,9 @@ class LayoutManager:
 		self._persist_internal_state()
 		self.apply_decoration_config()
 
-		# self._install_state_handlers()
-		# self.windows.screen.connect("window-opened", self._window_opened)
-		# self.windows.screen.connect("window-closed", self._window_closed)
+		self._install_state_handlers()
+		self.windows.screen.connect("window-opened", self._window_opened)
+		self.windows.screen.connect("window-closed", self._window_closed)
 		# self.screen.connect("active-window-changed", self._active_window_changed)
 		# def _active_window_changed(self, screen, previously_active_window):
 
@@ -120,7 +120,6 @@ class LayoutManager:
 	def _install_state_handlers(self):
 		for window in self.windows.buffers:
 			if window.get_xid() not in self.window_monitor_map:
-				print('adding {}-{}'.format(window.get_xid(), window.get_name()))
 				handler_id = window.connect("state-changed", self._state_changed)
 				self.window_monitor_map[window.get_xid()] = handler_id
 

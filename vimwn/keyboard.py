@@ -1,4 +1,4 @@
-import gi, threading
+import gi, threading, sys
 from Xlib import X
 from Xlib.ext import record
 from Xlib.display import Display
@@ -26,7 +26,7 @@ def normalize_state(state):
 	return normalized
 
 
-def parse_accelerator(accelerator_string, keymap=Gdk.Keymap.get_default()):
+def parse_accelerator(accelerator_string):
 	a = Gtk.accelerator_parse_with_keycode(accelerator_string)
 
 	if not a.accelerator_codes:
@@ -39,7 +39,7 @@ def parse_accelerator(accelerator_string, keymap=Gdk.Keymap.get_default()):
 	if Gdk.keyval_to_upper(gdk_keyval) != Gdk.keyval_to_lower(gdk_keyval):
 		gdk_keyval = Gdk.keyval_from_name(accelerator_string[-1])
 	code = a.accelerator_codes[0]
-	mapped_the_same, non_virtual_counterpart = keymap.map_virtual_modifiers(a.accelerator_mods)
+	mapped_the_same, non_virtual_counterpart = Gdk.Keymap.get_default().map_virtual_modifiers(a.accelerator_mods)
 	mask = normalize_state(non_virtual_counterpart)
 	return gdk_keyval, code, mask
 
@@ -49,28 +49,30 @@ class KeyboardListener:
 	def __init__(self, callback=None, on_error=None):
 		self.on_error = on_error
 		self.callback = callback
+		# XLib errors are received asynchronously, thus the need for a running state flag
+		self.stopped = False
 
-		self.record_thread = threading.Thread(target=self.record, name='x keyboard listener thread')
-		self.well_thread = threading.Thread(target=self.drop_hot_key, daemon=True, name='hotkey well thread')
+		self.record_thread = threading.Thread(target=self._record, name='x keyboard listener thread')
+		self.well_thread = threading.Thread(target=self._drop_key, daemon=True, name='hotkey well thread')
 
-		self.record_display = Display()
-		self.record_display.set_error_handler(self.on_error)
-		self.local_display = Display()
-		self.local_display.set_error_handler(self.on_error)
+		self.recording_connection = Display()
+		self.well_connection = Display()
+		self.recording_connection.set_error_handler(self._record_display_error_handler)
+		self.well_connection.set_error_handler(self._local_display_error_handler)
 
-		if not self.record_display.has_extension("RECORD"):
+		if not self.recording_connection.has_extension("RECORD"):
 			raise Exception("RECORD extension not found")
 
-		r = self.record_display.record_get_version(0, 0)
+		r = self.recording_connection.record_get_version(0, 0)
 		print("RECORD extension version %d.%d" % (r.major_version, r.minor_version))
-		self.context = self.record_display.record_create_context(0, [record.AllClients], CONTEXT_FILTER)
+		self.context = self.recording_connection.record_create_context(0, [record.AllClients], CONTEXT_FILTER)
 
 		self.mod_keys_set = set()
-		for mods in self.local_display.get_modifier_mapping():
+		for mods in self.well_connection.get_modifier_mapping():
 			for mod in mods:
 				self.mod_keys_set.add(mod)
 
-		self.root = self.local_display.screen().root
+		self.root = self.well_connection.screen().root
 		self.root.change_attributes(event_mask=X.KeyPressMask | X.KeyReleaseMask)
 		self.modifiers_count = self.modified_count = 0
 		self.key_map = {}
@@ -78,35 +80,86 @@ class KeyboardListener:
 		self.composed_mapping_first_keys = set()
 		self.composed_mapping_first_key = None
 		self.multiplier = ''
-		self.keymap = Gdk.Keymap.get_default()
 
-	def grab_keys(self, code, mask):
+	#
+	# API
+	#
+	def bind(self, key):
+		if self.stopped:
+			return
+		if len(key.accelerators) == 1:
+			self._bind_single_accelerator(key)
+		elif len(key.accelerators) == 2:
+			self._bind_composed_accelerator(key)
+		self.well_connection.sync()
+		if self.stopped:
+			print(
+				'Unable to bind: {}'.format(', '.join(key.accelerators)),
+				file=sys.stderr)
+
+	def start(self):
+		self.well_connection.sync()
+		self.recording_connection.sync()
+		if self.stopped:
+			return
+		self.well_thread.start()
+		self.record_thread.start()
+
+	def stop(self):
+		self.stopped = True
+		if self.record_thread.is_alive():
+			self.well_connection.record_disable_context(self.context)
+			self.well_connection.close()
+			print('display stopped recording')
+			self.record_thread.join()
+		print('recording thread ended')
+
+	#
+	# Thread targets
+	#
+	def _drop_key(self):
+		while not self.stopped:
+			self.well_connection.next_event()
+
+	def _record(self):
+		self.recording_connection.record_enable_context(self.context, self.handler)
+		self.recording_connection.record_free_context(self.context)
+		self.recording_connection.close()
+
+	def _record_display_error_handler(self, exception, *args):
+		print('Error at record display: {}'.format(exception), file=sys.stderr)
+		if not self.stopped:
+			self.stopped = True
+			self.on_error()
+
+	def _local_display_error_handler(self, exception, *args):
+		print('Error at local display: {}'.format(exception), file=sys.stderr)
+		if not self.stopped:
+			self.stopped = True
+			self.on_error()
+
+	#
+	# Internal API
+	#
+	def _grab_keys(self, code, mask):
 		self.root.grab_key(code, mask, True, X.GrabModeAsync, X.GrabModeAsync)
 		self.root.grab_key(code, mask | X.Mod2Mask, True, X.GrabModeAsync, X.GrabModeAsync)
 
-	def bind(self, key):
-		if len(key.accelerators) == 1:
-			self.bind_single_accelerator(key)
-		elif len(key.accelerators) == 2:
-			self.bind_composed_accelerator(key)
-		else:
-			raise Exception('Cant bind the key')
+	def _bind_single_accelerator(self, key):
+		gdk_keyval, code, mask = parse_accelerator(key.accelerators[0])
 
-	def bind_single_accelerator(self, key):
-		gdk_keyval, code, mask = parse_accelerator(key.accelerators[0], self.keymap)
-
-		self.grab_keys(code, mask)
+		self._grab_keys(code, mask)
 
 		if gdk_keyval not in self.key_map:
 			self.key_map[gdk_keyval] = {}
 
 		self.key_map[gdk_keyval][mask] = key
 
-	def bind_composed_accelerator(self, key):
-		gdk_keyval, code, mask = parse_accelerator(key.accelerators[0], self.keymap)
-		second_gdk_keyval, second_code, second_mask = parse_accelerator(key.accelerators[1], self.keymap)
+	def _bind_composed_accelerator(self, key):
+		gdk_keyval, code, mask = parse_accelerator(key.accelerators[0])
+		second_gdk_keyval, second_code, second_mask = parse_accelerator(key.accelerators[1])
 
-		self.grab_keys(code, mask)
+		self._grab_keys(code, mask)
 
 		if gdk_keyval not in self.composed_key_map:
 			self.composed_key_map[gdk_keyval] = {}
@@ -120,13 +173,16 @@ class KeyboardListener:
 
 		self.composed_key_map[gdk_keyval][mask][second_gdk_keyval][second_mask] = key
 
+	#
+	# Event handling
+	#
 	def handler(self, reply):
 		data = reply.data
 		while len(data):
 			event, data = rq.EventField(None).parse_binary_value(
-				data, self.record_display.display, None, None)
+				data, self.recording_connection.display, None, None)
 
-			_wasmapped, keyval, egroup, level, consumed = self.keymap.translate_keyboard_state(
+			_wasmapped, keyval, egroup, level, consumed = Gdk.Keymap.get_default().translate_keyboard_state(
 				event.detail, Gdk.ModifierType(event.state), 0)
 
 			if event.detail in self.mod_keys_set:
@@ -141,7 +197,7 @@ class KeyboardListener:
 				self.handle_keypress(event)
 
 	def handle_keypress(self, event):
-		_wasmapped, keyval, egroup, level, consumed = self.keymap.translate_keyboard_state(
+		_wasmapped, keyval, egroup, level, consumed = Gdk.Keymap.get_default().translate_keyboard_state(
 			event.detail, Gdk.ModifierType(event.state), 0)
 
 		event.keyval = keyval
@@ -170,26 +226,6 @@ class KeyboardListener:
 				self.composed_mapping_first_key = (keyval, mask)
 
 		self.multiplier = ''
-
-	def stop(self):
-		self.local_display.record_disable_context(self.context)
-		self.local_display.close()
-		print('display stoped recording')
-		self.record_thread.join()
-		print('recording thread ended')
-
-	def start(self):
-		self.well_thread.start()
-		self.record_thread.start()
-
-	def drop_hot_key(self):
-		while True:
-			event = self.local_display.next_event()
-
-	def record(self):
-		self.record_display.record_enable_context(self.context, self.handler)
-		self.record_display.record_free_context(self.context)
-		self.record_display.close()
 
 
 class Key:

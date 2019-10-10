@@ -15,6 +15,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
+import ctypes
+x11 = ctypes.cdll.LoadLibrary('libX11.so')
+x11.XInitThreads()
+# add python lock to Xlib internals
+from Xlib import threaded
+
 import os, gi, signal, setproctitle, logging
 import vimwn.commands
 import vimwn.configurations as configurations
@@ -53,14 +59,14 @@ def start():
 	configure_process()
 	map_commands()
 
-	listener = KeyboardListener(callback=keyboard_listener, on_error=keyboard_error)
+	listener = KeyboardListener(callback=keyboard_listener, on_error=stop)
 
 	for key in mappings.keys:
 		listener.bind(key)
 
 	listener.start()
 
-	status_icon = StatusIcon(configurations, layout_manager, stop_function=quit)
+	status_icon = StatusIcon(configurations, layout_manager, stop_function=stop)
 	status_icon.activate()
 
 	Gtk.main()
@@ -74,15 +80,10 @@ def map_commands():
 		vimwn.commands.add(command)
 
 
-def keyboard_error(exception, *args):
-	print('Unable to listen to {}'.format(configurations.get_prefix_key()))
-	stop()
-
-
 def keyboard_listener(key, x_key_event, multiplier=1):
 	GLib.idle_add(
 		_inside_main_loop, key, x_key_event, multiplier,
-		priority=GLib.PRIORITY_HIGH);
+		priority=GLib.PRIORITY_HIGH)
 
 
 def _inside_main_loop(key, x_key_event, multiplier):
@@ -147,7 +148,7 @@ def release_bus_object():
 
 
 def stop():
-	Gtk.main_quit()
+	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
 	listener.stop()
 	release_bus_object()
 
