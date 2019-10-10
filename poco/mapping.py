@@ -1,14 +1,14 @@
-from vimwn.keyboard import Key
-from vimwn.commands import Command
-import vimwn.service
-import vimwn.configurations as configurations
+from poco.keyboard import Key
+from poco.commands import Command
+import poco.service
+import poco.configurations as configurations
 
 termkey = '<Primary>e'
 
 
-windows = vimwn.service.windows
-reading = vimwn.service.reading
-layout_manager = vimwn.service.layout_manager
+windows = poco.service.windows
+reading = poco.service.reading
+layout_manager = poco.service.layout_manager
 
 termkey = configurations.get_prefix_key()
 

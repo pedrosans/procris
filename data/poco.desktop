@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Vimwn
-Icon=vimwn
-Exec=vimwn start
+Name=poco
+Icon=poco
+Exec=poco start
 Categories=Utility;

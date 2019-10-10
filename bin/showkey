@@ -7,8 +7,8 @@ from Xlib.protocol import rq
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GObject, GLib
-from vimwn.keyboard import KeyboardListener
-import vimwn.keyboard
+from poco.keyboard import KeyboardListener
+import poco.keyboard
 
 
 def handle(event):
@@ -18,7 +18,7 @@ def handle(event):
 
 	keyval = listener.well_connection.keycode_to_keysym(event.detail, event.state & Gdk.ModifierType.SHIFT_MASK)
 	code = event.detail
-	mask = vimwn.keyboard.normalize_state(event.state)
+	mask = poco.keyboard.normalize_state(event.state)
 	key_name = Gdk.keyval_name(keyval)
 	print('NORMALIZED:')
 	print('     keyval: {}'.format(keyval))

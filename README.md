@@ -1,87 +1,114 @@
-# vimwn
-Maps Vim window commands to Libwnck functions to move and navigate around X windows. As vimwn uses Libwnck to manipulate windows, it only works on X11
+# Poco
 
-## Usage
-X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q</kbd> by default, followed by a command
+Poco is a service that keeps windows in the workspace organized as a stack and maps commands to window operations on focus, position and state inside three (Normal, Command, Operator-Pending) different modes.
 
-### Commands
+### Rationale
 
-##### Windows
+POCO is an attempt to bring the most comfortable mappings and logic to work with windows inside dwm and Vim to a desktop environment of your choice.
+
+### Usage
+
+Commands and keys are mapped to a function inside Poco mappings module. The default mapping is a mix of dwm and xmodad keys to manipulate the windows stack and select a layout, plus vim keys and commands to navigate, move, launch, close, minimize.
+
+By default Poco is in normal state and besides of the status icon, there is no UI. Key binds to operate on the window stack and their layout can be used in this and any state.
+
+Similar to Vim's [termwenkey](https://vimhelp.org/options.txt.html#%27termwinkey%27), Poco enters in operator-pending and is followed by a window command by using a combination of a prefix key, <kbd>ctrl+q</kbd> by default, plus a command key.
+
+When in operator-pending mode, colon <kbd>:</kbd> will cause Poco to enter in command mode. A Gtk interface will show a input field to receive a command already mapped to a Poco funciton. Exemples:
+
+`:ls` lists current windows
+
+`:b4` bring the focus to the window number 4
+
+`:buffer term` brings the focus to the the window containing `term` in the title, if any.
+
+`:bd` closes the current window.
+
+`:e text` launchs an application containing `text` in the name, if any.
 
 
-<kbd>prefix key</kbd> + <kbd>w</kbd> Move focus to the window below/right of the current one
+#### Functions
 
-<kbd>prefix key</kbd> + <kbd>prefix key</kbd> Also move focus to the window below/right of the current one to emulate the <kbd>ctrl + w</kbd> + <kbd>ctrl + w</kbd> sequence in Vim, even if the prefix key is not mapped to <kbd>ctrl + w</kbd>
+* `focus.cycle` <kbd>prefix key</kbd> + <kbd>w</kbd>
 
-<kbd>prefix key</kbd> + <kbd>h</kbd> Move to the window on the left
 
-<kbd>prefix key</kbd> + <kbd>j</kbd> Move to the window below
+	Move focus to the window below/right of the current one
 
-<kbd>prefix key</kbd> + <kbd>k</kbd> Move to the window above
+* `focus.move_left` <kbd>prefix key</kbd> + <kbd>h</kbd>
+* `focus.move_down` <kbd>prefix key</kbd> + <kbd>j</kbd>
+* `focus.move_up` <kbd>prefix key</kbd> + <kbd>k</kbd>
+* `focus.move_right` <kbd>prefix key</kbd> + <kbd>l</kbd>
 
-<kbd>prefix key</kbd> + <kbd>l</kbd> Move to the window on the right
+	Change the focust to the window on the left/down/up/right side.
 
-<kbd>prefix key</kbd> + <kbd>H</kbd> Move the current window to be at the far left
+* `window.move_left` <kbd>prefix key</kbd> + <kbd>H</kbd>
+* `window.move_down` <kbd>prefix key</kbd> + <kbd>J</kbd>
+* `window.move_up` <kbd>prefix key</kbd> + <kbd>K</kbd>
+* `window.move_right` <kbd>prefix key</kbd> + <kbd>L</kbd>
 
-<kbd>prefix key</kbd> + <kbd>J</kbd> Move the current window to be at the very bottom
+	Move the current window to the far left/down/up/right part of the screen.
 
-<kbd>prefix key</kbd> + <kbd>K</kbd> Move the current window to be at the very top
+* `commands.delte_buffer` `:bd[elete] {winname}` `:bd[elete] [N]`
 
-<kbd>prefix key</kbd> + <kbd>L</kbd> Move the current window to be at the far right
+	Close window {winname} (default: current buffer)
 
-<kbd>prefix key</kbd> + <kbd><</kbd> Decrease current window width
+	Close window [N] (default: current buffer) and delete it from the window list
 
-<kbd>prefix key</kbd> + <kbd>></kbd> Increase current window width
+* `commands.buffer` `:b[uffer] {winname}` `:b[uffer] [N]`
 
-<kbd>prefix key</kbd> + <kbd>=</kbd> Make top 2 windows equally high and wide
+	Open window {winname}
 
-`:bd[elete] {winname}` Close window {winname} (default: current buffer)
+	Open window [N] from the window list
 
-`:bd[elete] [N]` Close window [N] (default: current buffer) and delete it from the window list
+* `commands.buffers` `:buffers` `:ls`
 
-`:b[uffer] {winname}` Open window {winname}
+	List windows
 
-`:b[uffer] [N]` Open window [N] from the window list
+* `window.centralize` `:centralize` `:ce`
 
-`:buffers` `:ls` List windows
+	Centralize the active window
 
-`:centralize` `:ce` Centralize the active window
+* `window.only` `:only` `:on` <kbd>prefix key</kbd> + <kbd>o</kbd>
 
-`:only` `:on` 
+	Make the active window the only one on the screen.  All other windows are minimized.
 
-<kbd>prefix key</kbd> + <kbd>o</kbd> Make the active window the only one on the screen.  All other windows are minimized.
+* `window.maximize` `:maximize` `:ma`
 
-`:maximize` `:ma` Maximize the active window
+	Maximize the active window
 
-`:q[uit]` 
+* `window.minimize` `:q[uit]` <kbd>prefix key</kbd> + <kbd>q</kbd>
 
-<kbd>prefix key</kbd> + <kbd>q</kbd> Minimize the active window
+	Minimize the active window
 
-##### General
+* `window.launch` `:e[dit] {appname}`
 
-`:!{cmd}` Execute {cmd} with the shell
+	Launch {appname}
 
-`:e[dit] {appname}` Launch {appname}
+* `commands.bang` `:!{cmd}`
 
-<kbd>prefix key</kbd> + <kbd>esq</kbd> or <kbd>prefix key</kbd> + <kbd>ctrl + [</kbd> Quit vimwn operation and close its UI
+	Execute {cmd} with the shell
+
+* `poco.quit` <kbd>prefix key</kbd> + <kbd>esq</kbd> or <kbd>prefix key</kbd> + <kbd>ctrl + [</kbd>
+
+	Quit poco operation and close its UI
 
 
 ## Installation
 
 1. From PPA, for Ubuntu distributions
 	```bash
-	sudo add-apt-repository ppa:pedrosans/vimwn
+	sudo add-apt-repository ppa:pedrosans/poco
 	sudo apt-get update
-	sudo apt-get install vimwn
+	sudo apt-get install poco
 	```
 2. From source code
 
-	1. Install vimwn's dependencies
+	1. Install poco's dependencies
 
 		`python3 gir1.2-gtk-3.0 python3-gi-cairo` python + gtk  
-		`python3-xdg` free desktop standards used to configure and launch vimwn  
+		`python3-xdg` free desktop standards used to configure and launch poco  
 		`gir1.2-wnck-3.0 libwnck-3-0` functions to navigate X windows  
-		`gir1.2-appindicator3-0.1` used to indicate vimwn running on the statur bar  
+		`gir1.2-appindicator3-0.1` used to indicate poco running on the statur bar  
 		`gir1.2-keybinder-3.0 python3-dbus` bind navigation functions to keyboard prefix + shortcuts  
 		`python3-setproctitle` used to name the running process
 
@@ -92,7 +119,7 @@ X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q<
 		gir1.2-appindicator3-0.1 gir1.2-keybinder-3.0 libwnck-3-0             \
 		python3-gi-cairo python3-xdg python3-dbus python3-setproctitle
 		```
-	2. Install vimwn
+	2. Install poco
 		```
 		sudo ./setup.py install --record installed_files.txt
 		```
@@ -111,17 +138,17 @@ X windows may be controlled by using a combination of a prefix key, <kbd>ctrl+q<
 
 ## Commmand line interface
 
-`vimwn start`: start vimwn
+`poco start`: start poco
 
-`vimwn status`: show vimwn process status
+`poco status`: show poco process status
 
-`vimwn stop`: stop vimwn process
+`poco stop`: stop poco process
 
-`vimwn --help`: show command line interface help
+`poco --help`: show command line interface help
 
 ## Customization
 
-##### Configuration file is located at `$HOME/.config/vimwn/vimwn.cfg` and enables:
+##### Configuration file is located at `$HOME/.config/poco/poco.cfg` and enables:
 
 Section `[interface]` | Customization options
 -|-
@@ -132,7 +159,7 @@ Section `[interface]` | Customization options
 `auto_hint` | show hints for the command as it is being typed. Default is `true`
 `auto_select_first_hint` | if the fist option offered in the hint bar should be selected automatically. Default is `true`
 
-`vimwn.cfg` example:
+`poco.cfg` example:
 
 ```
 [interface]
@@ -143,11 +170,11 @@ position = midle
 width = 100%
 ```
 
-##### The style can be customized by creating and editing `$HOME/.config/vimwn/vimwn.css`
+##### The style can be customized by creating and editing `$HOME/.config/poco/poco.css`
 
-The default CSS can be found and used as a reference at [vimwn/view.py](vimwn/view.py)
+The default CSS can be found and used as a reference at [poco/view.py](poco/view.py)
 
-`vimwn.css` example:
+`poco.css` example:
 
 ```css
 * {

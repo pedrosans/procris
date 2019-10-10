@@ -22,18 +22,18 @@ x11.XInitThreads()
 from Xlib import threaded
 
 import os, gi, signal, setproctitle, logging
-import vimwn.commands
-import vimwn.configurations as configurations
+import poco.commands
+import poco.configurations as configurations
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
-from vimwn.reading import Reading
+from poco.reading import Reading
 from gi.repository import GObject, Gtk, GLib, Gdk
-from vimwn.status import StatusIcon
-from vimwn.keyboard import KeyboardListener
-from vimwn.layout import LayoutManager
-from vimwn.windows import Windows
-from vimwn.commands import CommandInput
-from vimwn.remote import NavigatorBusService
+from poco.status import StatusIcon
+from poco.keyboard import KeyboardListener
+from poco.layout import LayoutManager
+from poco.windows import Windows
+from poco.commands import CommandInput
+from poco.remote import NavigatorBusService
 
 SIGINT = getattr(signal, "SIGINT", None)
 SIGTERM = getattr(signal, "SIGTERM", None)
@@ -52,7 +52,7 @@ layout_manager = LayoutManager(
 
 def start():
 	global listener, bus_object, status_icon
-	import vimwn.mapping as mappings
+	import poco.mapping as mappings
 
 	# as soon as possible so new instances as notified
 	bus_object = NavigatorBusService(stop)
@@ -71,13 +71,13 @@ def start():
 
 	Gtk.main()
 
-	print("Ending vimwn service, pid: {}".format(os.getpid()))
+	print("Ending poco service, pid: {}".format(os.getpid()))
 
 
 def map_commands():
-	import vimwn.mapping as mappings
+	import poco.mapping as mappings
 	for command in mappings.commands:
-		vimwn.commands.add(command)
+		poco.commands.add(command)
 
 
 def keyboard_listener(key, x_key_event, multiplier=1):
@@ -114,7 +114,7 @@ def configure_process():
 	GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, log_function)
 	GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, log_function)
 
-	setproctitle.setproctitle("vimwn")
+	setproctitle.setproctitle("poco")
 
 	for sig in (SIGINT, SIGTERM, SIGHUP):
 		install_glib_handler(sig)
@@ -156,7 +156,7 @@ def stop():
 def show_warning(error):
 	error_dialog = Gtk.MessageDialog(
 		None, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING,
-		Gtk.ButtonsType.CLOSE, error, title="vimwn - warning")
+		Gtk.ButtonsType.CLOSE, error, title="poco - warning")
 	error_dialog.run()
 	error_dialog.destroy()
 
@@ -164,7 +164,7 @@ def show_warning(error):
 def show_error(error):
 	error_dialog = Gtk.MessageDialog(
 		None, Gtk.DialogFlags.MODAL, Gtk.MessageType.ERROR,
-		Gtk.ButtonsType.CLOSE, error, title="vimwn error")
+		Gtk.ButtonsType.CLOSE, error, title="poco error")
 	error_dialog.run()
 	error_dialog.destroy()
 

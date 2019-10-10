@@ -21,7 +21,7 @@ gi.require_version('AppIndicator3', '0.1')
 from gi.repository import Gtk
 from gi.repository import AppIndicator3
 
-ICONNAME = 'vimwn'
+ICONNAME = 'poco'
 
 
 class StatusIcon:
@@ -52,7 +52,7 @@ class StatusIcon:
 		self.menu.append(quit_item)
 
 	def activate(self):
-		self.ind = AppIndicator3.Indicator.new("vimwn", ICONNAME, AppIndicator3.IndicatorCategory.APPLICATION_STATUS )
+		self.ind = AppIndicator3.Indicator.new("poco", ICONNAME, AppIndicator3.IndicatorCategory.APPLICATION_STATUS )
 		self.ind.set_status (AppIndicator3.IndicatorStatus.ACTIVE)
 		self.ind.set_menu(self.menu)
 		self.reload()
@@ -60,11 +60,11 @@ class StatusIcon:
 	def reload(self):
 		iconname = self.configurations.get_icon()
 		if iconname == "dark":
-			self.ind.set_icon('vimwn-dark')
+			self.ind.set_icon('poco-dark')
 		elif iconname == "light":
-			self.ind.set_icon('vimwn-light')
+			self.ind.set_icon('poco-light')
 		else:
-			self.ind.set_icon('vimwn')
+			self.ind.set_icon('poco')
 
 	def _add_appearance_menu(self):
 		appearance_menu_item = Gtk.MenuItem(label="Appearance")

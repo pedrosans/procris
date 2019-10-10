@@ -20,8 +20,8 @@ from xdg import BaseDirectory as base
 from xdg import DesktopEntry as desktop
 from configparser import ConfigParser
 
-VIMWN_DESKTOP = 'vimwn.desktop'
-VIMWN_PACKAGE = 'vimwn'
+POCO_DESKTOP = 'poco.desktop'
+POCO_PACKAGE = 'poco'
 DEFAULT_PREFIX_KEY = '<ctrl>q'
 DEFAULT_LIST_WORKSPACES = 'true'
 DEFAULT_POSITION = 'bottom'
@@ -31,12 +31,12 @@ DEFAULT_AUTO_SELECT_FIRST_HINT = 'true'
 
 
 autostart_dir = base.save_config_path("autostart")
-autostart_file = os.path.join(autostart_dir, VIMWN_DESKTOP)
-config_dir = base.load_first_config(VIMWN_PACKAGE)
+autostart_file = os.path.join(autostart_dir, POCO_DESKTOP)
+config_dir = base.load_first_config(POCO_PACKAGE)
 if not config_dir:
-	config_dir = base.save_config_path(VIMWN_PACKAGE)
+	config_dir = base.save_config_path(POCO_PACKAGE)
 
-config_file_path = os.path.join(config_dir, "vimwn.cfg")
+config_file_path = os.path.join(config_dir, "poco.cfg")
 
 
 parser = ConfigParser(interpolation=None)
@@ -78,7 +78,7 @@ if need_write:
 
 
 def get_css_file_path():
-	return os.path.join(config_dir, "vimwn.css")
+	return os.path.join(config_dir, "poco.css")
 
 
 def reload():
@@ -147,7 +147,7 @@ def is_autostart():
 def set_autostart( auto_start):
 	dfile = desktop.DesktopEntry(autostart_file)
 	dfile.set("X-GNOME-Autostart-enabled", str(auto_start).lower())
-	dfile.set("Name", "Vimwn")
-	dfile.set("Icon", "vimwn")
-	dfile.set("Exec", "vimwn start")
+	dfile.set("Name", "poco")
+	dfile.set("Icon", "poco")
+	dfile.set("Exec", "poco start")
 	dfile.write(filename=autostart_file)

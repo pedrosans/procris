@@ -17,14 +17,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, io
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango, GLib
-from vimwn.message import BufferName
+from poco.message import BufferName
 
 
 # TODO show 'no name' active buffer if no active window at the buffers list
 class NavigatorWindow(Gtk.Window):
 
 	def __init__(self, controller, windows, messages):
-		Gtk.Window.__init__(self, title="vimwn")
+		Gtk.Window.__init__(self, title="poco")
 
 		self.columns = 100
 

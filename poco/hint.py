@@ -15,9 +15,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import re
-from vimwn.commands import Command
-from vimwn.commands import CommandInput
-from vimwn.terminal import Terminal
+from poco.commands import Command
+from poco.commands import CommandInput
+from poco.terminal import Terminal
 
 
 class HintStatus:

@@ -1,5 +1,5 @@
 import unittest, subprocess
-from vimwn.terminal import Terminal
+from poco.terminal import Terminal
 from unittest.mock import patch
 from unittest.mock import MagicMock
 

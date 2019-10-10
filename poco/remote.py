@@ -18,8 +18,8 @@ import os, dbus, dbus.service
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus.gi_service import ExportedGObject
 
-SERVICE_NAME = "io.github.vimwn"
-SERVICE_OBJECT_PATH = "/io/github/vimwn"
+SERVICE_NAME = "io.github.poco"
+SERVICE_OBJECT_PATH = "/io/github/poco"
 
 
 class NavigatorBusService (ExportedGObject):
@@ -36,23 +36,23 @@ class NavigatorBusService (ExportedGObject):
 
 		if self.bus.name_has_owner(SERVICE_NAME):
 			pid = RemoteInterface().get_running_instance_id()
-			print("vimwn is already running, pid: " + pid)
+			print("poco is already running, pid: " + pid)
 			quit()
 
 		bus_name = dbus.service.BusName(SERVICE_NAME, self.bus)
 		super(NavigatorBusService, self).__init__(conn=self.bus, object_path=SERVICE_OBJECT_PATH, bus_name=bus_name)
 
-	@dbus.service.method("io.github.vimwn.Service", in_signature='', out_signature='s')
+	@dbus.service.method("io.github.poco.Service", in_signature='', out_signature='s')
 	def get_id(self):
 		return str(os.getpid())
 
-	@dbus.service.method("io.github.vimwn.Service", in_signature='', out_signature='')
-	def stop_vimwn(self):
+	@dbus.service.method("io.github.poco.Service", in_signature='', out_signature='')
+	def stop_poco(self):
 		self.stop_function()
 
 	def release(self):
 		self.bus.release_name(SERVICE_NAME)
-		print('vimwn service were released from bus')
+		print('poco service were released from bus')
 
 
 class RemoteInterface:
@@ -71,14 +71,14 @@ class RemoteInterface:
 
 	def get_running_instance_id(self):
 		service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
-		get_remote_id = service.get_dbus_method('get_id', 'io.github.vimwn.Service')
+		get_remote_id = service.get_dbus_method('get_id', 'io.github.poco.Service')
 		return get_remote_id()
 
 	def stop_running_instance(self):
 		if self.bus.name_has_owner(SERVICE_NAME):
 			service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
-			quit_function = service.get_dbus_method('stop_vimwn', 'io.github.vimwn.Service')
+			quit_function = service.get_dbus_method('stop_poco', 'io.github.poco.Service')
 			quit_function()
 			print("Remote instance were stopped")
 		else:
-			print("vimwn is not running")
+			print("poco is not running")

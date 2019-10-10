@@ -1,4 +1,4 @@
-_vimwn ()
+_poco ()
 {
   local cur
   cur=${COMP_WORDS[COMP_CWORD]}
@@ -7,4 +7,4 @@ _vimwn ()
   return 0
 }
 
-complete -F _vimwn -o filenames vimwn
+complete -F _poco -o filenames poco

@@ -1,8 +1,8 @@
 import unittest
 from unittest.mock import patch
 from unittest.mock import MagicMock
-from vimwn.hint import HintStatus
-from vimwn.commands import CommandInput
+from poco.hint import HintStatus
+from poco.commands import CommandInput
 
 
 class CommandInputTestCase(unittest.TestCase):

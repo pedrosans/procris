@@ -19,8 +19,8 @@ gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GLib, Gdk
 
 
-from vimwn.windows import monitor_work_area_for
-from vimwn .windows import gdk_window_for
+from poco.windows import monitor_work_area_for
+from poco .windows import gdk_window_for
 
 
 def to_json(monitor, buffers, stack, old_state=None):
@@ -78,7 +78,7 @@ class Serializer:
 # TODO: the the window is maximized, the layout function fails
 class LayoutManager:
 
-	def __init__(self, windows, remove_decorations=False,  persistence_file='/tmp/vimify_windows_state.json'):
+	def __init__(self, windows, remove_decorations=False,  persistence_file='/tmp/poco_windows_state.json'):
 		self.window_monitor_map = {}
 		self.gap = 10
 		self.remove_decorations = remove_decorations

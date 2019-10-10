@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 from unittest.mock import MagicMock
-from vimwn.layout import Layout
+from poco.layout import Layout
 
 
 class LayoutTestCase(unittest.TestCase):
