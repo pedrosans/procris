@@ -102,14 +102,23 @@ class Windows:
 		self.screen = None
 		self.line = self.column = None
 
-	def read_screen(self):
+	def is_visible(self, window):
+		if window.get_pid() == os.getpid():
+			return False
+		if window.is_skip_tasklist():
+			return False
+		active_workspace = self.screen.get_active_workspace()
+		return window.is_in_viewport(active_workspace) and not window.is_minimized()
+
+	def read_screen(self, force_update=True):
 		del self.buffers[:]
 		del self.visible[:]
 		self.visible_map.clear()
 		if not self.screen:
 			self.screen = Wnck.Screen.get_default()
 
-		self.screen.force_update()  # make sure we query X server
+		if force_update:
+			self.screen.force_update()  # make sure we query X server
 
 		active_workspace = self.screen.get_active_workspace()
 		for wnck_window in self.screen.get_windows():
@@ -179,7 +188,8 @@ class Windows:
 		for w in self.buffers:
 			gdk_w = gdk_window_for(w)
 			is_decorated, decorations = gdk_w.get_decorations()
-			if not is_decorated or decorations & Gdk.WMDecoration.TITLE or decorations & Gdk.WMDecoration.ALL:
+			has_title = Gdk.WMDecoration.TITLE & decorations or Gdk.WMDecoration.ALL & decorations
+			if not is_decorated or has_title:
 				gdk_w.set_decorations(Gdk.WMDecoration.BORDER)
 
 	def restore_decorations(self, state_json):
@@ -187,8 +197,8 @@ class Windows:
 			gdk_w = gdk_window_for(w)
 			is_decorated, decorations = gdk_w.get_decorations()
 			if decorations == Gdk.WMDecoration.BORDER:
-				id = str(w.get_xid())
-				original = state_json['stack_state'][id]['original_decorations']
+				key = str(w.get_xid())
+				original = state_json['stack_state'][key]['original_decorations']
 				gdk_w.set_decorations(Gdk.WMDecoration(original))
 
 	#
@@ -357,7 +367,9 @@ class Windows:
 			h = geometry.heightp
 
 		is_decorated, decorations, decoration_width, decoration_height = decoration_size_for(window)
-		if is_decorated and not decorations and decoration_width >= 0 and decoration_height >= 0:
+		has_title = Gdk.WMDecoration.TITLE & decorations or Gdk.WMDecoration.ALL & decorations
+
+		if is_decorated and not has_title and decoration_width >= 0 and decoration_height >= 0:
 			x -= decoration_width
 			y -= decoration_height
 			w += decoration_width

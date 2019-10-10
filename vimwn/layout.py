@@ -29,18 +29,13 @@ def to_json(monitor, buffers, stack, old_state=None):
 	state['mfact'] = monitor.mfact
 	stack_state = state['stack_state']
 	for w in buffers:
-		gdk_w = gdk_window_for(w)
-		is_decorated, decorations = gdk_w.get_decorations()
-		if not is_decorated:
-			# edge case: no decoration info, assume it's decorated
-			decorations = Gdk.WMDecoration.ALL
 		w_id = w.get_xid()
 		key = str(w_id)
 		if key not in stack_state:
 			stack_state[key] = {}
 			stack_state[key]['name'] = w.get_name()
-			stack_state[key]['original_decorations'] = decorations
-		stack_state[key]['decorations'] = decorations
+			is_decorated, decorations = gdk_window_for(w).get_decorations()
+			stack_state[key]['original_decorations'] = Gdk.WMDecoration.ALL if not decorations else decorations
 		stack_state[key]['stack_index'] = stack.index(w_id) if w_id in stack else -1
 
 	for client_key in list(stack_state.keys()):
@@ -84,6 +79,7 @@ class Serializer:
 class LayoutManager:
 
 	def __init__(self, windows, remove_decorations=False,  persistence_file='/tmp/vimify_windows_state.json'):
+		self.window_monitor_map = {}
 		self.gap = 10
 		self.remove_decorations = remove_decorations
 		self.serializer = Serializer(persistence_file)
@@ -108,11 +104,11 @@ class LayoutManager:
 		self._persist_internal_state()
 		self.apply_decoration_config()
 
+		# self._install_state_handlers()
+		# self.windows.screen.connect("window-opened", self._window_opened)
+		# self.windows.screen.connect("window-closed", self._window_closed)
 		# self.screen.connect("active-window-changed", self._active_window_changed)
 		# def _active_window_changed(self, screen, previously_active_window):
-		self.windows.screen.connect("window-opened", self._window_opened)
-		self.windows.screen.connect("window-closed", self._window_closed)
-		self.window_monitor_map = {}
 
 	#
 	# INTERNAL INTERFACE
@@ -120,6 +116,13 @@ class LayoutManager:
 	def _persist_internal_state(self):
 		self.state_json = to_json(self.monitor, self.windows.buffers, self.stack, old_state=self.state_json)
 		self.serializer.serialize(self.state_json)
+
+	def _install_state_handlers(self):
+		for window in self.windows.buffers:
+			if window.get_xid() not in self.window_monitor_map:
+				print('adding {}-{}'.format(window.get_xid(), window.get_name()))
+				handler_id = window.connect("state-changed", self._state_changed)
+				self.window_monitor_map[window.get_xid()] = handler_id
 
 	def apply_decoration_config(self):
 		if self.remove_decorations:
@@ -133,27 +136,21 @@ class LayoutManager:
 	def _window_closed(self, screen, window):
 		if window.get_xid() in self.stack:
 			self.stack.remove(window.get_xid())
-		if window.get_pid() != os.getpid():
-			self.windows.read_screen()
+		if self.windows.is_visible(window):
 			self.layout()
 
 	def _window_opened(self, screen, window):
-		if window.get_pid() != os.getpid():
-			self.windows.read_screen()
-			if window not in self.windows.visible:
-				return
+		if self.windows.is_visible(window):
 			self.stack.insert(0, window.get_xid())
 			self.apply_decoration_config()
 			self.layout()
 
 	def _state_changed(self, window, changed_mask, new_state):
-		if changed_mask & Wnck.WindowState.MINIMIZED:
-			self.windows.read_screen()
-			if window in self.windows.visible:
-				self.stack.insert(0, window.get_xid())
-			else:
-				self.stack.remove(window.get_xid())
-			self.layout()
+		if self.windows.is_visible(window):
+			self.stack.insert(0, window.get_xid())
+		else:
+			self.stack.remove(window.get_xid())
+		self.layout()
 
 	#
 	# COMMANDS
@@ -183,13 +180,9 @@ class LayoutManager:
 		self.layout()
 
 	def layout(self):
+		self.windows.read_screen()
 		self._persist_internal_state()
-
-		for window in self.windows.visible:
-			if window.get_xid() not in self.window_monitor_map:
-				print('adding {}-{}'.format(window.get_xid(), window.get_name()))
-				handler_id = window.connect("state-changed", self._state_changed)
-				self.window_monitor_map[window.get_xid()] = handler_id
+		self._install_state_handlers()
 
 		w_stack = list(filter(
 			lambda x: x is not None,
