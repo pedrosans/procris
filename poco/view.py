@@ -15,10 +15,10 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, io
-import poco.message as messages
+import poco.messages as messages
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango, GLib
-from poco.message import BufferName
+from poco.messages import BufferName
 
 
 # TODO show 'no name' active buffer if no active window at the buffers LIST

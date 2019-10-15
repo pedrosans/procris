@@ -20,7 +20,7 @@ import xdg.Exceptions
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, Gio
-from poco.message import Message
+from poco.messages import Message
 
 APPS_GLOB = [
 		"/usr/share/applications/*.desktop",
