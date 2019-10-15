@@ -93,6 +93,7 @@ class Windows:
 
 	def __init__(self, list_workspaces=False):
 		self.list_workspaces = list_workspaces
+		self.focus = Focus(windows=self)
 		Wnck.set_client_type(Wnck.ClientType.PAGER)
 		self.active = None
 		self.staging = False
@@ -226,12 +227,6 @@ class Windows:
 		if self.active:
 			self.active.minimize()
 
-	def navigate_to_previous(self, c_in):
-		stack = list(filter(lambda x: x in self.visible, self.screen.get_windows_stacked()))
-		i = stack.index(self.active)
-		self.active = stack[i - 1]
-		self.staging = True
-
 	def cycle(self, c_in):
 		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
 		next_window = self.line[(self.line.index(self.active) + direction) % len(self.line)]
@@ -269,18 +264,6 @@ class Windows:
 
 	def centralize(self, c_in):
 		self.resize(self.active, 0.1, 0.1, 0.8, 0.8)
-
-	def navigate_right(self, c_in):
-		self.navigate(1, HORIZONTAL)
-
-	def navigate_left(self, c_in):
-		self.navigate(-1, HORIZONTAL)
-
-	def navigate_up(self, c_in):
-		self.navigate(-1, VERTICAL)
-
-	def navigate_down(self, c_in):
-		self.navigate(1, VERTICAL)
 
 	def decorate(self, c_in):
 		decoration_parameter = c_in.vim_command_parameter
@@ -378,13 +361,6 @@ class Windows:
 
 		window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
 
-	def navigate(self, increment, axis):
-		oriented_list = self.line if axis is HORIZONTAL else self.column
-		index = oriented_list.index(self.active) + increment
-		if 0 <= index < len(oriented_list):
-			self.active = oriented_list[index]
-		self.staging = True
-
 	#
 	# Internal API
 	#
@@ -406,3 +382,34 @@ class Windows:
 				gdk_w.get_type_hint().value_name.replace('GDK_WINDOW_TYPE_HINT_', '')[:8],
 				is_decorated, decorations.value_names)
 		return resume
+
+
+class Focus:
+
+	def __init__(self, windows=None):
+		self.windows = windows
+
+	def move_right(self, c_in):
+		self.move(1, HORIZONTAL)
+
+	def move_left(self, c_in):
+		self.move(-1, HORIZONTAL)
+
+	def move_up(self, c_in):
+		self.move(-1, VERTICAL)
+
+	def move_down(self, c_in):
+		self.move(1, VERTICAL)
+
+	def move_to_previous(self, c_in):
+		stack = list(filter(lambda x: x in self.windows.visible, self.windows.screen.get_windows_stacked()))
+		i = stack.index(self.windows.active)
+		self.windows.active = stack[i - 1]
+		self.windows.staging = True
+
+	def move(self, increment, axis):
+		oriented_list = self.windows.line if axis is HORIZONTAL else self.windows.column
+		index = oriented_list.index(self.windows.active) + increment
+		if 0 <= index < len(oriented_list):
+			self.windows.active = oriented_list[index]
+		self.windows.staging = True

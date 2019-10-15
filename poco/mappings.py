@@ -7,7 +7,7 @@ windows = poco.service.windows
 reading = poco.service.reading
 layout = poco.service.layout
 
-termkey = '<Primary>q'
+termkey = '<Primary>e'
 
 keys = [
 	Key(['<Ctrl>Return'], layout.move_to_master),
@@ -19,26 +19,26 @@ keys = [
 	Key([termkey], reading.start),
 	Key([termkey, 'q'],         windows.minimize_active_window),
 	Key([termkey, 'o'],         windows.only),
-	Key([termkey, 'Right'],     windows.navigate_right),
-	Key([termkey, 'l'],         windows.navigate_right),
-	Key([termkey, '<Ctrl>l'],   windows.navigate_right),
+	Key([termkey, 'Right'],     windows.focus.move_right),
+	Key([termkey, 'l'],         windows.focus.move_right),
+	Key([termkey, '<Ctrl>l'],   windows.focus.move_right),
 	Key([termkey, 'L'],         windows.move_right),
-	Key([termkey, 'Down'],      windows.navigate_down),
-	Key([termkey, 'j'],         windows.navigate_down),
-	Key([termkey, '<Ctrl>j'],   windows.navigate_down),
+	Key([termkey, 'Down'],      windows.focus.move_down),
+	Key([termkey, 'j'],         windows.focus.move_down),
+	Key([termkey, '<Ctrl>j'],   windows.focus.move_down),
 	Key([termkey, 'J'],         windows.move_down),
-	Key([termkey, 'Left'],      windows.navigate_left),
-	Key([termkey, 'h'],         windows.navigate_left),
-	Key([termkey, '<Ctrl>h'],   windows.navigate_left),
+	Key([termkey, 'Left'],      windows.focus.move_left),
+	Key([termkey, 'h'],         windows.focus.move_left),
+	Key([termkey, '<Ctrl>h'],   windows.focus.move_left),
 	Key([termkey, 'H'],         windows.move_left),
-	Key([termkey, 'Up'],        windows.navigate_up),
-	Key([termkey, 'k'],         windows.navigate_up),
-	Key([termkey, '<Ctrl>k'],   windows.navigate_up),
+	Key([termkey, 'Up'],        windows.focus.move_up),
+	Key([termkey, 'k'],         windows.focus.move_up),
+	Key([termkey, '<Ctrl>k'],   windows.focus.move_up),
 	Key([termkey, 'K'],         windows.move_up),
 	Key([termkey, 'w'],         windows.cycle),
 	Key([termkey, '<Ctrl>w'],   windows.cycle),
 	Key([termkey, 'W'],         windows.cycle),
-	Key([termkey, 'p'],         windows.navigate_to_previous),
+	Key([termkey, 'p'],         windows.focus.move_to_previous),
 ]
 commands = [
 	Command('edit'			,'e'			,reading.edit					),
