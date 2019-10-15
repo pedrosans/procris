@@ -136,12 +136,14 @@ class LayoutManager:
 		if window.get_xid() in self.stack:
 			self.stack.remove(window.get_xid())
 		if self.windows.is_visible(window):
+			self.windows.read_screen(force_update=False)
 			self.layout()
 
 	def _window_opened(self, screen, window):
 		if self.windows.is_visible(window):
 			self.stack.insert(0, window.get_xid())
 			self.apply_decoration_config()
+			self.windows.read_screen(force_update=False)
 			self.layout()
 
 	def _state_changed(self, window, changed_mask, new_state):
@@ -149,6 +151,7 @@ class LayoutManager:
 			self.stack.insert(0, window.get_xid())
 		else:
 			self.stack.remove(window.get_xid())
+		self.windows.read_screen(force_update=False)
 		self.layout()
 
 	#
@@ -179,7 +182,6 @@ class LayoutManager:
 		self.layout()
 
 	def layout(self):
-		self.windows.read_screen()
 		self._persist_internal_state()
 		self._install_state_handlers()
 
