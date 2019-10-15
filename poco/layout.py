@@ -142,8 +142,8 @@ class Layout:
 	def _window_opened(self, screen, window):
 		if self.windows.is_visible(window):
 			self.stack.insert(0, window.get_xid())
-			self.apply_decoration_config()
 			self.windows.read_screen(force_update=False)
+			self.apply_decoration_config()
 			self.apply()
 
 	def _state_changed(self, window, changed_mask, new_state):
