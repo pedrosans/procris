@@ -155,7 +155,7 @@ class NavigatorWindow(Gtk.Window):
 
 	def _navigation_index(self, window):
 		length = len(self.windows.line)
-		start_position = self.windows.line.index(self.windows.active)
+		start_position = self.windows.line.index(self.windows.active.get_wnck_window())
 		multiplier = (length + self.windows.line.index(window) - start_position) % len(self.windows.line)
 		if multiplier == 0:
 			return ''

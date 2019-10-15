@@ -331,7 +331,7 @@ class Reading:
 				self.set_key_mode(c_in.time, error_message='No matching buffer for ' + window_title)
 		else:
 			if self.windows.active:
-				self.windows.remove(self.windows.active, c_in.time)
+				self.windows.remove(self.windows.active.get_wnck_window(), c_in.time)
 				self.set_normal_mode()
 			else:
 				self.set_key_mode(c_in.time, error_message='There is no active window')

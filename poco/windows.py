@@ -94,8 +94,8 @@ class Windows:
 	def __init__(self, list_workspaces=False):
 		self.list_workspaces = list_workspaces
 		self.focus = Focus(windows=self)
+		self.active = Active(windows=self)
 		Wnck.set_client_type(Wnck.ClientType.PAGER)
-		self.active = None
 		self.staging = False
 		self.visible = []
 		self.visible_map = {}
@@ -136,12 +136,12 @@ class Windows:
 		self._update_internal_state()
 
 	def _update_internal_state(self):
-		self.active = None
+		self.active.clean()
 		if not self.visible:
 			return
 		for stacked in reversed(self.screen.get_windows_stacked()):
 			if stacked in self.visible:
-				self.active = stacked
+				self.active.xid = stacked.get_xid()
 				break
 		self.line = sorted(list(self.visible), key=self.sort_line)
 		self.column = sorted(list(self.visible), key=self.sort_column)
@@ -156,7 +156,7 @@ class Windows:
 
 	def clear_state(self):
 		self.screen = None
-		self.active = None
+		self.active.clean()
 		self.visible =[]
 		self.buffers =[]
 		self.line = None
@@ -170,11 +170,11 @@ class Windows:
 		Commits any staged change in the active window
 		"""
 		if self.staging:
-			self.active.activate_transient(event_time)
+			self.active.get_wnck_window().activate_transient(event_time)
 			self.staging = False
 
 	def show(self, window):
-		self.active = window
+		self.active.xid = window.get_xid()
 		self.staging = True
 
 	def remove(self, window, time):
@@ -215,84 +215,10 @@ class Windows:
 		return list(filter(lambda x: x.lower().startswith(option_name.lower().strip()), DECORATION_MAP.keys()))
 
 	#
-	# COMMANDS
-	#
-	def only(self, c_in):
-		for w in self.visible:
-			if self.active != w:
-				w.minimize()
-		self.show(self.active)
-
-	def minimize_active_window(self, c_in):
-		if self.active:
-			self.active.minimize()
-
-	def cycle(self, c_in):
-		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
-		next_window = self.line[(self.line.index(self.active) + direction) % len(self.line)]
-		self.active = next_window
-		self.staging = True
-
-	def maximize(self, c_in):
-		self.active.maximize()
-		self.staging = True
-
-	def move_right(self, c_in):
-		self.snap_active_window(HORIZONTAL, 0.5)
-
-	def move_left(self, c_in):
-		self.snap_active_window(HORIZONTAL, 0)
-
-	def move_up(self, c_in):
-		self.snap_active_window(VERTICAL, 0)
-
-	def move_down(self, c_in):
-		self.snap_active_window(VERTICAL, 0.5)
-
-	def equalize(self, c_in):
-		left, right = self.get_left_right_top_windows()
-		if left:
-			self.move_on_axis(left, HORIZONTAL, 0, CENTER)
-		if right:
-			self.move_on_axis(right, HORIZONTAL, CENTER, 1 - CENTER)
-
-	def decrease_width(self, c_in):
-		self.shift_center(DECREMENT)
-
-	def increase_width(self, c_in):
-		self.shift_center(INCREMENT)
-
-	def centralize(self, c_in):
-		self.resize(self.active, 0.1, 0.1, 0.8, 0.8)
-
-	def decorate(self, c_in):
-		decoration_parameter = c_in.vim_command_parameter
-		if decoration_parameter in DECORATION_MAP.keys():
-			decoration = DECORATION_MAP[decoration_parameter]
-		gdk_window = gdk_window_for(self.active)
-		gdk_window.set_decorations(decoration)
-		self.staging = True
-
-	def move(self, c_in):
-		parameter = c_in.vim_command_parameter
-		parameter_a = parameter.split()
-		self.move_to(int(parameter_a[0]), int(parameter_a[1]))
-
-	#
 	# COMMAND OPERATIONS
 	#
-	def shift_center(self, shift):
-		left, right = self.get_left_right_top_windows()
-		x, y, w, h = left.get_geometry()
-		work_area = monitor_work_area_for(self.active)
-		center = (w / work_area.width) + (shift if self.active is left else (shift * -1))
-		if left:
-			self.move_on_axis(left, HORIZONTAL, 0, center)
-		if right:
-			self.move_on_axis(right, HORIZONTAL, center, 1 - center)
-
 	def get_top_two_windows(self):
-		top = self.active
+		top = self.active.get_wnck_window()
 		below = None
 		after_top = False
 		for w in reversed(self.screen.get_windows_stacked()):
@@ -311,7 +237,7 @@ class Windows:
 			return top, below
 
 	def snap_active_window(self, axis, position):
-		self.move_on_axis(self.active, axis, position, 0.5)
+		self.move_on_axis(self.active.get_wnck_window(), axis, position, 0.5)
 
 	def move_on_axis(self, window, axis, position, proportion):
 		if axis == HORIZONTAL:
@@ -335,10 +261,10 @@ class Windows:
 		self.staging = True
 
 	def move_to(self, to_x, to_y):
-		work_area = monitor_work_area_for(self.active)
+		work_area = monitor_work_area_for(self.active.get_wnck_window())
 		x = to_x + work_area.x
 		y = to_y + work_area.y
-		self.set_geometry(self.active, x=x, y=y)
+		self.set_geometry(self.active.get_wnck_window(), x=x, y=y)
 		self.staging = True
 
 	def set_geometry(self, window, x=None, y=None, w=None, h=None):
@@ -384,6 +310,65 @@ class Windows:
 		return resume
 
 
+class Active:
+
+	def __init__(self, windows=None):
+		self.windows = windows
+		self.xid = None
+
+	def get_wnck_window(self):
+		for w in self.windows.buffers:
+			if w.get_xid() == self.xid:
+				return w
+		return None
+
+	def clean(self):
+		self.xid = None
+
+	def only(self, c_in):
+		for w in self.windows.visible:
+			if self.xid != w.get_xid():
+				w.minimize()
+		self.windows.show(self.get_wnck_window())
+
+	def minimize(self, c_in):
+		if self.xid:
+			self.get_wnck_window().minimize()
+
+	def maximize(self, c_in):
+		if self.xid:
+			self.get_wnck_window().maximize()
+			self.windows.staging = True
+
+	def move_right(self, c_in):
+		self.windows.snap_active_window(HORIZONTAL, 0.5)
+
+	def move_left(self, c_in):
+		self.windows.snap_active_window(HORIZONTAL, 0)
+
+	def move_up(self, c_in):
+		self.windows.snap_active_window(VERTICAL, 0)
+
+	def move_down(self, c_in):
+		self.windows.snap_active_window(VERTICAL, 0.5)
+
+	def centralize(self, c_in):
+		self.windows.resize(self.get_wnck_window(), 0.1, 0.1, 0.8, 0.8)
+
+	def decorate(self, c_in):
+		decoration_parameter = c_in.vim_command_parameter
+		if decoration_parameter in DECORATION_MAP.keys():
+			decoration = DECORATION_MAP[decoration_parameter]
+		gdk_window = gdk_window_for(self.get_wnck_window())
+		gdk_window.set_decorations(decoration)
+		self.windows.staging = True
+
+	def move(self, c_in):
+		parameter = c_in.vim_command_parameter
+		parameter_a = parameter.split()
+		self.windows.move_to(int(parameter_a[0]), int(parameter_a[1]))
+
+
 class Focus:
 
 	def __init__(self, windows=None):
@@ -403,13 +388,19 @@ class Focus:
 
 	def move_to_previous(self, c_in):
 		stack = list(filter(lambda x: x in self.windows.visible, self.windows.screen.get_windows_stacked()))
-		i = stack.index(self.windows.active)
-		self.windows.active = stack[i - 1]
+		i = stack.index(self.windows.active.get_wnck_window())
+		self.active.xid = stack[i - 1].get_xid()
 		self.windows.staging = True
 
 	def move(self, increment, axis):
 		oriented_list = self.windows.line if axis is HORIZONTAL else self.windows.column
-		index = oriented_list.index(self.windows.active) + increment
+		index = oriented_list.index(self.windows.active.get_wnck_window()) + increment
 		if 0 <= index < len(oriented_list):
-			self.windows.active = oriented_list[index]
+			self.windows.active.xid = oriented_list[index].get_xid()
+		self.windows.staging = True
+
+	def cycle(self, c_in):
+		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
+		next_window = self.windows.line[(self.windows.line.index(self.windows.active.get_wnck_window()) + direction) % len(self.windows.line)]
+		self.windows.active.xid = next_window.get_xid()
 		self.windows.staging = True

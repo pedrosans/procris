@@ -160,9 +160,9 @@ class Layout:
 	#
 	def move_to_master(self, w):
 		self.windows.read_screen()
-		active = self.windows.active
-		if active:
-			old_index = self.stack.index(active.get_xid())
+		active_xid = self.windows.active.xid
+		if active_xid:
+			old_index = self.stack.index(active_xid)
 			self.stack.insert(0, self.stack.pop(old_index))
 		self.apply()
 
