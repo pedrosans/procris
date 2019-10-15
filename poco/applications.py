@@ -49,7 +49,7 @@ def launch(c_in):
 			launch_by_name(app_name)
 		except GLib.GError as exc:
 			return Message('Error launching ' + name, 'error')
-	elif len(possible_apps) == 0:
+	elif not possible_apps or len(possible_apps) == 0:
 		return Message('No matching application for ' + name, 'error')
 	else:
 		return Message('More than one application matches: ' + name, 'error')

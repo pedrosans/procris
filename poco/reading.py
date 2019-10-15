@@ -197,7 +197,9 @@ class Reading:
 
 		if command:
 			try:
-				command.function(command_input)
+				return_message = command.function(command_input)
+				if return_message:
+					messages.add_message(return_message)
 				self.windows.commit_navigation(gtk_time)
 				if messages.LIST:
 					self.set_key_mode(gtk_time)

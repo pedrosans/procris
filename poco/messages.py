@@ -36,7 +36,7 @@ def add(content, type):
 	add_message(Message(content, type))
 
 
-def add_message( message):
+def add_message(message):
 	global command_placeholder
 	LIST.append(message)
 	command_placeholder = ENTER_TO_CONTINUE
