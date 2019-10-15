@@ -146,14 +146,12 @@ class Windows:
 		self.column = sorted(list(self.visible), key=self.sort_column)
 
 	def sort_line(self, w):
-		active_geometry = self.active.get_geometry()
 		geometry = w.get_geometry()
-		return geometry.xp * STRETCH + abs(active_geometry.yp - geometry.yp) * (1 if active_geometry.xp < geometry.xp else -1)
+		return geometry.xp * STRETCH + geometry.yp
 
 	def sort_column(self, w):
-		active_geometry = self.active.get_geometry()
 		geometry = w.get_geometry()
-		return geometry.yp * STRETCH + abs(active_geometry.xp - geometry.xp) * (1 if active_geometry.yp < geometry.yp else -1)
+		return geometry.yp * STRETCH + geometry.xp
 
 	def clear_state(self):
 		self.screen = None
