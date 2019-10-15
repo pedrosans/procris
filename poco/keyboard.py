@@ -203,7 +203,7 @@ class KeyboardListener:
 		event.keyval = keyval
 		mask = normalize_state(event.state) & ~consumed
 
-		if self.composed_mapping_first_key:
+		if self.composed_mapping_first_key and self.composed_mapping_first_key != (keyval, mask):
 
 			key_name = Gdk.keyval_name(event.keyval)
 			if not mask and key_name and key_name.isdigit():
