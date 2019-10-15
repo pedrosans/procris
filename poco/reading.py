@@ -258,10 +258,6 @@ class Reading:
 	def escape(self, c_in):
 		self.set_normal_mode()
 
-	def buffers(self, c_in):
-		messages.list_buffers(self.windows)
-		self.set_key_mode(c_in.time)
-
 	def debug(self, c_in):
 		messages.add(self.windows.get_metadata_resume(), None)
 		self.set_key_mode(c_in.time)

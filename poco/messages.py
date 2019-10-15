@@ -27,11 +27,6 @@ def clean():
 	command_placeholder = '^W'
 
 
-def list_buffers(windows):
-	for window in windows.buffers:
-		add_message(BufferName(window, windows))
-
-
 def add(content, type):
 	add_message(Message(content, type))
 

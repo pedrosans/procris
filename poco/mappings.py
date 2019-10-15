@@ -43,7 +43,7 @@ keys = [
 commands = [
 	Command('edit'			,'e'			,applications.launch			),
 	Command('!'				, None			,reading.bang					),
-	Command('buffers'		,'ls'			,reading.buffers				),
+	Command('buffers'		,'ls'			,windows.list					),
 	Command('bdelete'		,'bd'			,reading.delete_buffer			),
 	Command('buffer'		,'b'			,reading.buffer					),
 	Command('centralize'	,'ce'			,windows.active.centralize				),

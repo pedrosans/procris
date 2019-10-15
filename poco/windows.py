@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import gi, os
+import poco.messages as messages
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 
@@ -213,6 +214,13 @@ class Windows:
 
 	def decoration_options_for(self, option_name):
 		return list(filter(lambda x: x.lower().startswith(option_name.lower().strip()), DECORATION_MAP.keys()))
+
+	#
+	# COMMANDS
+	#
+	def list(self, c_in):
+		for window in self.buffers:
+			messages.add_message(messages.BufferName(window, self))
 
 	#
 	# COMMAND OPERATIONS
