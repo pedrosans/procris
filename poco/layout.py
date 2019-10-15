@@ -76,7 +76,7 @@ class Serializer:
 
 
 # TODO: the the window is maximized, the layout function fails
-class LayoutManager:
+class Layout:
 
 	def __init__(self, windows, remove_decorations=False,  persistence_file='/tmp/poco_windows_state.json'):
 		self.window_monitor_map = {}
@@ -137,14 +137,14 @@ class LayoutManager:
 			self.stack.remove(window.get_xid())
 		if self.windows.is_visible(window):
 			self.windows.read_screen(force_update=False)
-			self.layout()
+			self.apply()
 
 	def _window_opened(self, screen, window):
 		if self.windows.is_visible(window):
 			self.stack.insert(0, window.get_xid())
 			self.apply_decoration_config()
 			self.windows.read_screen(force_update=False)
-			self.layout()
+			self.apply()
 
 	def _state_changed(self, window, changed_mask, new_state):
 		if changed_mask & Wnck.WindowState.MINIMIZED:
@@ -153,7 +153,7 @@ class LayoutManager:
 			else:
 				self.stack.remove(window.get_xid())
 			self.windows.read_screen(force_update=False)
-			self.layout()
+			self.apply()
 
 	#
 	# COMMANDS
@@ -164,7 +164,7 @@ class LayoutManager:
 		if active:
 			old_index = self.stack.index(active.get_xid())
 			self.stack.insert(0, self.stack.pop(old_index))
-		self.layout()
+		self.apply()
 
 	def increase_master_area(self, c_in):
 		self.windows.read_screen()
@@ -172,7 +172,7 @@ class LayoutManager:
 		self.monitor.mfact += increment
 		self.monitor.mfact = max(0.1, self.monitor.mfact)
 		self.monitor.mfact = min(0.9, self.monitor.mfact)
-		self.layout()
+		self.apply()
 
 	def increment_master(self, c_in):
 		self.windows.read_screen()
@@ -180,9 +180,9 @@ class LayoutManager:
 		self.monitor.nmaster += increment
 		self.monitor.nmaster = max(0, self.monitor.nmaster)
 		self.monitor.nmaster = min(len(self.stack), self.monitor.nmaster)
-		self.layout()
+		self.apply()
 
-	def layout(self):
+	def apply(self):
 		self._persist_internal_state()
 		self._install_state_handlers()
 

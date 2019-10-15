@@ -32,7 +32,7 @@ from poco.reading import Reading
 from gi.repository import GObject, Gtk, GLib, Gdk
 from poco.status import StatusIcon
 from poco.keyboard import KeyboardListener
-from poco.layout import LayoutManager
+from poco.layout import Layout
 from poco.windows import Windows
 from poco.commands import CommandInput
 from poco.remote import NavigatorBusService
@@ -45,7 +45,7 @@ listener = bus_object = status_icon = None
 windows = Windows(configurations.is_list_workspaces())
 GObject.threads_init()
 reading = Reading(configurations=configurations, windows=windows)
-layout_manager = LayoutManager(
+layout = Layout(
 	reading.windows, remove_decorations=configurations.is_remove_decorations())
 
 
@@ -77,7 +77,7 @@ def start():
 
 	listener.start()
 
-	status_icon = StatusIcon(configurations, layout_manager, stop_function=stop)
+	status_icon = StatusIcon(configurations, layout, stop_function=stop)
 	status_icon.activate()
 
 	Gtk.main()

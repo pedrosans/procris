@@ -5,17 +5,17 @@ import poco
 applications = poco.applications
 windows = poco.service.windows
 reading = poco.service.reading
-layout_manager = poco.service.layout_manager
+layout = poco.service.layout
 
 termkey = '<Primary>q'
 
 keys = [
-	Key(['<Ctrl>Return'],   layout_manager.move_to_master),
-	Key(['<Ctrl>KP_Enter'], layout_manager.move_to_master),
-	Key(['<Ctrl>i'],        layout_manager.increment_master, [1]),
-	Key(['<Ctrl>d'],        layout_manager.increment_master, [-1]),
-	Key(['<Ctrl>l'],        layout_manager.increase_master_area, [0.05]),
-	Key(['<Ctrl>h'],        layout_manager.increase_master_area, [-0.05]),
+	Key(['<Ctrl>Return'], layout.move_to_master),
+	Key(['<Ctrl>KP_Enter'], layout.move_to_master),
+	Key(['<Ctrl>i'], layout.increment_master, [1]),
+	Key(['<Ctrl>d'], layout.increment_master, [-1]),
+	Key(['<Ctrl>l'], layout.increase_master_area, [0.05]),
+	Key(['<Ctrl>h'], layout.increase_master_area, [-0.05]),
 	Key([termkey], reading.start),
 	Key([termkey, 'q'],         windows.minimize_active_window),
 	Key([termkey, 'o'],         windows.only),
