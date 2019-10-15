@@ -15,22 +15,22 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, io
+import poco.message as messages
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango, GLib
 from poco.message import BufferName
 
 
-# TODO show 'no name' active buffer if no active window at the buffers list
+# TODO show 'no name' active buffer if no active window at the buffers LIST
 class NavigatorWindow(Gtk.Window):
 
-	def __init__(self, controller, windows, messages):
+	def __init__(self, controller, windows):
 		Gtk.Window.__init__(self, title="poco")
 
 		self.columns = 100
 
 		self.controller = controller
 		self.windows = windows
-		self.messages = messages
 		self.show_app_name = False
 
 		self.set_keep_above(True)
@@ -75,7 +75,7 @@ class NavigatorWindow(Gtk.Window):
 		Clean the status line and render it again
 		"""
 		self.hint_line.clear_status_line()
-		if not self.messages.list:
+		if not messages.LIST:
 			self.hint_line.add_status_text(' ', False)
 		self.hint_line.show_all()
 
@@ -104,7 +104,7 @@ class NavigatorWindow(Gtk.Window):
 
 		self._render_command_line()
 
-		if not self.messages.list and not self.controller.in_command_mode():
+		if not messages.LIST and not self.controller.in_command_mode():
 			self.list_navigation_windows()
 
 		self.v_box.show_all()
@@ -124,7 +124,7 @@ class NavigatorWindow(Gtk.Window):
 			self.hint_line.add_status_text(' ', False)
 
 	def show_messages(self, time):
-		for message in self.messages.list:
+		for message in messages.LIST:
 			line = Gtk.HBox(homogeneous=False)
 			self.messages_box.pack_start(line, expand=False, fill=True, padding=0)
 
@@ -148,7 +148,7 @@ class NavigatorWindow(Gtk.Window):
 			self.entry.set_text(':')
 			self.entry.set_position(-1)
 		else:
-			self.entry.set_text(self.messages.command_placeholder)
+			self.entry.set_text(messages.command_placeholder)
 			self.entry.hide()
 			self.entry.show()  # cause entry to lose focus
 			self.entry.set_can_focus(False)

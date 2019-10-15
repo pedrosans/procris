@@ -41,7 +41,7 @@ keys = [
 	Key([termkey, 'p'],         windows.focus.move_to_previous),
 ]
 commands = [
-	Command('edit'			,'e'			,reading.edit					),
+	Command('edit'			,'e'			,applications.launch			),
 	Command('!'				, None			,reading.bang					),
 	Command('buffers'		,'ls'			,reading.buffers				),
 	Command('bdelete'		,'bd'			,reading.delete_buffer			),

@@ -15,17 +15,17 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, re, time, traceback, poco.commands
+import poco.message as messages
+import poco.applications as applications
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from poco.view import NavigatorWindow
 from poco.windows import Windows
-from poco.applications import Applications
 from poco.terminal import Terminal
 from poco.hint import HintStatus
 from poco.commands import Command
 from poco.commands import CommandHistory
-from poco.message import Messages
 from poco.commands import CommandInput
 
 HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]
@@ -53,14 +53,12 @@ class Reading:
 		self.mode = Mode.NORMAL
 		self.view = None
 		self.windows = windows
-		self.applications = Applications()
 		self.terminal = Terminal()
 		self.hint_status = HintStatus(self)
-		self.messages = Messages(self, self.windows)
 		self.command_history = CommandHistory()
 		self.create_and_install_view()
 		self._clean_command_state()
-		self.messages.clean()
+		messages.clean()
 
 	def _clean_command_state(self):
 		for handler_id in self.cmd_handler_ids:
@@ -76,21 +74,21 @@ class Reading:
 		self.start(time)
 
 	def create_and_install_view(self):
-		self.view = NavigatorWindow(self, self.windows, self.messages)
+		self.view = NavigatorWindow(self, self.windows)
 		self.view.connect("focus-out-event", self._focus_out_callback)
 		self.view.connect("key-press-event", self._window_key_press_callback)
 
 	def set_normal_mode(self):
 		self.mode = Mode.NORMAL
 		self.view.hide()
-		self.messages.clean()
+		messages.clean()
 		self._clean_command_state()
 
 	def set_key_mode(self, event_time, error_message=None):
 		self.mode = Mode.KEY
 		self.windows.read_screen()
 		if error_message:
-			self.messages.add(error_message, 'error')
+			messages.add(error_message, 'error')
 		self._clean_command_state()
 		self.view.show(event_time)
 
@@ -201,6 +199,8 @@ class Reading:
 			try:
 				command.function(command_input)
 				self.windows.commit_navigation(gtk_time)
+				if messages.LIST:
+					self.set_key_mode(gtk_time)
 			except Exception as inst:
 				msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
 				print(traceback.format_exc())
@@ -226,35 +226,10 @@ class Reading:
 	def reload(self, c_in):
 		# TODO: add service reload
 		# self.service.reload()
-		self.applications.reload()
+		applications.reload()
 		self.terminal.reload()
-		self.messages.clean()
+		messages.clean()
 		self._internal_reload(c_in.time)
-
-	def edit(self, c_in):
-		name = c_in.vim_command_parameter
-		if not name or not name.strip():
-			self.set_normal_mode()
-			return
-
-		app_name = None
-		if self.applications.has_perfect_match(name.strip()):
-			app_name = name.strip()
-
-		possible_apps = self.applications.find_by_name(name)
-		if possible_apps:
-			app_name = possible_apps
-
-		if app_name:
-			try:
-				self.applications.launch_by_name(app_name)
-				self.set_normal_mode()
-			except GLib.GError as exc:
-				self.set_key_mode(time, error_message='Error launching ' + name)
-		elif len(possible_apps) == 0:
-			self.set_key_mode(time, error_message='No matching application for ' + name)
-		else:
-			self.set_key_mode(time, error_message='More than one application matches: ' + name)
 
 	def bang(self, c_in):
 		cmd = c_in.vim_command_parameter
@@ -264,10 +239,10 @@ class Reading:
 		stdout, stderr = self.terminal.execute(cmd)
 		if stdout:
 			for line in stdout.splitlines():
-				self.messages.add(line, None)
+				messages.add(line, None)
 		if stderr:
 			for line in stderr.splitlines():
-				self.messages.add(line, 'error')
+				messages.add(line, 'error')
 		self.set_key_mode(c_in.time)
 
 	def colon(self, c_in):
@@ -275,18 +250,18 @@ class Reading:
 			self.set_command_mode(c_in.time)
 
 	def enter(self, c_in):
-		self.messages.clean()
+		messages.clean()
 		self.set_key_mode(c_in.time)
 
 	def escape(self, c_in):
 		self.set_normal_mode()
 
 	def buffers(self, c_in):
-		self.messages.list_buffers()
+		messages.list_buffers(self.windows)
 		self.set_key_mode(c_in.time)
 
 	def debug(self, c_in):
-		self.messages.add(self.windows.get_metadata_resume(), None)
+		messages.add(self.windows.get_metadata_resume(), None)
 		self.set_key_mode(c_in.time)
 
 	def buffer(self, c_in):

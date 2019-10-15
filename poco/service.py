@@ -23,8 +23,9 @@ x11.XInitThreads()
 from Xlib import threaded
 
 import os, gi, signal, setproctitle, logging
-import poco.commands
+import poco.commands as commands
 import poco.configurations as configurations
+import poco.applications as applications
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
@@ -41,7 +42,7 @@ SIGINT = getattr(signal, "SIGINT", None)
 SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP = getattr(signal, "SIGHUP", None)
 
-listener = bus_object = status_icon = None
+mappings = listener = bus_object = status_icon = None
 windows = Windows(configurations.is_list_workspaces())
 GObject.threads_init()
 reading = Reading(configurations=configurations, windows=windows)
@@ -51,26 +52,18 @@ layout = Layout(
 
 def start():
 	global listener, bus_object, status_icon
-	imported = False
-	try:
-		import importlib.util
-		spec = importlib.util.spec_from_file_location("module.name", configurations.get_custom_mappings_module_path())
-		mappings = importlib.util.module_from_spec(spec)
-		spec.loader.exec_module(mappings)
-		imported = True
-	except FileNotFoundError as e:
-		print(
-			'info: it is possible to customize poco bindings by in {}'.format(
-				configurations.get_custom_mappings_module_path()))
-	if not imported:
-		import poco.mappings as mappings
 
 	# as soon as possible so new instances as notified
 	bus_object = NavigatorBusService(stop)
 	configure_process()
-	map_commands()
+	applications.load()
 
 	listener = KeyboardListener(callback=keyboard_listener, on_error=stop)
+
+	load_mappings()
+
+	for command in mappings.commands:
+		commands.add(command)
 
 	for key in mappings.keys:
 		listener.bind(key)
@@ -85,10 +78,23 @@ def start():
 	print("Ending poco service, pid: {}".format(os.getpid()))
 
 
-def map_commands():
-	import poco.mappings as mappings
-	for command in mappings.commands:
-		poco.commands.add(command)
+def load_mappings():
+	global mappings
+	imported = False
+	try:
+		import importlib.util
+		spec = importlib.util.spec_from_file_location("module.name", configurations.get_custom_mappings_module_path())
+		mappings = importlib.util.module_from_spec(spec)
+		spec.loader.exec_module(mappings)
+		imported = True
+	except FileNotFoundError as e:
+		print(
+			'info: it is possible to customize poco bindings by in {}'.format(
+				configurations.get_custom_mappings_module_path()))
+
+	if not imported:
+		import poco.mappings as default_mappings
+		mappings = default_mappings
 
 
 def keyboard_listener(key, x_key_event, multiplier=1):

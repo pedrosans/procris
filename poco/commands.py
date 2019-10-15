@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import re
+import poco.applications as applications
 
 GROUPED_INDEXED_BUFFER_REGEX = r'^\s*(buffer|b)\s*([0-9]+)\s*$'
 LIST = []
@@ -39,7 +40,7 @@ class Command:
 
 	def hint_vim_command_parameter(self, controller, input):
 		if self.name == 'edit':
-			return controller.applications.list_completions(input.vim_command_parameter)
+			return applications.list_completions(input.vim_command_parameter)
 		elif self.name in ['buffer']:
 			return controller.windows.list_completions(input.vim_command_parameter)
 		elif self.name == '!':

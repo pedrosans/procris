@@ -38,7 +38,7 @@ elif args.action == 'status':
 	print(RemoteInterface().get_status())
 elif args.c:
 	import poco.service
-	poco.service.map_commands()
+	poco.service.load_mappings()
 	reading = poco.service.reading
 	reading.execute(args.c)
 	for m in reading.messages.list:

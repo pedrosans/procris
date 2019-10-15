@@ -14,38 +14,35 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi
-gi.require_version('Gtk', '3.0')
-from gi.repository import Gtk, Pango
-
 ENTER_TO_CONTINUE = 'Press ENTER or type command to continue'
 
 
-class Messages:
-
-	def __init__(self, controller, windows):
-		self.controller = controller
-		self.windows = windows
-		self.command_placeholder = None
-		self.list = []
-
-	def clean(self):
-		del self.list[:]
-		self.command_placeholder = '^W'
-
-	def list_buffers(self):
-		for window in self.windows.buffers:
-			self.add_message(BufferName(window, self.windows))
-
-	def add(self, content, type):
-		self.add_message(Plain(content, type))
-
-	def add_message(self, message):
-		self.list.append(message)
-		self.command_placeholder = ENTER_TO_CONTINUE
+command_placeholder = None
+LIST = []
 
 
-class Plain:
+def clean():
+	global command_placeholder
+	del LIST[:]
+	command_placeholder = '^W'
+
+
+def list_buffers(windows):
+	for window in windows.buffers:
+		add_message(BufferName(window, windows))
+
+
+def add(content, type):
+	add_message(Message(content, type))
+
+
+def add_message( message):
+	global command_placeholder
+	LIST.append(message)
+	command_placeholder = ENTER_TO_CONTINUE
+
+
+class Message:
 
 	def __init__(self, content, level):
 		self.content = content
@@ -55,7 +52,7 @@ class Plain:
 		return self.content
 
 
-class BufferName(Plain):
+class BufferName(Message):
 
 	def __init__(self, window, windows):
 		super().__init__(None, None)
