@@ -281,31 +281,3 @@ class Reading:
 		else:
 			self.set_key_mode(c_in.time)
 
-	def delete_buffer(self, c_in):
-		if re.match(r'^\s*(bdelete|bd)\s*([0-9]+\s*)+$', c_in.text):
-			to_delete = []
-			for number in re.findall(r'\d+', c_in.text):
-				index = int(number) - 1
-				if index < len(self.windows.buffers):
-					to_delete.append(self.windows.buffers[index])
-				else:
-					self.set_key_mode(c_in.time, error_message='No buffers were deleted')
-					return
-			for window in to_delete:
-				self.windows.remove(window, c_in.time)
-			self.set_normal_mode()
-		elif re.match(r'^\s*(bdelete|bd)\s+\w+\s*$', c_in.text):
-			window_title = c_in.vim_command_parameter
-			w = self.windows.find_by_name(window_title)
-			if w:
-				self.windows.remove(w, c_in.time)
-				self.set_normal_mode()
-			else:
-				self.set_key_mode(c_in.time, error_message='No matching buffer for ' + window_title)
-		else:
-			if self.windows.active:
-				self.windows.remove(self.windows.active.get_wnck_window(), c_in.time)
-				self.set_normal_mode()
-			else:
-				self.set_key_mode(c_in.time, error_message='There is no active window')
-
