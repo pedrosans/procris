@@ -77,12 +77,16 @@ if need_write:
 		parser.write(f)
 
 
+def reload():
+	parser.read(config_file_path)
+
+
 def get_css_file_path():
 	return os.path.join(config_dir, "poco.css")
 
 
-def reload():
-	parser.read(config_file_path)
+def get_custom_mappings_module_path():
+	return os.path.join(config_dir, "config.py")
 
 
 def is_list_workspaces():

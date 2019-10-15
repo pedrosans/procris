@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import ctypes
+
 x11 = ctypes.cdll.LoadLibrary('libX11.so')
 x11.XInitThreads()
 # add python lock to Xlib internals
@@ -24,6 +25,7 @@ from Xlib import threaded
 import os, gi, signal, setproctitle, logging
 import poco.commands
 import poco.configurations as configurations
+
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from poco.reading import Reading
@@ -39,10 +41,7 @@ SIGINT = getattr(signal, "SIGINT", None)
 SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP = getattr(signal, "SIGHUP", None)
 
-
-listener = None
-bus_object = None
-status_icon = None
+listener = bus_object = status_icon = None
 windows = Windows(configurations.is_list_workspaces())
 GObject.threads_init()
 reading = Reading(configurations=configurations, windows=windows)
@@ -52,7 +51,19 @@ layout_manager = LayoutManager(
 
 def start():
 	global listener, bus_object, status_icon
-	import poco.mapping as mappings
+	imported = False
+	try:
+		import importlib.util
+		spec = importlib.util.spec_from_file_location("module.name", configurations.get_custom_mappings_module_path())
+		mappings = importlib.util.module_from_spec(spec)
+		spec.loader.exec_module(mappings)
+		imported = True
+	except FileNotFoundError as e:
+		print(
+			'info: it is possible to customize poco bindings by in {}'.format(
+				configurations.get_custom_mappings_module_path()))
+	if not imported:
+		import poco.mappings as mappings
 
 	# as soon as possible so new instances as notified
 	bus_object = NavigatorBusService(stop)
@@ -75,7 +86,7 @@ def start():
 
 
 def map_commands():
-	import poco.mapping as mappings
+	import poco.mappings as mappings
 	for command in mappings.commands:
 		poco.commands.add(command)
 
@@ -87,7 +98,6 @@ def keyboard_listener(key, x_key_event, multiplier=1):
 
 
 def _inside_main_loop(key, x_key_event, multiplier):
-
 	command_input = CommandInput(
 		time=x_key_event.time, keyval=x_key_event.keyval, parameters=key.parameters)
 
@@ -171,9 +181,9 @@ def show_error(error):
 
 def log_function(log_domain, log_level, message):
 	if log_level in (GLib.LogLevelFlags.LEVEL_ERROR, GLib.LogLevelFlags.LEVEL_CRITICAL):
-		logging.error('GLib log[%s]:%s',log_domain, message)
+		logging.error('GLib log[%s]:%s', log_domain, message)
 		show_error(message)
 		Exception(message)
 	else:
-		logging.warning('GLib log[%s]:%s',log_domain, message)
+		logging.warning('GLib log[%s]:%s', log_domain, message)
 		show_warning(message)

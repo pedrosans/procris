@@ -1,16 +1,13 @@
 from poco.keyboard import Key
 from poco.commands import Command
-import poco.service
-import poco.configurations as configurations
+import poco
 
-termkey = '<Primary>e'
-
-
+applications = poco.applications
 windows = poco.service.windows
 reading = poco.service.reading
 layout_manager = poco.service.layout_manager
 
-termkey = configurations.get_prefix_key()
+termkey = '<Primary>q'
 
 keys = [
 	Key(['<Ctrl>Return'],   layout_manager.move_to_master),
@@ -42,9 +39,6 @@ keys = [
 	Key([termkey, '<Ctrl>w'],   windows.cycle),
 	Key([termkey, 'W'],         windows.cycle),
 	Key([termkey, 'p'],         windows.navigate_to_previous),
-	# Key([termkey, 'equal'], windows.equalize),
-	# Key([termkey, 'less'], windows.decrease_width),
-	# Key([termkey, 'greater'], windows.increase_width),
 ]
 commands = [
 	Command('edit'			,'e'			,reading.edit					),
