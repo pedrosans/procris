@@ -94,8 +94,8 @@ class Windows:
 
 	def __init__(self, list_workspaces=False):
 		self.list_workspaces = list_workspaces
-		self.focus = Focus(windows=self)
 		self.active = Active(windows=self)
+		self.focus = Focus(windows=self)
 		Wnck.set_client_type(Wnck.ClientType.PAGER)
 		self.staging = False
 		self.visible = []
@@ -116,6 +116,8 @@ class Windows:
 		del self.buffers[:]
 		del self.visible[:]
 		self.visible_map.clear()
+		self.active.clean()
+
 		if not self.screen:
 			self.screen = Wnck.Screen.get_default()
 
@@ -134,18 +136,16 @@ class Windows:
 			if in_active_workspace and not wnck_window.is_minimized():
 				self.visible.append(wnck_window)
 				self.visible_map[wnck_window.get_xid()] = wnck_window
-		self._update_internal_state()
 
-	def _update_internal_state(self):
-		self.active.clean()
-		if not self.visible:
-			return
+		self.update_active()
+		self.line = sorted(list(self.visible), key=self.sort_line)
+		self.column = sorted(list(self.visible), key=self.sort_column)
+
+	def update_active(self):
 		for stacked in reversed(self.screen.get_windows_stacked()):
 			if stacked in self.visible:
 				self.active.xid = stacked.get_xid()
 				break
-		self.line = sorted(list(self.visible), key=self.sort_line)
-		self.column = sorted(list(self.visible), key=self.sort_column)
 
 	def sort_line(self, w):
 		geometry = w.get_geometry()
@@ -182,7 +182,7 @@ class Windows:
 		window.close(time)
 		self.visible.remove(window)
 		self.buffers.remove(window)
-		self._update_internal_state()
+		self.update_active()
 
 	def remove_decorations(self):
 		for w in self.buffers:
@@ -367,7 +367,11 @@ class Active:
 
 	def minimize(self, c_in):
 		if self.xid:
-			self.get_wnck_window().minimize()
+			active_window = self.get_wnck_window()
+			active_window.minimize()
+			self.windows.visible.remove(active_window)
+			self.windows.update_active()
+			self.windows.staging = True
 
 	def maximize(self, c_in):
 		if self.xid:
@@ -407,6 +411,7 @@ class Focus:
 
 	def __init__(self, windows=None):
 		self.windows = windows
+		self.active = windows.active
 
 	def move_right(self, c_in):
 		self.move(1, HORIZONTAL)
@@ -422,19 +427,20 @@ class Focus:
 
 	def move_to_previous(self, c_in):
 		stack = list(filter(lambda x: x in self.windows.visible, self.windows.screen.get_windows_stacked()))
-		i = stack.index(self.windows.active.get_wnck_window())
+		i = stack.index(self.active.get_wnck_window())
 		self.active.xid = stack[i - 1].get_xid()
 		self.windows.staging = True
 
 	def move(self, increment, axis):
 		oriented_list = self.windows.line if axis is HORIZONTAL else self.windows.column
-		index = oriented_list.index(self.windows.active.get_wnck_window()) + increment
+		index = oriented_list.index(self.active.get_wnck_window()) + increment
 		if 0 <= index < len(oriented_list):
-			self.windows.active.xid = oriented_list[index].get_xid()
+			self.active.xid = oriented_list[index].get_xid()
 		self.windows.staging = True
 
 	def cycle(self, c_in):
 		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
-		next_window = self.windows.line[(self.windows.line.index(self.windows.active.get_wnck_window()) + direction) % len(self.windows.line)]
-		self.windows.active.xid = next_window.get_xid()
+		i = self.windows.line.index(self.active.get_wnck_window())
+		next_window = self.windows.line[(i + direction) % len(self.windows.line)]
+		self.active.xid = next_window.get_xid()
 		self.windows.staging = True
