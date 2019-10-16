@@ -19,7 +19,6 @@ import re
 import poco.applications as applications
 import poco.terminal as terminal
 
-GROUPED_INDEXED_BUFFER_REGEX = r'^\s*(buffer|b)\s*([0-9]+)\s*$'
 LIST = []
 NAME_MAP = {}
 ALIAS_MAP = {}

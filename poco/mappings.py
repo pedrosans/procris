@@ -48,7 +48,7 @@ commands = [
 	Command('!'				, None			,terminal.bang					),
 	Command('buffers'		,'ls'			,windows.list					),
 	Command('bdelete'		,'bd'			,windows.delete					),
-	Command('buffer'		,'b'			,reading.buffer					),
+	Command('buffer'		,'b'			,windows.show					),
 	Command('centralize'	,'ce'			,windows.active.centralize		),
 	Command('maximize'		,'ma'			,windows.active.maximize		),
 	Command('reload'		, None			,poco.service.reload			),

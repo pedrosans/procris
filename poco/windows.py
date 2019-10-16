@@ -174,10 +174,6 @@ class Windows:
 			self.active.get_wnck_window().activate_transient(event_time)
 			self.staging = False
 
-	def show(self, window):
-		self.active.xid = window.get_xid()
-		self.staging = True
-
 	def remove(self, window, time):
 		window.close(time)
 		self.visible.remove(window)
@@ -221,6 +217,25 @@ class Windows:
 	def list(self, c_in):
 		for window in self.buffers:
 			messages.add_message(messages.BufferName(window, self))
+
+	def show(self, c_in):
+		buffer_number_match = re.match(r'^\s*(buffer|b)\s*([0-9]+)\s*$', c_in.text)
+		if buffer_number_match:
+			buffer_number = buffer_number_match.group(2)
+			index = int(buffer_number) - 1
+			if index < len(self.buffers):
+				self.active.xid = self.buffers[index].get_xid()
+				self.staging = True
+			else:
+				return messages.Message('Buffer {} does not exist'.format(buffer_number), 'error')
+		elif c_in.vim_command_parameter:
+			window_title = c_in.vim_command_parameter
+			w = self.find_by_name(window_title)
+			if w:
+				self.active.xid = w.get_xid()
+				self.staging = True
+			else:
+				return messages.Message('No matching buffer for ' + window_title, 'error')
 
 	def delete(self, c_in):
 		if re.match(r'^\s*(bdelete|bd)\s*([0-9]+\s*)+$', c_in.text):
@@ -324,10 +339,6 @@ class Windows:
 	#
 	# Internal API
 	#
-	def debug(self, c_in):
-		messages.add(self.windows.get_metadata_resume(), None)
-		self.set_key_mode(c_in.time)
-
 	def get_metadata_resume(self):
 		resume = ''
 		for wn in self.buffers:
@@ -367,7 +378,7 @@ class Active:
 		for w in self.windows.visible:
 			if self.xid != w.get_xid():
 				w.minimize()
-		self.windows.show(self.get_wnck_window())
+		self.windows.staging = True
 
 	def minimize(self, c_in):
 		if self.xid:

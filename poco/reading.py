@@ -233,22 +233,3 @@ class Reading:
 	def escape(self, c_in):
 		self.set_normal_mode()
 
-	def buffer(self, c_in):
-		buffer_number_match = re.match(poco.commands.GROUPED_INDEXED_BUFFER_REGEX, c_in.text)
-		if buffer_number_match:
-			buffer_number = buffer_number_match.group(2)
-			index = int(buffer_number) - 1
-			if index < len(self.windows.buffers):
-				self.windows.show(self.windows.buffers[index])
-			else:
-				self.set_key_mode(time, error_message='Buffer {} does not exist'.format(buffer_number))
-		elif c_in.vim_command_parameter:
-			window_title = c_in.vim_command_parameter
-			w = self.windows.find_by_name(window_title)
-			if w:
-				self.windows.show(w)
-			else:
-				self.set_key_mode(c_in.time, error_message='No matching buffer for ' + window_title)
-		else:
-			self.set_key_mode(c_in.time)
-
