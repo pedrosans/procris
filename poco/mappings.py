@@ -6,6 +6,7 @@ applications = poco.applications
 windows = poco.service.windows
 reading = poco.service.reading
 layout = poco.service.layout
+terminal = poco.terminal
 
 termkey = '<Primary>e'
 
@@ -44,7 +45,7 @@ keys = [
 ]
 commands = [
 	Command('edit'			,'e'			,applications.launch			),
-	Command('!'				, None			,reading.bang					),
+	Command('!'				, None			,terminal.bang					),
 	Command('buffers'		,'ls'			,windows.list					),
 	Command('bdelete'		,'bd'			,windows.delete					),
 	Command('buffer'		,'b'			,reading.buffer					),

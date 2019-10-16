@@ -222,20 +222,6 @@ class Reading:
 		self.set_key_mode(event_time)
 		self.view.get_window().focus(event_time)
 
-	def bang(self, c_in):
-		cmd = c_in.vim_command_parameter
-		if not cmd:
-			self.set_key_mode(time, error_message='ERROR: empty command')
-			return
-		stdout, stderr = self.terminal.execute(cmd)
-		if stdout:
-			for line in stdout.splitlines():
-				messages.add(line, None)
-		if stderr:
-			for line in stderr.splitlines():
-				messages.add(line, 'error')
-		self.set_key_mode(c_in.time)
-
 	def colon(self, c_in):
 		if self.mode == Mode.KEY:
 			self.set_command_mode(c_in.time)

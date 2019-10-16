@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
 import poco.applications as applications
+import poco.terminal as terminal
 
 GROUPED_INDEXED_BUFFER_REGEX = r'^\s*(buffer|b)\s*([0-9]+)\s*$'
 LIST = []
@@ -44,7 +45,7 @@ class Command:
 		elif self.name in ['buffer']:
 			return controller.windows.list_completions(input.vim_command_parameter)
 		elif self.name == '!':
-			return controller.terminal.list_completions(input)
+			return terminal.list_completions(input)
 		elif self.name == 'decorate':
 			return controller.windows.decoration_options_for(input.vim_command_parameter)
 

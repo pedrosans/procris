@@ -38,6 +38,6 @@ class TerminalTestCase(unittest.TestCase):
 		self.terminal = Terminal()
 
 		self.assertEqual(self.terminal.aliases_map['ll'], 'ls -alh')
-		# print('{}'.format(self.terminal.aliases_map))
-		# print('{}'.format(self.terminal.aliases_map['add-key']))
-		# self.assertEqual(self.terminal.aliases_map['ll'], 'ls -alh')
+		# print('{}'.format(self.terminal.ALIASES_MAP))
+		# print('{}'.format(self.terminal.ALIASES_MAP['add-key']))
+		# self.assertEqual(self.terminal.ALIASES_MAP['ll'], 'ls -alh')

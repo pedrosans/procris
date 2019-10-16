@@ -16,17 +16,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os, glob, subprocess, shlex, re, traceback
+import poco.messages as messages
 from subprocess import PIPE
-
-from poco.commands import Command
 
 COMMANDS_GLOB = ["/usr/bin/*", "/snap/bin/*", os.path.expanduser('~/.local/bin')+'/*']
 ALIAS_PATTERN = r'^\s*alias\s+.*$'
 ALIAS_DEFINITION_GROUP = r'^\s*alias\s+(.*)$'
-
-
-aliases_map = {}
-name_map = {}
+ALIASES_MAP = {}
+NAME_MAP = {}
 
 
 def load():
@@ -35,8 +32,8 @@ def load():
 
 
 def reload():
-	aliases_map.clear()
-	name_map.clear()
+	ALIASES_MAP.clear()
+	NAME_MAP.clear()
 	load()
 
 
@@ -49,7 +46,7 @@ def _read_aliases():
 		aliases_definition = parse_alias_line(stdout_line)
 		for alias_definition in aliases_definition:
 			name, cmd = alias_definition
-			aliases_map[name] = cmd
+			ALIASES_MAP[name] = cmd
 
 
 def parse_alias_line(line):
@@ -67,11 +64,11 @@ def _read_commands():
 	for commands_glob in COMMANDS_GLOB:
 		for path in glob.glob(commands_glob):
 			name = path.split('/')[-1]
-			name_map[name] = path
+			NAME_MAP[name] = path
 
 
 def has_perfect_match(name):
-	return name in name_map.keys()
+	return name in NAME_MAP.keys()
 
 
 def list_completions(command_input):
@@ -98,16 +95,28 @@ def list_bash_completions(text):
 
 
 def query_command_names(name_filter):
-	names = list(name_map.keys()) + list(aliases_map.keys())
+	names = list(NAME_MAP.keys()) + list(ALIASES_MAP.keys())
 	if name_filter:
 		names = filter(lambda x: x.startswith(name_filter), names)
 		names = filter(lambda x: x.strip() != name_filter, names)
 	return sorted(list(set(names)))
 
 
+def bang(c_in):
+	cmd = c_in.vim_command_parameter
+	if not cmd:
+		return messages.Message('ERROR: empty command', 'error')
+	stdout, stderr = execute(cmd)
+	if stdout:
+		return messages.Message(stdout, None)
+	if stderr:
+		return messages.Message(stderr, 'error')
+	return messages.Message('Command executed successfully with no return.', None)
+
+
 def execute(cmd):
-	if cmd in aliases_map.keys():
-		cmd = aliases_map[cmd]
+	if cmd in ALIASES_MAP.keys():
+		cmd = ALIASES_MAP[cmd]
 	try:
 		process = subprocess.Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
 		stdout, stderr = process.communicate(timeout=3)
