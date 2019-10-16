@@ -22,7 +22,6 @@ gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from poco.view import NavigatorWindow
 from poco.windows import Windows
-from poco.terminal import Terminal
 from poco.hint import HintStatus
 from poco.commands import Command
 from poco.commands import CommandHistory
@@ -53,7 +52,6 @@ class Reading:
 		self.mode = Mode.NORMAL
 		self.view = None
 		self.windows = windows
-		self.terminal = Terminal()
 		self.hint_status = HintStatus(self)
 		self.command_history = CommandHistory()
 		self.create_and_install_view()
@@ -66,12 +64,11 @@ class Reading:
 		self.cmd_handler_ids.clear()
 		self.hint_status.clear_state()
 
-	def _internal_reload(self, time):
+	def reload(self, time):
 		self._clean_command_state()
 		if self.view:
 			self.view.close()
 		self.create_and_install_view()
-		self.start(time)
 
 	def create_and_install_view(self):
 		self.view = NavigatorWindow(self, self.windows)
@@ -224,14 +221,6 @@ class Reading:
 		self.view.present_with_time(event_time)
 		self.set_key_mode(event_time)
 		self.view.get_window().focus(event_time)
-
-	def reload(self, c_in):
-		# TODO: add service reload
-		# self.service.reload()
-		applications.reload()
-		self.terminal.reload()
-		messages.clean()
-		self._internal_reload(c_in.time)
 
 	def bang(self, c_in):
 		cmd = c_in.vim_command_parameter

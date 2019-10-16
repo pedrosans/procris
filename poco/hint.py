@@ -17,7 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
 from poco.commands import Command
 from poco.commands import CommandInput
-from poco.terminal import Terminal
 
 
 class HintStatus:

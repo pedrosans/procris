@@ -27,6 +27,7 @@ import poco.commands as commands
 import poco.configurations as configurations
 import poco.applications as applications
 import poco.messages as messages
+import poco.terminal as terminal
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
@@ -58,6 +59,7 @@ def start():
 	bus_object = NavigatorBusService(stop)
 	configure_process()
 	applications.load()
+	terminal.load()
 
 	listener = KeyboardListener(callback=keyboard_listener, on_error=stop)
 
@@ -119,12 +121,6 @@ def _inside_main_loop(key, x_key_event, multiplier):
 	return False
 
 
-# TODO: remove
-def reload():
-	configurations.reload()
-	status_icon.reload()
-
-
 def configure_process():
 	# https://lazka.github.io/pgi-docs/GLib-2.0/functions.html#GLib.log_set_handler
 	GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_WARNING, log_function)
@@ -135,6 +131,16 @@ def configure_process():
 
 	for sig in (SIGINT, SIGTERM, SIGHUP):
 		install_glib_handler(sig)
+
+
+def reload(c_in):
+	configurations.reload()
+	status_icon.reload()
+	applications.reload()
+	terminal.reload()
+	messages.clean()
+	reading.reload(c_in.time)
+	reading.start(c_in)
 
 
 def debug(c_in):

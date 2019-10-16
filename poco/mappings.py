@@ -10,12 +10,14 @@ layout = poco.service.layout
 termkey = '<Primary>e'
 
 keys = [
+	# layout bindings
 	Key(['<Ctrl>Return'], layout.move_to_master),
 	Key(['<Ctrl>KP_Enter'], layout.move_to_master),
 	Key(['<Ctrl>i'], layout.increment_master, [1]),
 	Key(['<Ctrl>d'], layout.increment_master, [-1]),
 	Key(['<Ctrl>l'], layout.increase_master_area, [0.05]),
 	Key(['<Ctrl>h'], layout.increase_master_area, [-0.05]),
+	# Vim bindings
 	Key([termkey], reading.start),
 	Key([termkey, 'q'],         windows.active.minimize),
 	Key([termkey, 'o'],         windows.active.only),
@@ -48,7 +50,7 @@ commands = [
 	Command('buffer'		,'b'			,reading.buffer					),
 	Command('centralize'	,'ce'			,windows.active.centralize		),
 	Command('maximize'		,'ma'			,windows.active.maximize		),
-	Command('reload'		, None			,reading.reload					),
+	Command('reload'		, None			,poco.service.reload			),
 	Command('decorate'		, None			,windows.active.decorate		),
 	Command('report'		, None	    	,poco.service.debug				),
 	Command('move'			, None			,windows.active.move			),

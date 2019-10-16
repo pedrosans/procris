@@ -25,96 +25,102 @@ ALIAS_PATTERN = r'^\s*alias\s+.*$'
 ALIAS_DEFINITION_GROUP = r'^\s*alias\s+(.*)$'
 
 
-class Terminal:
+aliases_map = {}
+name_map = {}
 
-	def __init__(self):
-		self.aliases_map = {}
-		self.name_map = {}
-		self._read_aliases()
-		self._read_commands()
 
-	def reload(self):
-		self.aliases_map.clear()
-		self.name_map.clear()
-		self._read_aliases()
-		self._read_commands()
+def load():
+	_read_aliases()
+	_read_commands()
 
-	def _read_aliases(self):
-		proc = subprocess.Popen(['bash', '-ic', 'alias'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-		result = proc.communicate()[0].decode('utf-8')
-		for stdout_line in result.splitlines():
-			if not re.match(ALIAS_PATTERN, stdout_line):
-				continue
-			aliases_definition = Terminal.parse_alias_line(stdout_line)
-			for alias_definition in aliases_definition:
-				name, cmd = alias_definition
-				self.aliases_map[name] = cmd
 
-	@staticmethod
-	def parse_alias_line(line):
-		aliases_definition = re.search(ALIAS_DEFINITION_GROUP, line).group(1)
-		aliases = re.split(r'(?<=\')\s+(?=[^\']+=\$?\'.*\')', aliases_definition)
-		result = []
-		for alias in aliases:
-			name = re.search(r'(.*?)=', alias).group(1)
-			cmd = re.search(r'=\$?\'(.*)\'', alias).group(1)
-			result.append([name, cmd])
-		return result
+def reload():
+	aliases_map.clear()
+	name_map.clear()
+	load()
 
-	def _read_commands(self):
-		for commands_glob in COMMANDS_GLOB:
-			for path in glob.glob(commands_glob):
-				name = path.split('/')[-1]
-				self.name_map[name] = path
 
-	def has_perfect_match(self, name):
-		return name in self.name_map.keys()
+def _read_aliases():
+	proc = subprocess.Popen(['bash', '-ic', 'alias'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+	result = proc.communicate()[0].decode('utf-8')
+	for stdout_line in result.splitlines():
+		if not re.match(ALIAS_PATTERN, stdout_line):
+			continue
+		aliases_definition = parse_alias_line(stdout_line)
+		for alias_definition in aliases_definition:
+			name, cmd = alias_definition
+			aliases_map[name] = cmd
 
-	def list_completions(self, command_input):
-		if command_input.terminal_command_parameter:
-			return Terminal.query_command_parameters(command_input)
-		else:
-			return self.query_command_names(command_input.terminal_command)
 
-	@staticmethod
-	def query_command_parameters(command_input):
+def parse_alias_line(line):
+	aliases_definition = re.search(ALIAS_DEFINITION_GROUP, line).group(1)
+	aliases = re.split(r'(?<=\')\s+(?=[^\']+=\$?\'.*\')', aliases_definition)
+	result = []
+	for alias in aliases:
+		name = re.search(r'(.*?)=', alias).group(1)
+		cmd = re.search(r'=\$?\'(.*)\'', alias).group(1)
+		result.append([name, cmd])
+	return result
 
-		completions = Terminal.list_bash_completions(command_input.vim_command_parameter)
 
-		completions = filter(lambda x: x.startswith(command_input.terminal_command_parameter), completions)
-		completions = filter(lambda x: x != command_input.terminal_command_parameter, completions)
-		return sorted(list(set(completions)))
+def _read_commands():
+	for commands_glob in COMMANDS_GLOB:
+		for path in glob.glob(commands_glob):
+			name = path.split('/')[-1]
+			name_map[name] = path
 
-	@staticmethod
-	def list_bash_completions(text):
-		cmd = COMPLETIONS_FUNCTION + 'get_completions \'' + text + '\''
-		proc = subprocess.Popen(cmd, executable='bash', shell=True, stdin=PIPE, stdout=PIPE)
-		result = proc.communicate()[0].decode('utf-8')
-		return map(lambda x: x.strip(), result.splitlines())
 
-	def query_command_names(self, name_filter):
-		names = list(self.name_map.keys()) + list(self.aliases_map.keys())
-		if name_filter:
-			names = filter(lambda x: x.startswith(name_filter), names)
-			names = filter(lambda x: x.strip() != name_filter, names)
-		return sorted(list(set(names)))
+def has_perfect_match(name):
+	return name in name_map.keys()
 
-	def execute(self, cmd):
-		if cmd in self.aliases_map.keys():
-			cmd = self.aliases_map[cmd]
-		try:
-			process = subprocess.Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
-			stdout, stderr = process.communicate(timeout=3)
-			if stdout:
-				stdout = stdout.decode('utf-8')
-			if stderr:
-				stderr = stderr.decode('utf-8')
-			return stdout, stderr
-		except FileNotFoundError:
-			return None, 'Cant run {}'.format(cmd)
-		except Exception as e:
-			print(traceback.format_exc())
-			return None, 'Error ({}) running command: {}'.format(str(e), cmd)
+
+def list_completions(command_input):
+	if command_input.terminal_command_parameter:
+		return query_command_parameters(command_input)
+	else:
+		return query_command_names(command_input.terminal_command)
+
+
+def query_command_parameters(command_input):
+
+	completions = list_bash_completions(command_input.vim_command_parameter)
+
+	completions = filter(lambda x: x.startswith(command_input.terminal_command_parameter), completions)
+	completions = filter(lambda x: x != command_input.terminal_command_parameter, completions)
+	return sorted(list(set(completions)))
+
+
+def list_bash_completions(text):
+	cmd = COMPLETIONS_FUNCTION + 'get_completions \'' + text + '\''
+	proc = subprocess.Popen(cmd, executable='bash', shell=True, stdin=PIPE, stdout=PIPE)
+	result = proc.communicate()[0].decode('utf-8')
+	return map(lambda x: x.strip(), result.splitlines())
+
+
+def query_command_names(name_filter):
+	names = list(name_map.keys()) + list(aliases_map.keys())
+	if name_filter:
+		names = filter(lambda x: x.startswith(name_filter), names)
+		names = filter(lambda x: x.strip() != name_filter, names)
+	return sorted(list(set(names)))
+
+
+def execute(cmd):
+	if cmd in aliases_map.keys():
+		cmd = aliases_map[cmd]
+	try:
+		process = subprocess.Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
+		stdout, stderr = process.communicate(timeout=3)
+		if stdout:
+			stdout = stdout.decode('utf-8')
+		if stderr:
+			stderr = stderr.decode('utf-8')
+		return stdout, stderr
+	except FileNotFoundError:
+		return None, 'Cant run {}'.format(cmd)
+	except Exception as e:
+		print(traceback.format_exc())
+		return None, 'Error ({}) running command: {}'.format(str(e), cmd)
 
 
 LIST_ALIASE = """
