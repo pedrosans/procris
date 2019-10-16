@@ -50,7 +50,7 @@ commands = [
 	Command('maximize'		,'ma'			,windows.active.maximize		),
 	Command('reload'		, None			,reading.reload					),
 	Command('decorate'		, None			,windows.active.decorate		),
-	Command('report'		, None	    	,reading.debug					),
+	Command('report'		, None	    	,poco.service.debug				),
 	Command('move'			, None			,windows.active.move			),
 	Command('quit'			,'q'			,windows.active.minimize		),
 	Command('only'			,'on'			,windows.active.only	   		),

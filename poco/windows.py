@@ -324,6 +324,10 @@ class Windows:
 	#
 	# Internal API
 	#
+	def debug(self, c_in):
+		messages.add(self.windows.get_metadata_resume(), None)
+		self.set_key_mode(c_in.time)
+
 	def get_metadata_resume(self):
 		resume = ''
 		for wn in self.buffers:

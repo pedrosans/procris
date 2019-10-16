@@ -258,10 +258,6 @@ class Reading:
 	def escape(self, c_in):
 		self.set_normal_mode()
 
-	def debug(self, c_in):
-		messages.add(self.windows.get_metadata_resume(), None)
-		self.set_key_mode(c_in.time)
-
 	def buffer(self, c_in):
 		buffer_number_match = re.match(poco.commands.GROUPED_INDEXED_BUFFER_REGEX, c_in.text)
 		if buffer_number_match:

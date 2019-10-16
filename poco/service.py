@@ -26,6 +26,7 @@ import os, gi, signal, setproctitle, logging
 import poco.commands as commands
 import poco.configurations as configurations
 import poco.applications as applications
+import poco.messages as messages
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
@@ -134,6 +135,10 @@ def configure_process():
 
 	for sig in (SIGINT, SIGTERM, SIGHUP):
 		install_glib_handler(sig)
+
+
+def debug(c_in):
+	return messages.Message(windows.get_metadata_resume(), None)
 
 
 def install_glib_handler(sig):
