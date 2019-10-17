@@ -147,12 +147,13 @@ class LayoutManager:
 			self.layout()
 
 	def _state_changed(self, window, changed_mask, new_state):
-		if self.windows.is_visible(window):
-			self.stack.insert(0, window.get_xid())
-		else:
-			self.stack.remove(window.get_xid())
-		self.windows.read_screen(force_update=False)
-		self.layout()
+		if changed_mask & Wnck.WindowState.MINIMIZED:
+			if self.windows.is_visible(window):
+				self.stack.insert(0, window.get_xid())
+			else:
+				self.stack.remove(window.get_xid())
+			self.windows.read_screen(force_update=False)
+			self.layout()
 
 	#
 	# COMMANDS
