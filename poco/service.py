@@ -112,29 +112,31 @@ def _inside_main_loop(key, x_key_event, multiplier):
 
 	execute(key.function, command_input, multiplier)
 
-	status_icon.reload()
-
-	if len(key.accelerators) > 1:
-		reading.set_normal_mode()
-
 	return False
 
 
 def execute(function, command_input, multiplier=1):
 	try:
+		reading.clean_state()
+		windows.read_screen()
+
 		for i in range(multiplier):
 			return_message = function(command_input)
 			if return_message:
 				messages.add_message(return_message)
 
 		windows.commit_navigation(command_input.time)
+		status_icon.reload()
 
-		if messages.LIST:
-			reading.set_key_mode(command_input.time)
+		if reading.started or messages.LIST:
+			reading.show(command_input.time)
+		else:
+			reading.end()
+
 	except Exception as inst:
 		msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
 		print(traceback.format_exc())
-		reading.set_key_mode(command_input.time, error_message=msg)
+		reading.show(command_input.time, error_message=msg)
 
 
 def configure_process():
@@ -156,7 +158,6 @@ def reload(c_in):
 	terminal.reload()
 	messages.clean()
 	reading.reload(c_in.time)
-	reading.start(c_in)
 
 
 def debug(c_in):

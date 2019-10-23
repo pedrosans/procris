@@ -31,33 +31,19 @@ LOCATION_MAP = {}
 
 
 def launch(c_in):
-	name = c_in.vim_command_parameter
+	app_name = c_in.vim_command_parameter
 
-	if not name or not name.strip():
+	if app_name not in NAME_MAP.keys():
+		return Message('No matching application for ' + app_name, 'error')
+
+	if not app_name or not app_name.strip() or app_name not in NAME_MAP.keys():
 		return Message('Missing application name', 'error')
 
-	app_name = None
-	if has_perfect_match(name.strip()):
-		app_name = name.strip()
-
-	possible_apps = find_by_name(name)
-	if possible_apps:
-		app_name = possible_apps
-
-	if app_name:
-		try:
-			launch_by_name(app_name)
-		except GLib.GError as exc:
-			return Message('Error launching ' + name, 'error')
-	elif not possible_apps or len(possible_apps) == 0:
-		return Message('No matching application for ' + name, 'error')
-	else:
-		return Message('More than one application matches: ' + name, 'error')
-
-
-def reload():
-	NAME_MAP.clear()
-	load()
+	try:
+		launcher = Gio.DesktopAppInfo.new_from_filename(LOCATION_MAP[app_name])
+		launcher.launch_uris()
+	except GLib.GError as exc:
+		return Message('Error launching ' + app_name, 'error')
 
 
 def load():
@@ -76,16 +62,9 @@ def load():
 				continue
 
 
-def has_perfect_match(name):
-	return name in NAME_MAP.keys()
-
-
-def find_by_name(name_filter):
-	striped = name_filter.lower().strip()
-	for app_name in NAME_MAP.keys():
-		if striped == app_name.strip().lower():
-			return app_name;
-	return None
+def reload():
+	NAME_MAP.clear()
+	load()
 
 
 def list_completions(name_filter):
@@ -93,9 +72,4 @@ def list_completions(name_filter):
 	matches = filter(lambda x: lower in x.lower(), NAME_MAP.keys())
 	matches = filter(lambda x: lower != x.lower(), matches)
 	return sorted(list(set(matches)), key=str.lower)
-
-
-def launch_by_name( name):
-	launcher = Gio.DesktopAppInfo.new_from_filename(LOCATION_MAP[name])
-	launcher.launch_uris()
 

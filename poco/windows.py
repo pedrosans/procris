@@ -218,7 +218,7 @@ class Windows:
 		for window in self.buffers:
 			messages.add_message(messages.BufferName(window, self))
 
-	def show(self, c_in):
+	def activate(self, c_in):
 		buffer_number_match = re.match(r'^\s*(buffer|b)\s*([0-9]+)\s*$', c_in.text)
 		if buffer_number_match:
 			buffer_number = buffer_number_match.group(2)

@@ -92,7 +92,7 @@ class NavigatorWindow(Gtk.Window):
 		monitor_nr = screen.get_monitor_at_point(x, y)
 		return screen.get_monitor_workarea(monitor_nr)
 
-	def show(self, event_time ):
+	def update(self):
 		self.set_gravity(Gdk.Gravity.NORTH_WEST)
 		for c in self.output_box.get_children(): c.destroy()
 		for c in self.messages_box.get_children(): c.destroy()
@@ -100,7 +100,7 @@ class NavigatorWindow(Gtk.Window):
 		self._calculate_width()
 		self.clean_hints()
 
-		self.show_messages(event_time)
+		self.show_messages()
 
 		self._render_command_line()
 
@@ -123,7 +123,7 @@ class NavigatorWindow(Gtk.Window):
 			self.hint_line.add_status_text(name, active)
 			self.hint_line.add_status_text(' ', False)
 
-	def show_messages(self, time):
+	def show_messages(self):
 		for message in messages.LIST:
 			line = Gtk.HBox(homogeneous=False)
 			self.messages_box.pack_start(line, expand=False, fill=True, padding=0)

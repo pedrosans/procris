@@ -12,7 +12,7 @@ termkey = '<Primary>e'
 
 keys = [
 
-	# layout bindings
+	# tile window managers bindings
 	Key(['<Ctrl>Return'], layout.move_to_master),
 	Key(['<Ctrl>KP_Enter'], layout.move_to_master),
 	Key(['<Ctrl>i'], layout.increment_master, [1]),
@@ -22,12 +22,14 @@ keys = [
 	Key(['<Ctrl>u'], layout.change_function, ['C']),
 	Key(['<Ctrl>t'], layout.change_function, ['T']),
 
-	# # xmonad bindings https://xmonad.org/manpage.html
+	# xmonad bindings https://xmonad.org/manpage.html
 	Key(['<Ctrl><Shift>j'], layout.swap_focused_with, [1]),
 	Key(['<Ctrl><Shift>k'], layout.swap_focused_with, [-1]),
 
-	# # Vim bindings
+	# poco reading binding
 	Key([termkey], reading.start),
+
+	# Vim bindings
 	Key([termkey, 'q'],         windows.active.minimize),
 	Key([termkey, 'o'],         windows.active.only),
 	Key([termkey, 'Right'],     windows.focus.move_right),
@@ -56,7 +58,7 @@ commands = [
 	Command('!'				, None			,terminal.bang					),
 	Command('buffers'		,'ls'			,windows.list					),
 	Command('bdelete'		,'bd'			,windows.delete					),
-	Command('buffer'		,'b'			,windows.show					),
+	Command('buffer'		,'b'			,windows.activate				),
 	Command('centralize'	,'ce'			,windows.active.centralize		),
 	Command('maximize'		,'ma'			,windows.active.maximize		),
 	Command('reload'		, None			,poco.service.reload			),

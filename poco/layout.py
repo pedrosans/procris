@@ -168,6 +168,7 @@ class Layout:
 
 		self.state_json = self.serializer.deserialize()
 		if self.state_json:
+			# TODO: change to window stack
 			copy = self.stack.copy()
 			self.stack.sort(
 				key=lambda xid:

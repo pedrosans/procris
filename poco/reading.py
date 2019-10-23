@@ -14,14 +14,12 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, re, time, traceback, poco
+import gi, poco
 import poco.messages as messages
-import poco.applications as applications
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from poco.view import NavigatorWindow
-from poco.windows import Windows
 from poco.hint import HintStatus
 from poco.commands import Command
 from poco.commands import CommandHistory
@@ -36,63 +34,47 @@ HINT_OPERATION_KEYS = [Gdk.KEY_Shift_L, Gdk.KEY_Shift_R, Gdk.KEY_Return] + HINT_
 HISTORY_NAVIGATION_KEYS = [Gdk.KEY_Up, Gdk.KEY_Down]
 
 
-class Mode:
-
-	NORMAL = 0
-	KEY = 1
-	COMMAND = 2
-
-
 # TODO chain commands
 class Reading:
 
 	def __init__(self, configurations=None, windows=None):
+		self.started = False
+		self.command_mode = False
 		self.configurations = configurations
 		self.cmd_handler_ids = []
-		self.mode = Mode.NORMAL
 		self.view = None
 		self.windows = windows
 		self.hint_status = HintStatus(self)
 		self.command_history = CommandHistory()
-		self.create_and_install_view()
-		self._clean_command_state()
+		self._create_and_install_view()
+		self.clean_state()
 		messages.clean()
 
-	def _clean_command_state(self):
+	def clean_state(self):
+		self.started = False
+		self.command_mode = False
 		for handler_id in self.cmd_handler_ids:
 			self.view.entry.disconnect(handler_id)
 		self.cmd_handler_ids.clear()
 		self.hint_status.clear_state()
 
-	def reload(self, time):
-		self._clean_command_state()
-		if self.view:
-			self.view.close()
-		self.create_and_install_view()
-
-	def create_and_install_view(self):
+	def _create_and_install_view(self):
 		self.view = NavigatorWindow(self, self.windows)
 		self.view.connect("focus-out-event", self._focus_out_callback)
 		self.view.connect("key-press-event", self._window_key_press_callback)
 
-	def set_normal_mode(self):
-		self.mode = Mode.NORMAL
-		self.view.hide()
-		messages.clean()
-		self._clean_command_state()
+	#
+	# PUBLIC API
+	#
+	def reload(self, e_time):
+		self.clean_state()
+		self.view.close()
+		self._create_and_install_view()
 
-	def set_key_mode(self, event_time, error_message=None):
-		self.mode = Mode.KEY
-		self.windows.read_screen()
-		if error_message:
-			messages.add(error_message, 'error')
-		self._clean_command_state()
-		self.view.show(event_time)
+	def set_command_mode(self):
+		self.command_mode = True
 
-	def set_command_mode(self, time):
-		self.mode = Mode.COMMAND
-
-		self.view.show(time)
+		self.view.update()
 
 		r_id = self.view.entry.connect("key-release-event", self.on_entry_key_release)
 		p_id = self.view.entry.connect("key-press-event", self.on_entry_key_press)
@@ -101,13 +83,13 @@ class Reading:
 		self.cmd_handler_ids.extend([r_id, p_id, a_id])
 
 	def in_command_mode(self):
-		return self.mode == Mode.COMMAND
+		return self.command_mode
 
 	#
 	# CALLBACKS
 	#
 	def _focus_out_callback(self, widget, event):
-		self.set_normal_mode()
+		self.end()
 
 	def _window_key_press_callback(self, widget, event):
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
@@ -132,7 +114,8 @@ class Reading:
 			return False
 
 		if not self.view.entry.get_text().strip():
-			self.set_key_mode(event.time)
+			self.clean_state()
+			self.show(Gtk.get_current_event_time())
 			return True
 
 		if self.configurations.is_auto_hint():
@@ -174,7 +157,7 @@ class Reading:
 		return True
 
 	def on_command(self, pane_owner, current):
-		if self.mode != Mode.COMMAND:
+		if not self.command_mode:
 			return
 
 		gtk_time = Gtk.get_current_event_time()
@@ -195,8 +178,10 @@ class Reading:
 		if command:
 			poco.service.execute(command.function, command_input)
 		else:
-			self.set_key_mode(gtk_time, error_message='Not an editor command: ' + cmd)
+			self.clean_state()
+			self.show(gtk_time, error_message='Not an editor command: ' + cmd)
 
+	# TODO: remove from here
 	def execute(self, cmd):
 		self.windows.read_screen()
 		command_input = CommandInput(time=None, text=cmd).parse()
@@ -207,19 +192,30 @@ class Reading:
 	# COMMANDS
 	#
 	def start(self, c_in):
-		event_time = c_in.time
-		self.view.present_with_time(event_time)
-		self.set_key_mode(event_time)
-		self.view.get_window().focus(event_time)
+		self.started = True
+		messages.clean()
 
+	def show(self, e_time, error_message=None):
+		# TODO move to view
+		self.view.present_with_time(e_time)
+		self.view.get_window().focus(e_time)
+		if error_message:
+			messages.add(error_message, 'error')
+		self.view.update()
+
+	def end(self):
+		messages.clean()
+		self.clean_state()
+		self.view.hide()
+
+	# TODO: remove from command format
 	def colon(self, c_in):
-		if self.mode == Mode.KEY:
-			self.set_command_mode(c_in.time)
+		self.set_command_mode()
 
 	def enter(self, c_in):
 		messages.clean()
-		self.set_key_mode(c_in.time)
+		self.show(c_in.time)
 
 	def escape(self, c_in):
-		self.set_normal_mode()
+		self.end()
 
