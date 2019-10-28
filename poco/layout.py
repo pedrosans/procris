@@ -79,13 +79,14 @@ class Serializer:
 class Layout:
 
 	def __init__(self, windows, remove_decorations=False,  persistence_file='/tmp/poco_windows_state.json'):
+		self.functions = {'C': centeredmaster, 'T': tile}
+		self.function_key = 'C'
 		self.window_monitor_map = {}
 		self.gap = 10
 		self.remove_decorations = remove_decorations
 		self.serializer = Serializer(persistence_file)
 		self.windows = windows
 		self.persistence_file = persistence_file
-		self.function = centeredmaster
 		self.monitor = Monitor()
 
 		self.windows.read_screen()
@@ -123,6 +124,14 @@ class Layout:
 				handler_id = window.connect("state-changed", self._state_changed)
 				self.window_monitor_map[window.get_xid()] = handler_id
 
+	#
+	# PUBLIC INTERFACE
+	#
+	def set_function(self, function_key):
+		self.function_key = function_key
+		self.windows.read_screen()
+		self.apply()
+
 	def apply_decoration_config(self):
 		if self.remove_decorations:
 			self.windows.remove_decorations()
@@ -158,7 +167,11 @@ class Layout:
 	#
 	# COMMANDS
 	#
-	def move_to_master(self, w):
+	def change_function(self, c_in):
+		function_key = c_in.parameters[0]
+		self.set_function(function_key)
+
+	def move_to_master(self, c_in):
 		self.windows.read_screen()
 		active_xid = self.windows.active.xid
 		if active_xid:
@@ -198,13 +211,38 @@ class Layout:
 		self.monitor.set_workarea(
 			x=wa.x + self.gap, y=wa.y + self.gap, width=wa.width - self.gap * 2, height=wa.height - self.gap * 2)
 
-		arrange = self.function(w_stack, self.monitor)
+		arrange = self.functions[self.function_key](w_stack, self.monitor)
 
 		for i in range(len(arrange)):
 			a = arrange[i]
 			w = w_stack[i]
 			self.windows.set_geometry(
 				w, x=a[0] + self.gap, y=a[1] + self.gap, w=a[2] - self.gap * 2, h=a[3] - self.gap * 2)
+
+
+def tile(stack, monitor):
+	layout = []
+
+	if not stack:
+		return None
+	n = len(stack)
+
+	if n > monitor.nmaster:
+		mw = monitor.ww * monitor.mfact if monitor.nmaster else 0
+	else:
+		mw = monitor.ww
+	my = ty = 0
+	for i in range(len(stack)):
+		if i < monitor.nmaster:
+			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i);
+			layout.append([monitor.wx, monitor.wy + my, mw, h])
+			my += layout[-1][3]
+		else:
+			h = (monitor.wh - ty) / (n - i);
+			layout.append([monitor.wx + mw, monitor.wy + ty, monitor.ww - mw, h])
+			ty += layout[-1][3]
+
+	return layout
 
 
 def centeredmaster(stack, monitor):
@@ -234,21 +272,20 @@ def centeredmaster(stack, monitor):
 	ety = 0;
 	for i in range(len(stack)):
 		c = stack[i]
-		c.bw = 0
 		if i < monitor.nmaster:
 			# nmaster clients are stacked vertically, in the center of the screen
 			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i);
-			layout.append([monitor.wx + mx, monitor.wy + my, mw - (2 * c.bw), h - (2 * c.bw), 0])
+			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
 			my += layout[-1][3]
 		else:
 			# stack clients are stacked vertically
 			if (i - monitor.nmaster) % 2:
 				h = (monitor.wh - ety) / int((1 + n - i) / 2)
-				layout.append([monitor.wx, monitor.wy + ety, tw - (2 * c.bw), h - (2 * c.bw), 0])
+				layout.append([monitor.wx, monitor.wy + ety, tw, h])
 				ety += layout[-1][3]
 			else:
 				h = (monitor.wh - oty) / int((1 + n - i) / 2)
-				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw - (2 * c.bw), h - (2 * c.bw), 0])
+				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
 				oty += layout[-1][3]
 
 	return layout

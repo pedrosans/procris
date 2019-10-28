@@ -22,7 +22,7 @@ x11.XInitThreads()
 # add python lock to Xlib internals
 from Xlib import threaded
 
-import os, gi, signal, setproctitle, logging
+import os, gi, signal, setproctitle, logging, traceback
 import poco.commands as commands
 import poco.configurations as configurations
 import poco.applications as applications
@@ -110,15 +110,29 @@ def _inside_main_loop(key, x_key_event, multiplier):
 	command_input = CommandInput(
 		time=x_key_event.time, keyval=x_key_event.keyval, parameters=key.parameters)
 
-	for i in range(multiplier):
-		key.function(command_input)
-
-	windows.commit_navigation(x_key_event.time)
+	execute(key.function, command_input, multiplier)
 
 	if len(key.accelerators) > 1:
 		reading.set_normal_mode()
 
 	return False
+
+
+def execute(function, command_input, multiplier=1):
+	try:
+		for i in range(multiplier):
+			return_message = function(command_input)
+			if return_message:
+				messages.add_message(return_message)
+
+		windows.commit_navigation(command_input.time)
+
+		if messages.LIST:
+			reading.set_key_mode(command_input.time)
+	except Exception as inst:
+		msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
+		print(traceback.format_exc())
+		reading.set_key_mode(command_input.time, error_message=msg)
 
 
 def configure_process():

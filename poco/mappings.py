@@ -18,6 +18,8 @@ keys = [
 	Key(['<Ctrl>d'], layout.increment_master, [-1]),
 	Key(['<Ctrl>l'], layout.increase_master_area, [0.05]),
 	Key(['<Ctrl>h'], layout.increase_master_area, [-0.05]),
+	Key(['<Ctrl>u'], layout.change_function, ['C']),
+	Key(['<Ctrl>t'], layout.change_function, ['T']),
 	# Vim bindings
 	Key([termkey], reading.start),
 	Key([termkey, 'q'],         windows.active.minimize),

@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, re, time, traceback, poco.commands
+import gi, re, time, traceback, poco
 import poco.messages as messages
 import poco.applications as applications
 gi.require_version('Gtk', '3.0')
@@ -193,17 +193,7 @@ class Reading:
 		command = Command.get_matching_command(command_input)
 
 		if command:
-			try:
-				return_message = command.function(command_input)
-				if return_message:
-					messages.add_message(return_message)
-				self.windows.commit_navigation(gtk_time)
-				if messages.LIST:
-					self.set_key_mode(gtk_time)
-			except Exception as inst:
-				msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
-				print(traceback.format_exc())
-				self.set_key_mode(gtk_time, error_message=msg)
+			poco.service.execute(command.function, command_input)
 		else:
 			self.set_key_mode(gtk_time, error_message='Not an editor command: ' + cmd)
 
