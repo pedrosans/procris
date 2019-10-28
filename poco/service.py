@@ -73,7 +73,7 @@ def start():
 
 	listener.start()
 
-	status_icon = StatusIcon(configurations, layout, stop_function=stop)
+	status_icon = StatusIcon(layout, stop_function=stop)
 	status_icon.activate()
 
 	Gtk.main()
@@ -111,6 +111,8 @@ def _inside_main_loop(key, x_key_event, multiplier):
 		time=x_key_event.time, keyval=x_key_event.keyval, parameters=key.parameters)
 
 	execute(key.function, command_input, multiplier)
+
+	status_icon.reload()
 
 	if len(key.accelerators) > 1:
 		reading.set_normal_mode()

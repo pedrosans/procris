@@ -75,12 +75,86 @@ class Serializer:
 		return None
 
 
+def tile(stack, monitor):
+	layout = []
+
+	if not stack:
+		return None
+	n = len(stack)
+
+	if n > monitor.nmaster:
+		mw = monitor.ww * monitor.mfact if monitor.nmaster else 0
+	else:
+		mw = monitor.ww
+	my = ty = 0
+	for i in range(len(stack)):
+		if i < monitor.nmaster:
+			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i);
+			layout.append([monitor.wx, monitor.wy + my, mw, h])
+			my += layout[-1][3]
+		else:
+			h = (monitor.wh - ty) / (n - i);
+			layout.append([monitor.wx + mw, monitor.wy + ty, monitor.ww - mw, h])
+			ty += layout[-1][3]
+
+	return layout
+
+
+def centeredmaster(stack, monitor):
+	# i, n, h, mw, mx, my, oty, ety, tw = None
+	layout = []
+
+	if not stack:
+		return None
+	n = len(stack)
+
+	mw = monitor.ww;
+	mx = 0;
+	my = 0;
+	tw = mw;
+
+	if n > monitor.nmaster:
+		# go mfact box in the center if more than nmaster clients
+		mw = monitor.ww * monitor.mfact if monitor.nmaster else 0
+		tw = monitor.ww - mw
+
+		if n - monitor.nmaster > 1:
+			# only one client
+			mx = (monitor.ww - mw) / 2
+			tw = (monitor.ww - mw) / 2
+	#  +
+	oty = 0;
+	ety = 0;
+	for i in range(len(stack)):
+		c = stack[i]
+		if i < monitor.nmaster:
+			# nmaster clients are stacked vertically, in the center of the screen
+			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i);
+			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
+			my += layout[-1][3]
+		else:
+			# stack clients are stacked vertically
+			if (i - monitor.nmaster) % 2:
+				h = (monitor.wh - ety) / int((1 + n - i) / 2)
+				layout.append([monitor.wx, monitor.wy + ety, tw, h])
+				ety += layout[-1][3]
+			else:
+				h = (monitor.wh - oty) / int((1 + n - i) / 2)
+				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
+				oty += layout[-1][3]
+
+	return layout
+
+
+FUNCTIONS_MAP = {'C': centeredmaster, 'T': tile}
+FUNCTIONS_NAME_MAP = {'C': 'centeredmaster', 'T': 'tile'}
+
+
 # TODO: the the window is maximized, the layout function fails
 class Layout:
 
 	def __init__(self, windows, remove_decorations=False,  persistence_file='/tmp/poco_windows_state.json'):
-		self.functions = {'C': centeredmaster, 'T': tile}
-		self.function_key = 'C'
+		self.function_key = 'T'
 		self.window_monitor_map = {}
 		self.gap = 10
 		self.remove_decorations = remove_decorations
@@ -226,81 +300,10 @@ class Layout:
 		self.monitor.set_workarea(
 			x=wa.x + self.gap, y=wa.y + self.gap, width=wa.width - self.gap * 2, height=wa.height - self.gap * 2)
 
-		arrange = self.functions[self.function_key](w_stack, self.monitor)
+		arrange = FUNCTIONS_MAP[self.function_key](w_stack, self.monitor)
 
 		for i in range(len(arrange)):
 			a = arrange[i]
 			w = w_stack[i]
 			self.windows.set_geometry(
 				w, x=a[0] + self.gap, y=a[1] + self.gap, w=a[2] - self.gap * 2, h=a[3] - self.gap * 2)
-
-
-def tile(stack, monitor):
-	layout = []
-
-	if not stack:
-		return None
-	n = len(stack)
-
-	if n > monitor.nmaster:
-		mw = monitor.ww * monitor.mfact if monitor.nmaster else 0
-	else:
-		mw = monitor.ww
-	my = ty = 0
-	for i in range(len(stack)):
-		if i < monitor.nmaster:
-			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i);
-			layout.append([monitor.wx, monitor.wy + my, mw, h])
-			my += layout[-1][3]
-		else:
-			h = (monitor.wh - ty) / (n - i);
-			layout.append([monitor.wx + mw, monitor.wy + ty, monitor.ww - mw, h])
-			ty += layout[-1][3]
-
-	return layout
-
-
-def centeredmaster(stack, monitor):
-	# i, n, h, mw, mx, my, oty, ety, tw = None
-	layout = []
-
-	if not stack:
-		return None
-	n = len(stack)
-
-	mw = monitor.ww;
-	mx = 0;
-	my = 0;
-	tw = mw;
-
-	if n > monitor.nmaster:
-		# go mfact box in the center if more than nmaster clients
-		mw = monitor.ww * monitor.mfact if monitor.nmaster else 0
-		tw = monitor.ww - mw
-
-		if n - monitor.nmaster > 1:
-			# only one client
-			mx = (monitor.ww - mw) / 2
-			tw = (monitor.ww - mw) / 2
-	#  +
-	oty = 0;
-	ety = 0;
-	for i in range(len(stack)):
-		c = stack[i]
-		if i < monitor.nmaster:
-			# nmaster clients are stacked vertically, in the center of the screen
-			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i);
-			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
-			my += layout[-1][3]
-		else:
-			# stack clients are stacked vertically
-			if (i - monitor.nmaster) % 2:
-				h = (monitor.wh - ety) / int((1 + n - i) / 2)
-				layout.append([monitor.wx, monitor.wy + ety, tw, h])
-				ety += layout[-1][3]
-			else:
-				h = (monitor.wh - oty) / int((1 + n - i) / 2)
-				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
-				oty += layout[-1][3]
-
-	return layout

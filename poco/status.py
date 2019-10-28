@@ -16,78 +16,96 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import gi
+import poco.configurations as configurations
+import poco.layout
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
 from gi.repository import Gtk
 from gi.repository import AppIndicator3
 
 ICONNAME = 'poco'
+ICON_STYLES = ('default', 'light', 'dark')
+ICON_STYLE_NAME_MAP = {'dark': "Dark icon", 'light': "Light icon", 'default': "Default icon"}
 
 
 class StatusIcon:
 
-	def __init__(self, configurations, layout, stop_function=None):
+	def __init__(self, layout, stop_function=None):
+		# Track reloading routine to stop any layout side effect when updating the UI
+		self._reloading = False
 		self.stop_function = stop_function
-		self.configurations = configurations
 		self.layout = layout
 		self.menu = Gtk.Menu()
 
 		self.autostart_item = Gtk.CheckMenuItem(label="Autostart")
-		self.autostart_item.set_active(self.configurations.is_autostart())
+		self.autostart_item.set_active(configurations.is_autostart())
 		self.autostart_item.connect("toggled", self._change_autostart)
 		self.autostart_item.show()
 		self.menu.append(self.autostart_item)
 
 		self.decorations_item = Gtk.CheckMenuItem(label="Remove decorations")
-		self.decorations_item.set_active(self.configurations.is_remove_decorations())
+		self.decorations_item.set_active(configurations.is_remove_decorations())
 		self.decorations_item.connect("toggled", self._change_decorations)
 		self.decorations_item.show()
 		self.menu.append(self.decorations_item)
 
-		self._add_appearance_menu()
-		self._add_layout_menu()
+		# ICON COLOR MENU
+		appearance_menu_item = Gtk.MenuItem(label="Appearance")
+		appearance_menu_item.show()
+		self.menu.append(appearance_menu_item)
 
+		self.icons_submenu = Gtk.Menu()
+		appearance_menu_item.set_submenu(self.icons_submenu)
+
+		for icon_style in ICON_STYLES:
+			icon_item = Gtk.RadioMenuItem(
+				label=ICON_STYLE_NAME_MAP[icon_style],
+				group=self.icons_submenu.get_children()[0] if self.icons_submenu.get_children() else None)
+			icon_item.icon_style = icon_style
+			icon_item.connect("toggled", self._change_icon)
+			icon_item.show()
+			self.icons_submenu.append(icon_item)
+
+		# LAYOUT MENU
+		layout_menu_item = Gtk.MenuItem(label="Layout")
+		layout_menu_item.show()
+		self.menu.append(layout_menu_item)
+
+		self.layout_submenu = Gtk.Menu()
+		layout_menu_item.set_submenu(self.layout_submenu)
+
+		for function_key in poco.layout.FUNCTIONS_MAP.keys():
+			name = poco.layout.FUNCTIONS_NAME_MAP[function_key]
+			menu_item = Gtk.RadioMenuItem(
+				label=name, group=self.layout_submenu.get_children()[0] if self.layout_submenu.get_children() else None)
+			menu_item.function_key = function_key
+			menu_item.connect("toggled", self._change_layout)
+			menu_item.show()
+			self.layout_submenu.append(menu_item)
+
+		# QUIT MENU
 		quit_item = Gtk.MenuItem(label="Quit")
 		quit_item.connect("activate", self._quit)
 		quit_item.show()
 		self.menu.append(quit_item)
 
-	def _add_appearance_menu(self):
-		appearance_menu_item = Gtk.MenuItem(label="Appearance")
-		appearance_menu_item.show()
-		self.menu.append(appearance_menu_item)
-
-		icons_submenu = Gtk.Menu()
-		self._add_icon_option(icons_submenu, "Dark icon")
-		self._add_icon_option(icons_submenu, "Light icon")
-		self._add_icon_option(icons_submenu, "Default icon")
-		appearance_menu_item.set_submenu(icons_submenu)
-
-	def _add_layout_menu(self):
-		layout_menu_item = Gtk.MenuItem(label="Layout")
-		layout_menu_item.show()
-		self.menu.append(layout_menu_item)
-
-		layout_submenu = Gtk.Menu()
-		for layout_key in self.layout.functions.keys():
-			menu_item = Gtk.MenuItem(label="{}".format(layout_key))
-			menu_item.connect("activate", self._change_layout)
-			menu_item.show()
-			layout_submenu.append(menu_item)
-		layout_menu_item.set_submenu(layout_submenu)
-
-	def _change_layout(self, data):
-		self.layout.set_function(data.get_label())
-		self.reload()
-
 	def activate(self):
-		self.ind = AppIndicator3.Indicator.new("poco", ICONNAME, AppIndicator3.IndicatorCategory.APPLICATION_STATUS )
-		self.ind.set_status (AppIndicator3.IndicatorStatus.ACTIVE)
+		self.ind = AppIndicator3.Indicator.new("poco", ICONNAME, AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
+		self.ind.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 		self.ind.set_menu(self.menu)
 		self.reload()
 
 	def reload(self):
-		iconname = self.configurations.get_icon()
+		self._reloading = True
+
+		iconname = configurations.get_icon()
+
+		for item in self.icons_submenu.get_children():
+			item.set_active(item.icon_style == iconname)
+
+		for item in self.layout_submenu.get_children():
+			item.set_active(item.function_key == self.layout.function_key)
+
 		sys_icon = 'poco'
 		if self.layout.function_key:
 			sys_icon = sys_icon + '-' + self.layout.function_key
@@ -95,27 +113,28 @@ class StatusIcon:
 			sys_icon = sys_icon + '-' + iconname
 		self.ind.set_icon(sys_icon)
 
-	def _add_icon_option(self, icons_submenu, option):
-		icon_item = Gtk.MenuItem(label=option)
-		icon_item.connect("activate", self._change_icon)
-		icon_item.show()
-		icons_submenu.append(icon_item)
+		self._reloading = False
 
-	def _change_icon(self, data):
-		if data.get_label() == "Dark icon":
-			self.configurations.set_icon('dark')
-		elif data.get_label() == "Light icon":
-			self.configurations.set_icon('light')
-		else:
-			self.configurations.set_icon('default')
-		self.reload()
+	#
+	# CALLBACKS
+	#
+	def _change_layout(self, radio_menu_item):
+		if not self._reloading and radio_menu_item.get_active():
+			function_key = radio_menu_item.function_key
+			self.layout.set_function(function_key)
+			self.reload()
+
+	def _change_icon(self, radio_menu_item):
+		if not self._reloading and radio_menu_item.get_active():
+			configurations.set_icon(radio_menu_item.icon_style)
+			self.reload()
 
 	def _change_autostart(self, data):
-		self.configurations.set_autostart(self.autostart_item.get_active())
+		configurations.set_autostart(self.autostart_item.get_active())
 
 	def _change_decorations(self, data):
 		to_remove = self.decorations_item.get_active()
-		self.configurations.set_remove_decorations(to_remove)
+		configurations.set_remove_decorations(to_remove)
 		self.layout.remove_decorations = to_remove
 		self.layout.apply_decoration_config()
 
