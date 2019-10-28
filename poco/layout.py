@@ -167,6 +167,21 @@ class Layout:
 	#
 	# COMMANDS
 	#
+	def swap_focused_with(self, c_in):
+		direction = c_in.parameters[0]
+		self.windows.read_screen()
+
+		active_xid = self.windows.active.xid
+
+		if active_xid:
+			old_index = self.stack.index(active_xid)
+			new_index = old_index + direction
+			new_index = min(new_index, len(self.stack) - 1)
+			new_index = max(new_index, 0)
+			if new_index != old_index:
+				self.stack.insert(new_index, self.stack.pop(old_index))
+				self.apply()
+
 	def change_function(self, c_in):
 		function_key = c_in.parameters[0]
 		self.set_function(function_key)

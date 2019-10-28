@@ -75,10 +75,9 @@ class KeyboardListener:
 		self.root = self.well_connection.screen().root
 		self.root.change_attributes(event_mask=X.KeyPressMask | X.KeyReleaseMask)
 		self.modifiers_count = self.modified_count = 0
-		self.key_map = {}
-		self.composed_key_map = {}
-		self.composed_mapping_first_keys = set()
-		self.composed_mapping_first_key = None
+		self.code_map = {}
+		self.composed_code_map = {}
+		self.composed_mapping_first_code = None
 		self.multiplier = ''
 
 	#
@@ -150,10 +149,10 @@ class KeyboardListener:
 
 		self._grab_keys(code, mask)
 
-		if gdk_keyval not in self.key_map:
-			self.key_map[gdk_keyval] = {}
+		if code not in self.code_map:
+			self.code_map[code] = {}
 
-		self.key_map[gdk_keyval][mask] = key
+		self.code_map[code][mask] = key
 
 	def _bind_composed_accelerator(self, key):
 		gdk_keyval, code, mask = parse_accelerator(key.accelerators[0])
@@ -161,17 +160,17 @@ class KeyboardListener:
 
 		self._grab_keys(code, mask)
 
-		if gdk_keyval not in self.composed_key_map:
-			self.composed_key_map[gdk_keyval] = {}
-		if mask not in self.composed_key_map[gdk_keyval]:
-			self.composed_key_map[gdk_keyval][mask] = {}
-		if second_gdk_keyval not in self.composed_key_map[gdk_keyval][mask]:
-			self.composed_key_map[gdk_keyval][mask][second_gdk_keyval] = {}
+		if code not in self.composed_code_map:
+			self.composed_code_map[code] = {}
+		if mask not in self.composed_code_map[code]:
+			self.composed_code_map[code][mask] = {}
+		if second_code not in self.composed_code_map[code][mask]:
+			self.composed_code_map[code][mask][second_code] = {}
 
-		if second_mask in self.composed_key_map[gdk_keyval][mask][second_gdk_keyval]:
+		if second_mask in self.composed_code_map[code][mask][second_code]:
 			raise Exception('key ({}) already mapped'.format(', '.join(key.accelerators)))
 
-		self.composed_key_map[gdk_keyval][mask][second_gdk_keyval][second_mask] = key
+		self.composed_code_map[code][mask][second_code][second_mask] = key
 
 	#
 	# Event handling
@@ -181,9 +180,6 @@ class KeyboardListener:
 		while len(data):
 			event, data = rq.EventField(None).parse_binary_value(
 				data, self.recording_connection.display, None, None)
-
-			_wasmapped, keyval, egroup, level, consumed = Gdk.Keymap.get_default().translate_keyboard_state(
-				event.detail, Gdk.ModifierType(event.state), 0)
 
 			if event.detail in self.mod_keys_set:
 				self.modifiers_count += 1 if event.type == X.KeyPress else -1
@@ -200,30 +196,31 @@ class KeyboardListener:
 		_wasmapped, keyval, egroup, level, consumed = Gdk.Keymap.get_default().translate_keyboard_state(
 			event.detail, Gdk.ModifierType(event.state), 0)
 
-		event.keyval = keyval
-		mask = normalize_state(event.state) & ~consumed
+		code = event.detail
+		event.keyval = keyval  # TODO: explain
+		mask = normalize_state(event.state)
 
-		if self.composed_mapping_first_key and self.composed_mapping_first_key != (keyval, mask):
+		if self.composed_mapping_first_code and self.composed_mapping_first_code != (code, mask):
 
 			key_name = Gdk.keyval_name(event.keyval)
 			if not mask and key_name and key_name.isdigit():
 				self.multiplier = self.multiplier + key_name
 				return
 
-			second_key_map = self.composed_key_map[self.composed_mapping_first_key[0]][self.composed_mapping_first_key[1]]
-			if keyval in second_key_map and mask in second_key_map[keyval]:
+			second_code_map = self.composed_code_map[self.composed_mapping_first_code[0]][self.composed_mapping_first_code[1]]
+			if code in second_code_map and mask in second_code_map[code]:
 				multiplier_int = int(self.multiplier) if self.multiplier else 1
-				self.callback(second_key_map[keyval][mask], event, multiplier=multiplier_int)
+				self.callback(second_code_map[code][mask], event, multiplier=multiplier_int)
 
-			self.composed_mapping_first_key = None
+			self.composed_mapping_first_code = None
 
 		elif self.modified_count == 1:
 
-			if keyval in self.key_map and mask in self.key_map[keyval]:
-				self.callback(self.key_map[keyval][mask], event)
+			if code in self.code_map and mask in self.code_map[code]:
+				self.callback(self.code_map[code][mask], event)
 
-			if keyval in self.composed_key_map and mask in self.composed_key_map[keyval]:
-				self.composed_mapping_first_key = (keyval, mask)
+			if code in self.composed_code_map and mask in self.composed_code_map[code]:
+				self.composed_mapping_first_code = (code, mask)
 
 		self.multiplier = ''
 

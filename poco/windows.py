@@ -454,6 +454,7 @@ class Focus:
 		self.windows.staging = True
 
 	def cycle(self, c_in):
+		# TODO: update after case insensitive bindings
 		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
 		i = self.windows.line.index(self.active.get_wnck_window())
 		next_window = self.windows.line[(i + direction) % len(self.windows.line)]
