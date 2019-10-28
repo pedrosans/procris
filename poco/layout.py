@@ -14,35 +14,13 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, os, json
+import gi, os
+import poco.state as state
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GLib, Gdk
 
 
 from poco.windows import monitor_work_area_for
-from poco .windows import gdk_window_for
-
-
-def to_json(monitor, buffers, stack, old_state=None):
-	state = old_state if old_state else {'stack_state': {}}
-	state['nmaster'] = monitor.nmaster
-	state['mfact'] = monitor.mfact
-	stack_state = state['stack_state']
-	for w in buffers:
-		w_id = w.get_xid()
-		key = str(w_id)
-		if key not in stack_state:
-			stack_state[key] = {}
-			stack_state[key]['name'] = w.get_name()
-			is_decorated, decorations = gdk_window_for(w).get_decorations()
-			stack_state[key]['original_decorations'] = Gdk.WMDecoration.ALL if not decorations else decorations
-		stack_state[key]['stack_index'] = stack.index(w_id) if w_id in stack else -1
-
-	for client_key in list(stack_state.keys()):
-		if client_key not in map(lambda x: str(x.get_xid()), buffers):
-			del stack_state[client_key]
-
-	return state
 
 
 class Monitor:
@@ -57,22 +35,6 @@ class Monitor:
 		self.wy = y
 		self.ww = width
 		self.wh = height
-
-
-class Serializer:
-
-	def __init__(self, persistence_file):
-		self.persistence_file = persistence_file
-
-	def serialize(self, state):
-		with open(self.persistence_file, 'w') as f:
-			json.dump(state, f, indent=True)
-
-	def deserialize(self):
-		if os.path.exists(self.persistence_file):
-			with open(self.persistence_file, 'r') as f:
-				return json.load(f)
-		return None
 
 
 def tile(stack, monitor):
@@ -153,32 +115,19 @@ FUNCTIONS_NAME_MAP = {'C': 'centeredmaster', 'T': 'tile'}
 # TODO: the the window is maximized, the layout function fails
 class Layout:
 
-	def __init__(self, windows, remove_decorations=False,  persistence_file='/tmp/poco_windows_state.json'):
+	def __init__(self, windows):
 		self.function_key = 'T'
 		self.window_monitor_map = {}
 		self.gap = 10
-		self.remove_decorations = remove_decorations
-		self.serializer = Serializer(persistence_file)
 		self.windows = windows
-		self.persistence_file = persistence_file
 		self.monitor = Monitor()
-
 		self.windows.read_screen()
 		self.stack = list(map(lambda x: x.get_xid(), self.windows.visible))
 
-		self.state_json = self.serializer.deserialize()
-		if self.state_json:
-			# TODO: change to window stack
-			copy = self.stack.copy()
-			self.stack.sort(
-				key=lambda xid:
-					self.state_json['stack_state'][str(xid)]['stack_index']
-					if str(xid) in self.state_json['stack_state']
-					else copy.index(xid))
-			self.monitor.nmaster = self.state_json['nmaster']
-			self.monitor.mfact = self.state_json['mfact']
-		self._persist_internal_state()
-		self.apply_decoration_config()
+		try:
+			self.set_state(state.read_layout())
+		except KeyError as e:
+			print('can not load last state, there is a unknown key in the json')
 
 		self._install_state_handlers()
 		self.windows.screen.connect("window-opened", self._window_opened)
@@ -186,13 +135,23 @@ class Layout:
 		# self.screen.connect("active-window-changed", self._active_window_changed)
 		# def _active_window_changed(self, screen, previously_active_window):
 
+	def set_state(self, json):
+		if not json:
+			return
+		self.monitor.nmaster = json['nmaster']
+		self.monitor.mfact = json['mfact']
+		self.function_key = json['function']
+		# TODO: change to window stack
+		copy = self.stack.copy()
+		self.stack.sort(
+			key=lambda xid:
+			json['stack_state'][str(xid)]['stack_index']
+			if str(xid) in json['stack_state']
+			else copy.index(xid))
+
 	#
 	# INTERNAL INTERFACE
 	#
-	def _persist_internal_state(self):
-		self.state_json = to_json(self.monitor, self.windows.buffers, self.stack, old_state=self.state_json)
-		self.serializer.serialize(self.state_json)
-
 	def _install_state_handlers(self):
 		for window in self.windows.buffers:
 			if window.get_xid() not in self.window_monitor_map:
@@ -206,12 +165,6 @@ class Layout:
 		self.function_key = function_key
 		self.windows.read_screen()
 		self.apply()
-
-	def apply_decoration_config(self):
-		if self.remove_decorations:
-			self.windows.remove_decorations()
-		else:
-			self.windows.restore_decorations(self.state_json)
 
 	#
 	# CALLBACKS
@@ -227,7 +180,7 @@ class Layout:
 		if self.windows.is_visible(window):
 			self.stack.insert(0, window.get_xid())
 			self.windows.read_screen(force_update=False)
-			self.apply_decoration_config()
+			self.windows.apply_decoration_config()
 			self.apply()
 
 	def _state_changed(self, window, changed_mask, new_state):
@@ -286,7 +239,7 @@ class Layout:
 		self.apply()
 
 	def apply(self):
-		self._persist_internal_state()
+		state.write(self)
 		self._install_state_handlers()
 
 		w_stack = list(filter(

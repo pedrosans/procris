@@ -126,7 +126,7 @@ def get_icon():
 		return None
 
 
-def set_icon( icon):
+def set_icon(icon):
 	parser.set('interface', 'icon', icon)
 	with open(config_file_path, 'w') as f:
 		parser.write(f)
@@ -136,7 +136,7 @@ def is_remove_decorations():
 	return parser.getboolean('layout', 'remove_decorations')
 
 
-def set_remove_decorations( remove):
+def set_remove_decorations(remove):
 	parser.set('layout', 'remove_decorations', str(remove).lower())
 	# TODO: extract method
 	with open(config_file_path, 'w') as f:

@@ -17,6 +17,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import gi, os, re
 import poco.messages as messages
+import poco.configurations as configurations
+import poco.state as state
+
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 
@@ -180,21 +183,40 @@ class Windows:
 		self.buffers.remove(window)
 		self.update_active()
 
+	def apply_decoration_config(self):
+		if configurations.is_remove_decorations():
+			self.remove_decorations()
+		else:
+			self.restore_decorations()
+
 	def remove_decorations(self):
+		decoration_map = state.read_decorations()
+		if not decoration_map:
+			decoration_map = {}
 		for w in self.buffers:
+			key = str(w.get_xid())
+			is_decorated, decorations = gdk_window_for(w).get_decorations()
 			gdk_w = gdk_window_for(w)
-			is_decorated, decorations = gdk_w.get_decorations()
+			if key not in decoration_map:
+				if not is_decorated and not decorations:
+					# assume server side decoration
+					decorations = Gdk.WMDecoration.ALL
+				decoration_map[key] = decorations
 			has_title = Gdk.WMDecoration.TITLE & decorations or Gdk.WMDecoration.ALL & decorations
 			if not is_decorated or has_title:
 				gdk_w.set_decorations(Gdk.WMDecoration.BORDER)
+		for key in list(decoration_map.keys()):
+			if key not in map(lambda x: str(x.get_xid()), self.buffers):
+				del decoration_map[key]
+		state.write_decorations(decoration_map)
 
-	def restore_decorations(self, state_json):
+	def restore_decorations(self):
+		decoration_map = state.read_decorations()
 		for w in self.buffers:
+			key = str(w.get_xid())
 			gdk_w = gdk_window_for(w)
-			is_decorated, decorations = gdk_w.get_decorations()
-			if decorations == Gdk.WMDecoration.BORDER:
-				key = str(w.get_xid())
-				original = state_json['stack_state'][key]['original_decorations']
+			if key in decoration_map:
+				original = decoration_map[key]
 				gdk_w.set_decorations(Gdk.WMDecoration(original))
 
 	#

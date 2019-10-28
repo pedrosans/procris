@@ -48,8 +48,7 @@ mappings = listener = bus_object = status_icon = None
 windows = Windows(configurations.is_list_workspaces())
 GObject.threads_init()
 reading = Reading(configurations=configurations, windows=windows)
-layout = Layout(
-	reading.windows, remove_decorations=configurations.is_remove_decorations())
+layout = Layout(reading.windows,)
 
 
 def start():
