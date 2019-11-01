@@ -203,13 +203,9 @@ class Layout:
 	# COMMANDS
 	#
 	def swap_focused_with(self, c_in):
-		direction = c_in.parameters[0]
-		self.windows.read_screen()
-
-		active_xid = self.windows.active.xid
-
-		if active_xid:
-			old_index = self.stack.index(active_xid)
+		if self.windows.active.xid:
+			direction = c_in.parameters[0]
+			old_index = self.stack.index(self.windows.active.xid)
 			new_index = old_index + direction
 			new_index = min(new_index, len(self.stack) - 1)
 			new_index = max(new_index, 0)
@@ -222,15 +218,12 @@ class Layout:
 		self.set_function(function_key)
 
 	def move_to_master(self, c_in):
-		self.windows.read_screen()
-		active_xid = self.windows.active.xid
-		if active_xid:
-			old_index = self.stack.index(active_xid)
+		if self.windows.active.xid:
+			old_index = self.stack.index(self.windows.active.xid)
 			self.stack.insert(0, self.stack.pop(old_index))
-		self.apply()
+			self.apply()
 
 	def increase_master_area(self, c_in):
-		self.windows.read_screen()
 		increment = c_in.parameters[0]
 		self.monitor.mfact += increment
 		self.monitor.mfact = max(0.1, self.monitor.mfact)
@@ -238,7 +231,6 @@ class Layout:
 		self.apply()
 
 	def increment_master(self, c_in):
-		self.windows.read_screen()
 		increment = c_in.parameters[0]
 		self.monitor.nmaster += increment
 		self.monitor.nmaster = max(0, self.monitor.nmaster)
