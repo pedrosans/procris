@@ -124,8 +124,12 @@ def execute(function, command_input, multiplier=1):
 			if return_message:
 				messages.add_message(return_message)
 
-		windows.commit_navigation(command_input.time)
+		# reload to show the current layout icon
 		status_icon.reload()
+
+		if windows.staging:
+			windows.commit_navigation(command_input.time)
+			reading.end()
 
 		if reading.started or messages.LIST:
 			reading.show(command_input.time)

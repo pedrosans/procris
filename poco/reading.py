@@ -51,7 +51,6 @@ class Reading:
 		messages.clean()
 
 	def clean_state(self):
-		self.started = False
 		self.command_mode = False
 		for handler_id in self.cmd_handler_ids:
 			self.view.colon_prompt.disconnect(handler_id)
@@ -204,6 +203,7 @@ class Reading:
 		self.view.update()
 
 	def end(self):
+		self.started = False
 		messages.clean()
 		self.clean_state()
 		self.view.hide()
