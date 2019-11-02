@@ -83,6 +83,12 @@ class StatusIcon:
 			menu_item.show()
 			self.layout_submenu.append(menu_item)
 
+		no_layout_opt = Gtk.RadioMenuItem(label='None', group=self.layout_submenu.get_children()[0])
+		no_layout_opt.function_key = None
+		no_layout_opt.connect("toggled", self._change_layout)
+		no_layout_opt.show()
+		self.layout_submenu.append(no_layout_opt)
+
 		# QUIT MENU
 		quit_item = Gtk.MenuItem(label="Quit")
 		quit_item.connect("activate", self._quit)

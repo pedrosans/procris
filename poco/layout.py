@@ -123,7 +123,7 @@ FUNCTIONS_NAME_MAP = {'C': 'centeredmaster', 'T': 'tile', 'M': 'monocle'}
 class Layout:
 
 	def __init__(self, windows):
-		self.function_key = 'M'
+		self.function_key = None
 		self.window_monitor_map = {}
 		self.gap = 10
 		self.windows = windows
@@ -240,6 +240,9 @@ class Layout:
 	def apply(self):
 		state.write(self)
 		self._install_state_handlers()
+
+		if not self.function_key:
+			return
 
 		w_stack = list(filter(
 			lambda x: x is not None,
