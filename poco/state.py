@@ -35,7 +35,10 @@ def write_decorations(decoration_map):
 def read_layout():
 	if os.path.exists(layout_file):
 		with open(layout_file, 'r') as f:
-			return json.load(f)
+			try:
+				return json.load(f)
+			except json.decoder.JSONDecodeError:
+				return None
 	return None
 
 

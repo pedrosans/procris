@@ -129,7 +129,9 @@ class Layout:
 		self.windows = windows
 		self.monitor = Monitor()
 		self.windows.read_screen()
-		self.stack = list(map(lambda x: x.get_xid(), self.windows.visible))
+		self.stack = filter(
+			lambda x: x in self.windows.visible, reversed(self.windows.screen.get_windows_stacked()))
+		self.stack = list(map(lambda x: x.get_xid(), self.stack))
 
 		try:
 			self.set_state(state.read_layout())
@@ -139,8 +141,7 @@ class Layout:
 		self._install_state_handlers()
 		self.windows.screen.connect("window-opened", self._window_opened)
 		self.windows.screen.connect("window-closed", self._window_closed)
-		# self.screen.connect("active-window-changed", self._active_window_changed)
-		# def _active_window_changed(self, screen, previously_active_window):
+		self.apply()
 
 	def set_state(self, json):
 		if not json:
@@ -148,7 +149,6 @@ class Layout:
 		self.monitor.nmaster = json['nmaster']
 		self.monitor.mfact = json['mfact']
 		self.function_key = json['function']
-		# TODO: change to window stack
 		copy = self.stack.copy()
 		self.stack.sort(
 			key=lambda xid:
