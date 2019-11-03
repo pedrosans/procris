@@ -18,8 +18,6 @@ import gi, os
 import poco.state as state
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GLib, Gdk
-
-
 from poco.windows import monitor_work_area_for
 
 
@@ -70,47 +68,40 @@ def tile(stack, monitor):
 
 
 def centeredmaster(stack, monitor):
-	# i, n, h, mw, mx, my, oty, ety, tw = None
-	layout = []
-
 	if not stack:
 		return None
+
+	layout = []
+	tw = mw = monitor.ww
+	mx = my = 0
+	oty = ety = 0
 	n = len(stack)
 
-	mw = monitor.ww;
-	mx = 0;
-	my = 0;
-	tw = mw;
-
 	if n > monitor.nmaster:
-		# go mfact box in the center if more than nmaster clients
 		mw = monitor.ww * monitor.mfact if monitor.nmaster else 0
 		tw = monitor.ww - mw
 
 		if n - monitor.nmaster > 1:
-			# only one client
 			mx = (monitor.ww - mw) / 2
 			tw = (monitor.ww - mw) / 2
-	#  +
-	oty = 0;
-	ety = 0;
+
 	for i in range(len(stack)):
 		c = stack[i]
 		if i < monitor.nmaster:
 			# nmaster clients are stacked vertically, in the center of the screen
-			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i);
+			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i)
 			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
-			my += layout[-1][3]
+			my += h
 		else:
 			# stack clients are stacked vertically
 			if (i - monitor.nmaster) % 2:
 				h = (monitor.wh - ety) / int((1 + n - i) / 2)
 				layout.append([monitor.wx, monitor.wy + ety, tw, h])
-				ety += layout[-1][3]
+				ety += h
 			else:
 				h = (monitor.wh - oty) / int((1 + n - i) / 2)
 				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
-				oty += layout[-1][3]
+				oty += h
 
 	return layout
 
