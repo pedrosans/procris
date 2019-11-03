@@ -1,6 +1,8 @@
 # ![alt text](data/icon/poco.svg "Poco logo") Poco
 
-Poco is an attempt to bring the most comfortable mappings and logic to work with windows inside (mainly) dwm and Vim to the desktop environment of choice.
+Poco is a desktop environment utility to organize windows in a stack and to
+operate on their focus, position, state, layout using commands bound to keys and
+names.
 
 ### Rationale
 
