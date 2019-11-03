@@ -2,10 +2,13 @@ import unittest
 import tests.command
 import tests.terminal
 import tests.autocomplete
+import tests.layout
 
 test_case_classes = (tests.command.CommandInputTestCase,
                      tests.terminal.TerminalTestCase,
-                     tests.autocomplete.AutocompleteTestCase)
+                     tests.autocomplete.AutocompleteTestCase,
+                     tests.layout.LayoutTestCase
+                     )
 
 
 def load_tests(loader, test_suite_array, pattern):

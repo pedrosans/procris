@@ -1,5 +1,5 @@
 import unittest
-from unittest.mock import patch
+import poco.layout as layout
 from unittest.mock import MagicMock
 from poco.layout import Layout
 
@@ -43,29 +43,25 @@ class LayoutTestCase(unittest.TestCase):
 
 	def test_centeredmaster_two_window(self):
 		print('**********************************************************************************************')
-		layout = Layout()
-		arrange = layout.arrange([self.window_01, self.window_02], self.monitor)
+		arrange = layout.centeredmaster([self.window_01, self.window_02], self.monitor)
 		for a in arrange:
 			print('x: {:10}   y: {:10}   w: {:10}   h: {:10}'.format(a[0], a[1], a[2], a[3]))
 
 	def test_centeredmaster_three_window(self):
 		print('**********************************************************************************************')
-		layout = Layout()
-		arrange = layout.arrange([self.window_01, self.window_02, self.window_03], self.monitor)
+		arrange = layout.centeredmaster([self.window_01, self.window_02, self.window_03], self.monitor)
 		for a in arrange:
 			print('x: {:10}   y: {:10}   w: {:10}   h: {:10}'.format(a[0], a[1], a[2], a[3]))
 
 	def test_centeredmaster_four_window(self):
 		print('**********************************************************************************************')
-		layout = Layout()
-		arrange = layout.arrange([self.window_01, self.window_02, self.window_03, self.window_04], self.monitor)
+		arrange = layout.centeredmaster([self.window_01, self.window_02, self.window_03, self.window_04], self.monitor)
 		for a in arrange:
 			print('x: {:10}   y: {:10}   w: {:10}   h: {:10}'.format(a[0], a[1], a[2], a[3]))
 
 	def test_centeredmaster_x_window(self):
 		print('**********************************************************************************************')
-		layout = Layout()
-		arrange = layout.arrange(
+		arrange = layout.centeredmaster(
 			[self.window_01, self.window_02, self.window_03, self.window_04, self.window_05], self.monitor)
 		for a in arrange:
 			print('x: {:10}   y: {:10}   w: {:10}   h: {:10}'.format(a[0], a[1], a[2], a[3]))
