@@ -20,7 +20,7 @@ import poco.names as names
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
-from poco.view import NavigatorWindow
+from poco.view import ReadingWindow
 from poco.completions import Matches
 from poco.names import PromptHistory
 from poco.names import PromptInput
@@ -54,12 +54,12 @@ class Reading:
 		self.started = False
 		self.command_mode = False
 		for handler_id in self.cmd_handler_ids:
-			self.view.entry.disconnect(handler_id)
+			self.view.colon_prompt.disconnect(handler_id)
 		self.cmd_handler_ids.clear()
 		self.matches.clean()
 
 	def _create_and_install_view(self):
-		self.view = NavigatorWindow(self, self.windows)
+		self.view = ReadingWindow(self, self.windows)
 		self.view.connect("focus-out-event", self._focus_out_callback)
 		self.view.connect("key-press-event", self._window_key_press_callback)
 
@@ -76,9 +76,9 @@ class Reading:
 
 		self.view.update()
 
-		r_id = self.view.entry.connect("key-release-event", self.on_entry_key_release)
-		p_id = self.view.entry.connect("key-press-event", self.on_entry_key_press)
-		a_id = self.view.entry.connect("activate", self.on_prompt_input, None)
+		r_id = self.view.colon_prompt.connect("key-release-event", self.on_entry_key_release)
+		p_id = self.view.colon_prompt.connect("key-press-event", self.on_entry_key_press)
+		a_id = self.view.colon_prompt.connect("activate", self.on_prompt_input, None)
 
 		self.cmd_handler_ids.extend([r_id, p_id, a_id])
 
@@ -113,7 +113,7 @@ class Reading:
 		if event.keyval in HINT_OPERATION_KEYS:
 			return False
 
-		if not self.view.entry.get_text().strip():
+		if not self.view.colon_prompt.get_text().strip():
 			self.clean_state()
 			self.show(Gtk.get_current_event_time())
 			return True
@@ -124,7 +124,7 @@ class Reading:
 			self.matches.clean()
 
 		if self.matches.matching:
-			self.view.hint(self.matches.completions, self.matches.index, self.matches.should_auto_hint())
+			self.view.offer(self.matches.completions, self.matches.index, self.matches.should_auto_hint())
 		else:
 			self.view.clean_hints()
 
@@ -151,7 +151,7 @@ class Reading:
 			if len(self.matches.completions) == 1:
 				self.view.clean_hints()
 			else:
-				self.view.hint(self.matches.completions, self.matches.index, self.matches.should_auto_hint())
+				self.view.offer(self.matches.completions, self.matches.index, self.matches.should_auto_hint())
 			self.view.set_command(self.matches.mount_input())
 
 		return True

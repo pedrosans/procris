@@ -22,7 +22,7 @@ from poco.messages import BufferName
 
 
 # TODO show 'no name' active buffer if no active window at the buffers LIST
-class NavigatorWindow(Gtk.Window):
+class ReadingWindow(Gtk.Window):
 
 	def __init__(self, controller, windows):
 		Gtk.Window.__init__(self, title="poco")
@@ -49,42 +49,42 @@ class NavigatorWindow(Gtk.Window):
 		self.messages_box = Gtk.VBox(homogeneous=False, spacing=0)
 		self.v_box.pack_start(self.messages_box, expand=True, fill=True, padding=0)
 
-		self.hint_line = HintLine(self)
-		self.v_box.pack_start(self.hint_line, expand=True, fill=True, padding=0)
+		self.completions_line = CompletionsLine(self)
+		self.v_box.pack_start(self.completions_line, expand=True, fill=True, padding=0)
 
-		self.entry = Gtk.Entry()
-		self.entry.get_style_context().add_class('command-input')
-		self.entry.set_overwrite_mode(True)
-		self.v_box.pack_start(self.entry, expand=True, fill=True, padding=0)
+		self.colon_prompt = Gtk.Entry()
+		self.colon_prompt.get_style_context().add_class('colon-prompt')
+		self.colon_prompt.set_overwrite_mode(True)
+		self.v_box.pack_start(self.colon_prompt, expand=True, fill=True, padding=0)
 
 		self.connect("realize", self._on_window_realize)
 		self.connect("size-allocate", self._move_to_preferred_position)
 		self.set_size_request(0, 0)
 
-	def hint(self, hints, highlight_index, auto_select_first_hint):
+	def offer(self, completions, index, auto_select_first):
 		"""
-		Show hints of a command or paramter based on the
-		hints array, plus auto complete the current input
-		if any comple command
+		Show options of a command or parameter based on the
+		completions array, plus auto complete the current input
+		if any complete command
 		"""
 		self._calculate_width()
-		self.hint_line.show(hints, highlight_index, auto_select_first_hint)
+		self.completions_line.show(completions, index, auto_select_first)
 
 	def clean_hints(self):
 		"""
 		Clean the status line and render it again
 		"""
-		self.hint_line.clear_status_line()
+		self.completions_line.clear_status_line()
 		if not messages.LIST:
-			self.hint_line.add_status_text(' ', False)
-		self.hint_line.show_all()
+			self.completions_line.add_status_text(' ', False)
+		self.completions_line.show_all()
 
 	def get_command(self):
-		return self.entry.get_text()[1:]
+		return self.colon_prompt.get_text()[1:]
 
 	def set_command(self, cmd):
-		self.entry.set_text(':'+cmd)
-		self.entry.set_position(len(self.entry.get_text()))
+		self.colon_prompt.set_text(':' + cmd)
+		self.colon_prompt.set_position(len(self.colon_prompt.get_text()))
 
 	def get_monitor_geometry(self):
 		display = self.get_display()
@@ -110,7 +110,7 @@ class NavigatorWindow(Gtk.Window):
 		self.v_box.show_all()
 
 	def list_navigation_windows(self):
-		for c in self.hint_line.get_children(): c.destroy()
+		for c in self.completions_line.get_children(): c.destroy()
 		for window in self.windows.line:
 			name = window.get_name()
 			name = ' ' + ((name[:8] + '..') if len(name) > 10 else name)
@@ -118,10 +118,10 @@ class NavigatorWindow(Gtk.Window):
 			if window is not self.windows.active:
 				position = ' ' + position
 			active = window is self.windows.active
-			self.hint_line.add_status_icon(window, active)
-			self.hint_line.add_status_text(position, active)
-			self.hint_line.add_status_text(name, active)
-			self.hint_line.add_status_text(' ', False)
+			self.completions_line.add_status_icon(window, active)
+			self.completions_line.add_status_text(position, active)
+			self.completions_line.add_status_text(name, active)
+			self.completions_line.add_status_text(' ', False)
 
 	def show_messages(self):
 		for message in messages.LIST:
@@ -143,15 +143,15 @@ class NavigatorWindow(Gtk.Window):
 
 	def _render_command_line(self):
 		if self.controller.in_command_mode():
-			self.entry.set_can_focus(True)
-			self.entry.grab_focus()
-			self.entry.set_text(':')
-			self.entry.set_position(-1)
+			self.colon_prompt.set_can_focus(True)
+			self.colon_prompt.grab_focus()
+			self.colon_prompt.set_text(':')
+			self.colon_prompt.set_position(-1)
 		else:
-			self.entry.set_text(messages.command_placeholder)
-			self.entry.hide()
-			self.entry.show()  # cause entry to lose focus
-			self.entry.set_can_focus(False)
+			self.colon_prompt.set_text(messages.command_placeholder)
+			self.colon_prompt.hide()
+			self.colon_prompt.show()  # cause entry to lose focus
+			self.colon_prompt.set_can_focus(False)
 
 	def _navigation_index(self, window):
 		length = len(self.windows.line)
@@ -172,11 +172,11 @@ class NavigatorWindow(Gtk.Window):
 			self.window_width = int(width_config)
 		self.set_size_request(self.window_width, -1)
 
-		layout = self.entry.create_pango_layout("W")
-		layout.set_font_description(self.entry.get_style_context().get_font(Gtk.StateFlags.NORMAL))
+		layout = self.colon_prompt.create_pango_layout("W")
+		layout.set_font_description(self.colon_prompt.get_style_context().get_font(Gtk.StateFlags.NORMAL))
 		self.char_size = layout.get_pixel_extents().logical_rect.width
 		self.columns = int(self.window_width / self.char_size)
-		self.hint_line.page_size = self.columns
+		self.completions_line.page_size = self.columns
 
 	def _move_to_preferred_position(self, allocation, data):
 		geo = self.get_monitor_geometry()
@@ -222,7 +222,7 @@ class NavigatorWindow(Gtk.Window):
 		return icon
 
 
-class HintLine(Gtk.Box):
+class CompletionsLine(Gtk.Box):
 
 	def __init__(self, view):
 		self.view = view
@@ -235,50 +235,50 @@ class HintLine(Gtk.Box):
 		self.page_items = 0
 		for c in self.get_children(): c.destroy()
 
-	def add_status_text(self, text, highlight, selected=False):
+	def add_status_text(self, text, selected, highlighted=False):
 		if self.page_items + len(text) > self.page_size:
 			return
 		l = Gtk.Label(text)
 		l.get_style_context().add_class('status-text')
-		if highlight:
-			l.get_style_context().add_class('hint-highlight')
 		if selected:
 			l.get_style_context().add_class('hint-selection')
+		if highlighted:
+			l.get_style_context().add_class('hint-highlight')
 		self.pack_start(l, expand=False, fill=False, padding=0)
 		self.page_items += len(text)
 
-	def add_status_icon(self, window, highlight):
+	def add_status_icon(self, window, selected):
 		if self.page_items + 2 > self.page_size:
 			return
 		icon = self.view.create_icon_image(window)
 		icon.get_style_context().add_class('status-application-icon')
-		if highlight:
-			icon.get_style_context().add_class('hint-highlight')
+		if selected:
+			icon.get_style_context().add_class('hint-selection')
 		self.pack_start(icon, expand=False, fill=False, padding=0)
 		self.page_items += 2
 
-	def show(self, hints, highlight_index, auto_select_first_hint):
+	def show(self, completions, selection_index, auto_select_first):
 		self.clear_status_line()
-		for hint in hints:
-			index = hints.index(hint)
-			highlighted = index == highlight_index
-			selected = index == 0 and auto_select_first_hint
-			shown = highlight_index < index
+		for hint in completions:
+			index = completions.index(hint)
+			selected = index == selection_index
+			highlighted = index == 0 and auto_select_first
+			shown = selection_index < index
 
 			if self.page_items + len(hint) + 3 > self.page_size:
 				if shown:
-					if highlight_index == -1:
+					if selection_index == -1:
 						self.add_status_text(' ' * (self.page_size - 1), False)
 					self.add_status_text('>', False)
 					break
 				else:
 					self.clear_status_line()
-					self.add_status_text('< ' if highlight_index > 0 else '  ', False)
+					self.add_status_text('< ' if selection_index > 0 else '  ', False)
 
 			if self.page_items + len(hint) + 3 <= self.page_size:
-				self.add_status_text(hint, highlighted, selected=selected)
+				self.add_status_text(hint, selected, highlighted=highlighted)
 				self.add_status_text('  ', False)
-			elif highlighted:
+			elif selected:
 				self.add_status_text(' ' * (self.page_size - 3), False)
 
 		self.show_all()
@@ -345,16 +345,16 @@ GTK_3_18_CSS = b"""
 .status-application-icon {
 	background: lighter(@theme_fg_color);
 }
-.hint-highlight {
+.hint-selection {
 	background: darker(@theme_fg_color);
 }
-.hint-selection {
+.hint-highlight {
 	color: @theme_fg_color;
 	background: @theme_bg_color;
 }
 
 /* COMMAND LINE STYLE */
-.command-input {
+.colon-prompt {
 	border: none;
 	padding: 2px;
 }
