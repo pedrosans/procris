@@ -74,27 +74,21 @@ def has_perfect_match(name):
 	return name in NAME_MAP.keys()
 
 
-def list_completions(command_input):
-	if command_input.terminal_command_parameter:
-		return query_command_parameters(command_input)
+def list_completions(c_in):
+	if c_in.terminal_command_spacer:
+		return query_command_parameters(c_in)
 	else:
-		return query_command_names(command_input.terminal_command)
+		return query_command_names(c_in.terminal_command)
 
 
-def query_command_parameters(command_input):
-
-	completions = list_bash_completions(command_input.vim_command_parameter)
-
-	completions = filter(lambda x: x.startswith(command_input.terminal_command_parameter), completions)
-	completions = filter(lambda x: x != command_input.terminal_command_parameter, completions)
-	return sorted(list(set(completions)))
-
-
-def list_bash_completions(text):
-	cmd = COMPLETIONS_FUNCTION + 'get_completions \'' + text + '\''
+def query_command_parameters(c_in):
+	cmd = COMPLETIONS_FUNCTION + 'get_completions \'' + c_in.vim_command_parameter + '\''
 	proc = subprocess.Popen(cmd, executable='bash', shell=True, stdin=PIPE, stdout=PIPE)
 	result = proc.communicate()[0].decode('utf-8')
-	return map(lambda x: x.strip(), result.splitlines())
+	completions = map(lambda x: x.strip(), result.splitlines())
+	completions = filter(lambda x: x.startswith(c_in.terminal_command_parameter), completions)
+	completions = filter(lambda x: x != c_in.terminal_command_parameter, completions)
+	return sorted(list(set(completions)))
 
 
 def query_command_names(name_filter):

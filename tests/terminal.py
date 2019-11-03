@@ -1,5 +1,6 @@
 import unittest
 import poco.terminal as terminal
+from poco.commands import CommandInput
 
 
 class TerminalTestCase(unittest.TestCase):
@@ -31,3 +32,9 @@ class TerminalTestCase(unittest.TestCase):
 		terminal._load_aliases()
 
 		self.assertEqual(terminal.ALIASES_MAP['ll'], 'ls -alF')
+
+	def test_autocomplete_parameters(self):
+		terminal.query_command_parameters = lambda x: ['bar']
+		self.assertEqual(
+			['bar'],
+			terminal.list_completions(CommandInput(text='!foo ').parse()))
