@@ -1,10 +1,10 @@
 import unittest
 
 import poco.autocomplete
-import poco.commands as commands
+import poco.names as names
 from unittest.mock import MagicMock
 from poco.autocomplete import Autocomplete
-from poco.commands import CommandInput
+from poco.names import CommandInput
 
 
 class AutocompleteTestCase(unittest.TestCase):
@@ -15,7 +15,7 @@ class AutocompleteTestCase(unittest.TestCase):
 		self.buffer_command = MagicMock()
 		self.buffer_command.name = 'buffer'
 
-		commands.autocomplete_vim_command = MagicMock()
+		names.autocomplete_vim_command = MagicMock()
 		poco.autocomplete.autocomplete_parameter = MagicMock()
 		poco.autocomplete.autocomplete_parameter.return_value = ['foobar']
 
@@ -24,11 +24,11 @@ class AutocompleteTestCase(unittest.TestCase):
 
 	def test_query_vim_commands(self):
 		self.autocomplete.hint(CommandInput(text='foo').parse())
-		commands.autocomplete_vim_command.assert_called_once_with('foo')
+		names.autocomplete_vim_command.assert_called_once_with('foo')
 
 	def test_query_vim_commands_even_if_partial_match(self):
 		self.autocomplete.hint(CommandInput(text='b').parse())
-		commands.autocomplete_vim_command.assert_called_once_with('b')
+		names.autocomplete_vim_command.assert_called_once_with('b')
 
 	def test_mount_spaces(self):
 		self.autocomplete.hint(CommandInput(text='  !   foo').parse())
@@ -39,7 +39,7 @@ class AutocompleteTestCase(unittest.TestCase):
 		command_input = CommandInput(text='!foo').parse()
 		poco.autocomplete.autocomplete(command_input, self.reading)
 
-		commands.autocomplete_vim_command.assert_not_called()
+		names.autocomplete_vim_command.assert_not_called()
 
 	def test_bang_vim_command_is_mounted(self):
 		self.autocomplete.hint(CommandInput(text='!foo').parse())

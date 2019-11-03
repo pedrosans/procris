@@ -52,7 +52,7 @@ def get_matching_command(command_input):
 	return None
 
 
-class Command:
+class Name:
 
 	def __init__(self, name, alias, function):
 		self.name = name

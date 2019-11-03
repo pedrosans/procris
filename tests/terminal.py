@@ -1,6 +1,6 @@
 import unittest
 import poco.terminal as terminal
-from poco.commands import CommandInput
+from poco.names import CommandInput
 
 
 class TerminalTestCase(unittest.TestCase):

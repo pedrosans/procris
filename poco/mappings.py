@@ -1,5 +1,5 @@
 from poco.keyboard import Key
-from poco.commands import Command
+from poco.names import Name
 import poco
 
 applications = poco.applications
@@ -53,18 +53,18 @@ keys = [
 	Key([termkey, '<Shift>w'],  windows.focus.cycle),
 	Key([termkey, 'p'],         windows.focus.move_to_previous),
 ]
-commands = [
-	Command('edit'			,'e'			,applications.launch			),
-	Command('!'				, None			,terminal.bang					),
-	Command('buffers'		,'ls'			,windows.list					),
-	Command('bdelete'		,'bd'			,windows.delete					),
-	Command('buffer'		,'b'			,windows.activate				),
-	Command('centralize'	,'ce'			,windows.active.centralize		),
-	Command('maximize'		,'ma'			,windows.active.maximize		),
-	Command('reload'		, None			,poco.service.reload			),
-	Command('decorate'		, None			,windows.active.decorate		),
-	Command('report'		, None	    	,poco.service.debug				),
-	Command('move'			, None			,windows.active.move			),
-	Command('quit'			,'q'			,windows.active.minimize		),
-	Command('only'			,'on'			,windows.active.only	   		),
+names = [
+	Name('edit', 'e', applications.launch),
+	Name('!', None, terminal.bang),
+	Name('buffers', 'ls', windows.list),
+	Name('bdelete', 'bd', windows.delete),
+	Name('buffer', 'b', windows.activate),
+	Name('centralize', 'ce', windows.active.centralize),
+	Name('maximize', 'ma', windows.active.maximize),
+	Name('reload', None, poco.service.reload),
+	Name('decorate', None, windows.active.decorate),
+	Name('report', None, poco.service.debug),
+	Name('move', None, windows.active.move),
+	Name('quit', 'q', windows.active.minimize),
+	Name('only', 'on', windows.active.only),
 ]

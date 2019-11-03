@@ -16,15 +16,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, poco
 import poco.messages as messages
-import poco.commands as commands
+import poco.names as names
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from poco.view import NavigatorWindow
 from poco.autocomplete import Autocomplete
-from poco.commands import Command
-from poco.commands import CommandHistory
-from poco.commands import CommandInput
+from poco.names import CommandHistory
+from poco.names import CommandInput
 
 HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]
 HINT_LEFT = [Gdk.KEY_Left]
@@ -170,11 +169,11 @@ class Reading:
 
 		self.command_history.append(cmd)
 
-		if commands.has_multiple_commands(cmd):
+		if names.has_multiple_commands(cmd):
 			raise Exception('TODO: iterate multiple commands')
 
 		command_input = CommandInput(time=gtk_time, text=cmd).parse()
-		command = commands.get_matching_command(command_input)
+		command = names.get_matching_command(command_input)
 
 		if command:
 			poco.service.execute(command.function, command_input)
@@ -186,7 +185,7 @@ class Reading:
 	def execute(self, cmd):
 		self.windows.read_screen()
 		command_input = CommandInput(time=None, text=cmd).parse()
-		command = commands.get_matching_command(command_input)
+		command = names.get_matching_command(command_input)
 		command.function(command_input)
 
 	#

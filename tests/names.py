@@ -1,8 +1,5 @@
 import unittest
-from unittest.mock import patch
-from unittest.mock import MagicMock
-from poco.autocomplete import Autocomplete
-from poco.commands import CommandInput
+from poco.names import CommandInput
 
 
 class CommandInputTestCase(unittest.TestCase):

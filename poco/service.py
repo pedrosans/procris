@@ -23,7 +23,7 @@ x11.XInitThreads()
 from Xlib import threaded
 
 import os, gi, signal, setproctitle, logging, traceback
-import poco.commands as commands
+import poco.names as names
 import poco.configurations as configurations
 import poco.applications as applications
 import poco.messages as messages
@@ -37,7 +37,7 @@ from poco.status import StatusIcon
 from poco.keyboard import KeyboardListener
 from poco.layout import Layout
 from poco.windows import Windows
-from poco.commands import CommandInput
+from poco.names import CommandInput
 from poco.remote import NavigatorBusService
 
 SIGINT = getattr(signal, "SIGINT", None)
@@ -64,8 +64,8 @@ def start():
 
 	load_mappings()
 
-	for command in mappings.commands:
-		commands.add(command)
+	for name in mappings.names:
+		names.add(name)
 
 	for key in mappings.keys:
 		listener.bind(key)

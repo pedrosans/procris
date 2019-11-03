@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import re
-import poco.commands as commands
+import poco.names as commands
 from poco import applications as applications, terminal as terminal
 
 
