@@ -21,9 +21,9 @@ Keys can be simple or combined.
 Simple key straight cause the bound command to be called.
 Combined key bindings are composed by a
 [prefix key](https://manpages.debian.org/buster/tmux/tmux.1.en.html#KEY_BINDINGS)
-followed by a
+(<kbd>Ctrl</kbd> + <kbd>q</kbd> by defalt) followed by a
 [command key](https://manpages.debian.org/buster/tmux/tmux.1.en.html#KEY_BINDINGS).
-The prefix key starts a reading that waits for a command or colon key.
+The prefix key starts a reading and waits for a command key or colon key.
 By default command keys are mapped to commands to change the window focus, position and state like 
 [CTRL-W commands](http://vimdoc.sourceforge.net/htmldoc/windows.html#windows-intro)
 or
@@ -46,21 +46,20 @@ This logic allow usages like to close a set of windows:
 2. list all windows in the workspace entering :buffers in the colon prompt
 3. pass window numbers (as listed by :buffers) as parameters to :bdelete
 
-### Terminology
-
-While 'colon prompt' and 'prefix key' are terms from 
-[GNU screen](https://www.gnu.org/software/screen/manual/html_node/Commands.html)
-and
-[tmux](https://manpages.debian.org/buster/tmux/tmux.1.en.html#KEY_BINDINGS),
-similiar pieces are refered as 'command prompt' and 'termwinkey'
-by also tmux and [Vim](https://vimhelp.org/options.txt.html#%27termwinkey%27)
-documentations. They share the same logic and are refered as
-'colon prompt' and 'prefix key' inside Poco documentation and source code.
-
 ### Layout
 
 Poco default mappings are a mix of dwm and xmodad keys and commands to change the layout function,
-increase/decrease the master area, promote/demote a window up, dwn or to the top of the stack.
+increase/decrease the master area, promote/demote a window up, down or to the top of the stack.
+By default Poco uses [tiled](https://dwm.suckless.org/tutorial/) layout. The other 3 layouts:
+floating, monocle, [centeredmaster](https://dwm.suckless.org/patches/centeredmaster/)
+can be chosen eather by selecting their option on the status icon on the DE panel, or by calling
+their command via a bound key.
+Each layout is visualy indicated by a custon icon in the DE panel:
+
+![floating](data/icon/48x48/poco.png "Poco logo") | ![floating](data/icon/48x48/poco-M.png "Poco logo")
+-|-
+![floating](data/icon/48x48/poco-T.png "Poco logo") | ![floating](data/icon/48x48/poco-C.png "Poco logo")
+
 
 ### Vim
 
@@ -78,98 +77,121 @@ means both an application and a window. So the bellow commands will:
 `:edit calc` launchs an application containing `calc` in the name like a calculator app.
 
 
-### Key grabbing
+### Commands
 
-All simple key and prefix key are
-[passively grabbed](https://www.x.org/wiki/Development/Documentation/GrabProcessing/)
-by the display root window,
-so the key won't be sent to the active window and cause side effects.
-Meanwille, command keys are consumed by Poco window inside a reading,
-which is opened and focused every time the the prefix key is issued.
-For this reason, it is mandatory that the prefix key is mapped to the `reading.start` command.
+`reading.start` <kbd>Ctrl</kbd> + <kbd>q</kbd>
+
+		Start a reading, the process of to open a window and waiting the following
+		key, that can eather be a command key or colon to open the colon promt.
+
+`layout.move_to_master` <kbd>Ctrl</kbd> + <kbd>Return</kbd>
+
+		Move focused window to the top of the stack.
+
+`layout.increment_master` <kbd>Ctrl</kbd> + <kbd>i</kbd>
+
+`layout.increment_master` <kbd>Ctrl</kbd> + <kbd>d</kbd>
+
+		Increment/decrement the number of windows in the master area.
+
+`layout.increase_master_area` <kbd>Ctrl</kbd> + <kbd>l</kbd>
+
+`layout.increase_master_area` <kbd>Ctrl</kbd> + <kbd>h</kbd>
+
+		Increment/decrement the master area.
+
+`layout.change_function` <kbd>Ctrl</kbd> + <kbd>f</kbd>
+
+		Select the floating layout.
+
+`layout.change_function` <kbd>Ctrl</kbd> + <kbd>m</kbd>
+
+		Select the monocle layout.
+
+`layout.change_function` <kbd>Ctrl</kbd> + <kbd>u</kbd>
+
+		Select the centeredmaster layout.
+
+`layout.change_function` <kbd>Ctrl</kbd> + <kbd>t</kbd>
+
+		Select the tile layout.
+
+`layout.swap_focused_with` <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>j</kbd>
+
+`layout.swap_focused_with` <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>k</kbd>
+
+		Swap the focused window with the previus/next one in the stack.
+
+`windows.focus.cycle` <kbd>prefix key</kbd> + <kbd>w</kbd>
+
+		Move focus to the window below/right of the current one
+
+`windows.focus.move_left` <kbd>prefix key</kbd> + <kbd>h</kbd>
+
+`windows.focus.move_down` <kbd>prefix key</kbd> + <kbd>j</kbd>
+
+`windows.focus.move_up` <kbd>prefix key</kbd> + <kbd>k</kbd>
+
+`windows.focus.move_right` <kbd>prefix key</kbd> + <kbd>l</kbd>
+
+		Change the focus to the window on the left/down/up/right side.
+
+`windows.active.move_left` <kbd>prefix key</kbd> + <kbd>H</kbd>
+
+`windows.active.move_down` <kbd>prefix key</kbd> + <kbd>J</kbd>
+
+`windows.active.move_up` <kbd>prefix key</kbd> + <kbd>K</kbd>
+
+`windows.active.move_right` <kbd>prefix key</kbd> + <kbd>L</kbd>
+
+		Move the current window to the far left/down/up/right part of the screen.
+
+`windows.delte` `:bd[elete] {winname}` `:bd[elete] [N]`
+
+		Close window {winname} (default: current buffer)
+
+		Close window [N] (default: current buffer) and delete it from the window list
+
+`windows.activate` `:b[uffer] {winname}` `:b[uffer] [N]`
+
+		Open window {winname}
+
+		Open window [N] from the window list
+
+`windows.list` `:buffers` `:ls`
+
+		List windows
+
+`windows.active.centralize` `:centralize` `:ce`
+
+		Centralize the active window
+
+`windows.active.only` `:only` `:on` <kbd>prefix key</kbd> + <kbd>o</kbd>
+
+		Make the active window the only one on the screen.  All other windows are minimized.
+
+`windows.active.maximize` `:maximize` `:ma`
+
+		Maximize the active window
+
+`windows.active.minimize` `:q[uit]` <kbd>prefix key</kbd> + <kbd>q</kbd>
+
+		Minimize the active window
+
+`applications.launch` `:e[dit] {appname}`
+
+		Launch {appname}
+
+`terminal.bang` `:!{cmd}`
+
+		Execute {cmd} with the shell
+
+`window.active.minimize` <kbd>prefix key</kbd> + <kbd>esq</kbd> or <kbd>prefix key</kbd> + <kbd>ctrl + [</kbd>
+
+		Quit poco operation and close its UI
 
 
-#### Commands
-
-	# tile window managers bindings
-	Key(['<Ctrl>Return'], layout.move_to_master),
-	Key(['<Ctrl>KP_Enter'], layout.move_to_master),
-	Key(['<Ctrl>i'], layout.increment_master, [1]),
-	Key(['<Ctrl>d'], layout.increment_master, [-1]),
-	Key(['<Ctrl>l'], layout.increase_master_area, [0.05]),
-	Key(['<Ctrl>h'], layout.increase_master_area, [-0.05]),
-	Key(['<Ctrl>u'], layout.change_function, ['C']),
-	Key(['<Ctrl>t'], layout.change_function, ['T']),
-
-	# xmonad bindings https://xmonad.org/manpage.html
-	Key(['<Ctrl><Shift>j'], layout.swap_focused_with, [1]),
-	Key(['<Ctrl><Shift>k'], layout.swap_focused_with, [-1]),
-
-
-* `windows.focus.cycle` <kbd>prefix key</kbd> + <kbd>w</kbd>
-
-	Move focus to the window below/right of the current one
-
-* `windows.focus.move_left` <kbd>prefix key</kbd> + <kbd>h</kbd>
-* `windows.focus.move_down` <kbd>prefix key</kbd> + <kbd>j</kbd>
-* `windows.focus.move_up` <kbd>prefix key</kbd> + <kbd>k</kbd>
-* `windows.focus.move_right` <kbd>prefix key</kbd> + <kbd>l</kbd>
-
-	Change the focus to the window on the left/down/up/right side.
-
-* `windows.active.move_left` <kbd>prefix key</kbd> + <kbd>H</kbd>
-* `windows.active.move_down` <kbd>prefix key</kbd> + <kbd>J</kbd>
-* `windows.active.move_up` <kbd>prefix key</kbd> + <kbd>K</kbd>
-* `windows.active.move_right` <kbd>prefix key</kbd> + <kbd>L</kbd>
-
-	Move the current window to the far left/down/up/right part of the screen.
-
-* `windows.delte` `:bd[elete] {winname}` `:bd[elete] [N]`
-
-	Close window {winname} (default: current buffer)
-
-	Close window [N] (default: current buffer) and delete it from the window list
-
-* `windows.activate` `:b[uffer] {winname}` `:b[uffer] [N]`
-
-	Open window {winname}
-
-	Open window [N] from the window list
-
-* `windows.list` `:buffers` `:ls`
-
-	List windows
-
-* `windows.active.centralize` `:centralize` `:ce`
-
-	Centralize the active window
-
-* `windows.active.only` `:only` `:on` <kbd>prefix key</kbd> + <kbd>o</kbd>
-
-	Make the active window the only one on the screen.  All other windows are minimized.
-
-* `windows.active.maximize` `:maximize` `:ma`
-
-	Maximize the active window
-
-* `windows.active.minimize` `:q[uit]` <kbd>prefix key</kbd> + <kbd>q</kbd>
-
-	Minimize the active window
-
-* `applications.launch` `:e[dit] {appname}`
-
-	Launch {appname}
-
-* `terminal.bang` `:!{cmd}`
-
-	Execute {cmd} with the shell
-
-* `window.active.minimize` <kbd>prefix key</kbd> + <kbd>esq</kbd> or <kbd>prefix key</kbd> + <kbd>ctrl + [</kbd>
-
-	Quit poco operation and close its UI
-
-
-## Installation
+### Installation
 
 1. From PPA, for Ubuntu distributions
 	```bash
@@ -214,7 +236,7 @@ For this reason, it is mandatory that the prefix key is mapped to the `reading.s
 		sudo update-icon-caches /usr/share/icons/*
 		```
 
-## Commmand line interface
+### Commmand line interface
 
 `poco start`: start poco
 
@@ -224,9 +246,9 @@ For this reason, it is mandatory that the prefix key is mapped to the `reading.s
 
 `poco --help`: show command line interface help
 
-## Customization
+### Customization
 
-##### Configuration file is located at `$HOME/.config/poco/poco.cfg` and enables:
+Configuration file is located at `$HOME/.config/poco/poco.cfg` and enables:
 
 Section `[interface]` | Customization options
 -|-
@@ -245,7 +267,7 @@ position = midle
 width = 100%
 ```
 
-##### The style can be customized by creating and editing `$HOME/.config/poco/poco.css`
+The style can be customized by creating and editing `$HOME/.config/poco/poco.css`
 
 The default CSS can be found and used as a reference at [poco/view.py](poco/view.py)
 
@@ -256,3 +278,24 @@ The default CSS can be found and used as a reference at [poco/view.py](poco/view
 	font-size: 14pt;
 }
 ```
+
+### Key grabbing
+
+All simple key and prefix key are
+[passively grabbed](https://www.x.org/wiki/Development/Documentation/GrabProcessing/)
+by the display root window,
+so the key won't be sent to the active window and cause side effects.
+Meanwille, command keys are consumed by Poco window inside a reading,
+which is opened and focused every time the the prefix key is issued.
+For this reason, it is mandatory that the prefix key is mapped to the `reading.start` command.
+
+### Terminology
+
+While 'colon prompt' and 'prefix key' are terms from 
+[GNU screen](https://www.gnu.org/software/screen/manual/html_node/Commands.html)
+and
+[tmux](https://manpages.debian.org/buster/tmux/tmux.1.en.html#KEY_BINDINGS),
+similiar pieces are refered as 'command prompt' and 'termwinkey'
+by also tmux and [Vim](https://vimhelp.org/options.txt.html#%27termwinkey%27)
+documentations. They share the same logic and are refered as
+'colon prompt' and 'prefix key' inside Poco documentation and source code.
