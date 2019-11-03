@@ -23,10 +23,10 @@ ALIAS_MAP = {}
 MULTIPLE_COMMANDS_PATTERN = re.compile(r'.*[^\\]\|.*')
 
 
-def add(command):
-	LIST.append(command)
-	NAME_MAP[command.name] = command
-	ALIAS_MAP[command.alias] = command
+def add(name):
+	LIST.append(name)
+	NAME_MAP[name.name] = name
+	ALIAS_MAP[name.alias] = name
 
 
 def completions_for(user_input):

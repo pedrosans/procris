@@ -23,7 +23,7 @@ def completions_for(c_in, reading):
 	if c_in.vim_command == '!':
 		return terminal.list_completions(c_in)
 
-	if c_in.vim_command_spacer:
+	if c_in.vim_command_spacer or c_in.vim_command_parameter:
 		if c_in.vim_command in ['edit', 'e']:
 			return applications.list_completions(c_in.vim_command_parameter)
 		elif c_in.vim_command in ['buffer', 'b']:
