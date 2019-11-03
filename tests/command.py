@@ -1,7 +1,7 @@
 import unittest
 from unittest.mock import patch
 from unittest.mock import MagicMock
-from poco.hint import HintStatus
+from poco.autocomplete import Autocomplete
 from poco.commands import CommandInput
 
 

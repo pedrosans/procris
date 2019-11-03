@@ -20,7 +20,7 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from poco.view import NavigatorWindow
-from poco.hint import HintStatus
+from poco.autocomplete import Autocomplete
 from poco.commands import Command
 from poco.commands import CommandHistory
 from poco.commands import CommandInput
@@ -44,7 +44,7 @@ class Reading:
 		self.cmd_handler_ids = []
 		self.view = None
 		self.windows = windows
-		self.hint_status = HintStatus(self)
+		self.autocomplete = Autocomplete(self)
 		self.command_history = CommandHistory()
 		self._create_and_install_view()
 		self.clean_state()
@@ -56,7 +56,7 @@ class Reading:
 		for handler_id in self.cmd_handler_ids:
 			self.view.entry.disconnect(handler_id)
 		self.cmd_handler_ids.clear()
-		self.hint_status.clear_state()
+		self.autocomplete.clear_state()
 
 	def _create_and_install_view(self):
 		self.view = NavigatorWindow(self, self.windows)
@@ -119,12 +119,12 @@ class Reading:
 			return True
 
 		if self.configurations.is_auto_hint():
-			self.hint_status.hint(CommandInput(text=self.view.get_command()).parse())
+			self.autocomplete.hint(CommandInput(text=self.view.get_command()).parse())
 		else:
-			self.hint_status.clear_state()
+			self.autocomplete.clear_state()
 
-		if self.hint_status.hinting:
-			self.view.hint(self.hint_status.hints, self.hint_status.highlight_index, self.hint_status.should_auto_hint())
+		if self.autocomplete.hinting:
+			self.view.hint(self.autocomplete.hints, self.autocomplete.highlight_index, self.autocomplete.should_auto_hint())
 		else:
 			self.view.clean_hints()
 
@@ -133,7 +133,7 @@ class Reading:
 			self.command_history.navigate_history(-1 if event.keyval == Gdk.KEY_Up else 1, self.view.get_command())
 			self.view.set_command(self.command_history.current_command())
 			self.view.clean_hints()
-			self.hint_status.clear_state()
+			self.autocomplete.clear_state()
 			return True
 		else:
 			self.command_history.reset_history_pointer()
@@ -141,18 +141,18 @@ class Reading:
 		if event.keyval not in HINT_NAVIGATION_KEYS:
 			return False
 
-		if not self.hint_status.hinting and event.keyval in HINT_LAUNCH_KEYS:
-			self.hint_status.hint(CommandInput(text=self.view.get_command()).parse())
+		if not self.autocomplete.hinting and event.keyval in HINT_LAUNCH_KEYS:
+			self.autocomplete.hint(CommandInput(text=self.view.get_command()).parse())
 
-		if self.hint_status.hinting:
+		if self.autocomplete.hinting:
 			shift_mask = event.state & Gdk.ModifierType.SHIFT_MASK
 			right = event.keyval in HINT_RIGHT or (event.keyval in HINT_LAUNCH_KEYS and not shift_mask )
-			self.hint_status.cycle(1 if right else -1)
-			if len(self.hint_status.hints) == 1:
+			self.autocomplete.cycle(1 if right else -1)
+			if len(self.autocomplete.hints) == 1:
 				self.view.clean_hints()
 			else:
-				self.view.hint(self.hint_status.hints, self.hint_status.highlight_index, self.hint_status.should_auto_hint())
-			self.view.set_command(self.hint_status.mount_input())
+				self.view.hint(self.autocomplete.hints, self.autocomplete.highlight_index, self.autocomplete.should_auto_hint())
+			self.view.set_command(self.autocomplete.mount_input())
 
 		return True
 
@@ -163,9 +163,9 @@ class Reading:
 		gtk_time = Gtk.get_current_event_time()
 		cmd = self.view.get_command()
 
-		if self.hint_status.should_auto_hint():
-			self.hint_status.cycle(1)
-			cmd = self.hint_status.mount_input()
+		if self.autocomplete.should_auto_hint():
+			self.autocomplete.cycle(1)
+			cmd = self.autocomplete.mount_input()
 
 		self.command_history.append(cmd)
 

@@ -19,7 +19,7 @@ import poco.commands as commands
 from poco.commands import Command
 
 
-class HintStatus:
+class Autocomplete:
 
 	def __init__(self, reading):
 		self.reading = reading

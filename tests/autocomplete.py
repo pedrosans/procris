@@ -1,15 +1,15 @@
 import unittest
 import poco.commands as commands
 from unittest.mock import MagicMock
-from poco.hint import HintStatus
+from poco.autocomplete import Autocomplete
 from poco.commands import CommandInput
 
 
-class HintTestCase(unittest.TestCase):
+class AutocompleteTestCase(unittest.TestCase):
 
 	def setUp(self):
 		self.reading = MagicMock()
-		self.hint = HintStatus(self.reading)
+		self.hint = Autocomplete(self.reading)
 		self.buffer_command = MagicMock()
 		self.buffer_command.name = 'buffer'
 
