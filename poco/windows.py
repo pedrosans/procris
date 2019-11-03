@@ -396,6 +396,11 @@ class Active:
 	def clean(self):
 		self.xid = None
 
+	def change_to(self, xid):
+		if self.xid != xid:
+			self.xid = xid
+			self.windows.staging = True
+
 	def only(self, c_in):
 		for w in self.windows.visible:
 			if self.xid != w.get_xid():

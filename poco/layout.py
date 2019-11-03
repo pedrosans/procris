@@ -156,6 +156,11 @@ class Layout:
 				handler_id = window.connect("state-changed", self._state_changed)
 				self.window_monitor_map[window.get_xid()] = handler_id
 
+	def _incremented_index(self, increment):
+		old_index = self.stack.index(self.windows.active.xid)
+		new_index = old_index + increment
+		return min(max(new_index, 0), len(self.stack) - 1)
+
 	#
 	# PUBLIC INTERFACE
 	#
@@ -197,12 +202,16 @@ class Layout:
 		if self.windows.active.xid:
 			direction = c_in.parameters[0]
 			old_index = self.stack.index(self.windows.active.xid)
-			new_index = old_index + direction
-			new_index = min(new_index, len(self.stack) - 1)
-			new_index = max(new_index, 0)
+			new_index = self._incremented_index(direction)
 			if new_index != old_index:
 				self.stack.insert(new_index, self.stack.pop(old_index))
 				self.apply()
+
+	def move_focus(self, c_in):
+		if self.windows.active.xid:
+			direction = c_in.parameters[0]
+			new_index = self._incremented_index(direction)
+			self.windows.active.change_to(self.stack[new_index])
 
 	def change_function(self, c_in):
 		function_key = c_in.parameters[0]

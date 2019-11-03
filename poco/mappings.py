@@ -8,7 +8,7 @@ reading = poco.service.reading
 layout = poco.service.layout
 terminal = poco.terminal
 
-prefix_key = '<Primary>e'
+prefix_key = '<Ctrl>q'
 
 keys = [
 
@@ -17,6 +17,8 @@ keys = [
 	Key(['<Ctrl>KP_Enter'], layout.move_to_master),
 	Key(['<Ctrl>i'], layout.increment_master, [1]),
 	Key(['<Ctrl>d'], layout.increment_master, [-1]),
+	Key(['<Ctrl>j'], layout.move_focus, [1]),
+	Key(['<Ctrl>k'], layout.move_focus, [-1]),
 	Key(['<Ctrl>l'], layout.increase_master_area, [0.05]),
 	Key(['<Ctrl>h'], layout.increase_master_area, [-0.05]),
 	Key(['<Ctrl>u'], layout.change_function, ['C']),
