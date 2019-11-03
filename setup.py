@@ -19,9 +19,9 @@ for size in (16, 48, 256):
 				['data/icon/{}x{}/poco{}{}.png'.format(size, size, key_func_name_diff, name_diff)]))
 
 setup(
-	name='poco',
+	name='Poco',
 	version='0.7',
-	description='Maps Vim window commands to Libwnck functions to move and navigate around X windows',
+	description='Desktop utility to work with windows',
 	author='Pedro Santos',
 	author_email='pedrosans@gmail.com',
 	url='https://github.com/pedrosans/poco',
@@ -32,5 +32,6 @@ setup(
 	[
 		('/usr/share/bash-completion/completions/', ['data/completion/poco']),
 		('/usr/share/applications/', ['data/poco.desktop']),
+		('/usr/share/man/man1/', ['poco.1.gz']),
 	] + icons,
 )

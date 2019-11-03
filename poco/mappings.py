@@ -8,7 +8,7 @@ reading = poco.service.reading
 layout = poco.service.layout
 terminal = poco.terminal
 
-termkey = '<Primary>e'
+prefix_key = '<Primary>e'
 
 keys = [
 
@@ -27,31 +27,31 @@ keys = [
 	Key(['<Ctrl><Shift>k'], layout.swap_focused_with, [-1]),
 
 	# poco reading binding
-	Key([termkey], reading.start),
+	Key([prefix_key], reading.start),
 
 	# Vim bindings
-	Key([termkey, 'q'],         windows.active.minimize),
-	Key([termkey, 'o'],         windows.active.only),
-	Key([termkey, 'Right'],     windows.focus.move_right),
-	Key([termkey, 'l'],         windows.focus.move_right),
-	Key([termkey, '<Ctrl>l'],   windows.focus.move_right),
-	Key([termkey, '<Shift>l'],  windows.active.move_right),
-	Key([termkey, 'Down'],      windows.focus.move_down),
-	Key([termkey, 'j'],         windows.focus.move_down),
-	Key([termkey, '<Ctrl>j'],   windows.focus.move_down),
-	Key([termkey, '<Shift>j'],  windows.active.move_down),
-	Key([termkey, 'Left'],      windows.focus.move_left),
-	Key([termkey, 'h'],         windows.focus.move_left),
-	Key([termkey, '<Ctrl>h'],   windows.focus.move_left),
-	Key([termkey, '<Shift>h'],  windows.active.move_left),
-	Key([termkey, 'Up'],        windows.focus.move_up),
-	Key([termkey, 'k'],         windows.focus.move_up),
-	Key([termkey, '<Ctrl>k'],   windows.focus.move_up),
-	Key([termkey, '<Shift>k'],  windows.active.move_up),
-	Key([termkey, 'w'],         windows.focus.cycle),
-	Key([termkey, '<Ctrl>w'],   windows.focus.cycle),
-	Key([termkey, '<Shift>w'],  windows.focus.cycle),
-	Key([termkey, 'p'],         windows.focus.move_to_previous),
+	Key([prefix_key, 'q'], windows.active.minimize),
+	Key([prefix_key, 'o'], windows.active.only),
+	Key([prefix_key, 'Right'], windows.focus.move_right),
+	Key([prefix_key, 'l'], windows.focus.move_right),
+	Key([prefix_key, '<Ctrl>l'], windows.focus.move_right),
+	Key([prefix_key, '<Shift>l'], windows.active.move_right),
+	Key([prefix_key, 'Down'], windows.focus.move_down),
+	Key([prefix_key, 'j'], windows.focus.move_down),
+	Key([prefix_key, '<Ctrl>j'], windows.focus.move_down),
+	Key([prefix_key, '<Shift>j'], windows.active.move_down),
+	Key([prefix_key, 'Left'], windows.focus.move_left),
+	Key([prefix_key, 'h'], windows.focus.move_left),
+	Key([prefix_key, '<Ctrl>h'], windows.focus.move_left),
+	Key([prefix_key, '<Shift>h'], windows.active.move_left),
+	Key([prefix_key, 'Up'], windows.focus.move_up),
+	Key([prefix_key, 'k'], windows.focus.move_up),
+	Key([prefix_key, '<Ctrl>k'], windows.focus.move_up),
+	Key([prefix_key, '<Shift>k'], windows.active.move_up),
+	Key([prefix_key, 'w'], windows.focus.cycle),
+	Key([prefix_key, '<Ctrl>w'], windows.focus.cycle),
+	Key([prefix_key, '<Shift>w'], windows.focus.cycle),
+	Key([prefix_key, 'p'], windows.focus.move_to_previous),
 ]
 names = [
 	Name('edit', 'e', applications.launch),
