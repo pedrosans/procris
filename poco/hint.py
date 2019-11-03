@@ -17,13 +17,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
 import poco.commands as commands
 from poco.commands import Command
-from poco.commands import CommandInput
 
 
 class HintStatus:
 
-	def __init__(self, controller):
-		self.controller = controller
+	def __init__(self, reading):
+		self.reading = reading
 		self.hints = []
 		self.hinting = False
 		self.highlight_index = -1
@@ -37,23 +36,14 @@ class HintStatus:
 		self.original_input = None
 
 	def should_auto_hint(self):
-		return self.controller.configurations.is_auto_select_first_hint()\
+		return self.reading.configurations.is_auto_select_first_hint()\
 				and self.highlight_index == -1 and self.hinting
 
 	def hint(self, parsed_input):
 		self.original_input = parsed_input
 		self.highlight_index = -1
-		self.hints = self.list_hints(parsed_input)
+		self.hints = commands.autocomplete(parsed_input, self.reading)
 		self.hinting = self.hints and len(self.hints) > 0
-
-	def list_hints(self, parsed_input):
-		command = Command.get_matching_command(parsed_input)
-		if command and (parsed_input.vim_command_spacer or command.name == '!'):
-			return commands.hint_vim_command_parameter(self.controller, parsed_input)
-		elif not parsed_input.vim_command_spacer:
-			return commands.hint_vim_command(parsed_input.text)
-		else:
-			return None
 
 	def mount_input(self):
 		i = self.highlight_index
