@@ -35,29 +35,29 @@ def autocomplete_vim_command(user_input):
 	return sorted(list(set(filtered)))
 
 
+def has_multiple_commands(command_input):
+	return MULTIPLE_COMMANDS_PATTERN.match(command_input)
+
+
+def get_matching_command(command_input):
+	vim_command = command_input.vim_command
+	"""
+	Returns matching command function if any
+	"""
+	if vim_command in NAME_MAP.keys():
+		return NAME_MAP[vim_command]
+	elif vim_command in ALIAS_MAP.keys():
+		return ALIAS_MAP[vim_command]
+
+	return None
+
+
 class Command:
 
 	def __init__(self, name, alias, function):
 		self.name = name
 		self.alias = alias
 		self.function = function
-
-	@staticmethod
-	def has_multiple_commands(command_input):
-		return MULTIPLE_COMMANDS_PATTERN.match(command_input)
-
-	@staticmethod
-	def get_matching_command(command_input):
-		vim_command = command_input.vim_command
-		"""
-		Returns matching command function if any
-		"""
-		if vim_command in NAME_MAP.keys():
-			return NAME_MAP[vim_command]
-		elif vim_command in ALIAS_MAP.keys():
-			return ALIAS_MAP[vim_command]
-
-		return None
 
 
 class CommandInput:

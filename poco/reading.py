@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, poco
 import poco.messages as messages
+import poco.commands as commands
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
@@ -169,11 +170,11 @@ class Reading:
 
 		self.command_history.append(cmd)
 
-		if Command.has_multiple_commands(cmd):
+		if commands.has_multiple_commands(cmd):
 			raise Exception('TODO: iterate multiple commands')
 
 		command_input = CommandInput(time=gtk_time, text=cmd).parse()
-		command = Command.get_matching_command(command_input)
+		command = commands.get_matching_command(command_input)
 
 		if command:
 			poco.service.execute(command.function, command_input)
@@ -185,7 +186,7 @@ class Reading:
 	def execute(self, cmd):
 		self.windows.read_screen()
 		command_input = CommandInput(time=None, text=cmd).parse()
-		command = Command.get_matching_command(command_input)
+		command = commands.get_matching_command(command_input)
 		command.function(command_input)
 
 	#
