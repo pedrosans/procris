@@ -41,7 +41,7 @@ def autocomplete_parameter(c_in, reading):
 		return reading.windows.decoration_options_for(c_in.vim_command_parameter)
 
 
-class Autocomplete:
+class Matches:
 
 	def __init__(self, reading):
 		self.reading = reading
@@ -61,7 +61,7 @@ class Autocomplete:
 		return self.reading.configurations.is_auto_select_first_hint()\
 				and self.highlight_index == -1 and self.hinting
 
-	def hint(self, parsed_input):
+	def search_for(self, parsed_input):
 		self.original_input = parsed_input
 		self.highlight_index = -1
 		self.hints = autocomplete(parsed_input, self.reading)

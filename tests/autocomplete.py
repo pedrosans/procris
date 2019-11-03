@@ -3,7 +3,7 @@ import unittest
 import poco.autocomplete
 import poco.names as names
 from unittest.mock import MagicMock
-from poco.autocomplete import Autocomplete
+from poco.autocomplete import Matches
 from poco.names import PromptInput
 
 
@@ -11,7 +11,7 @@ class AutocompleteTestCase(unittest.TestCase):
 
 	def setUp(self):
 		self.reading = MagicMock()
-		self.autocomplete = Autocomplete(self.reading)
+		self.autocomplete = Matches(self.reading)
 		self.buffer_command = MagicMock()
 		self.buffer_command.name = 'buffer'
 
@@ -23,15 +23,15 @@ class AutocompleteTestCase(unittest.TestCase):
 		self.autocomplete.clear_state()
 
 	def test_query_vim_commands(self):
-		self.autocomplete.hint(PromptInput(text='foo').parse())
+		self.autocomplete.search_for(PromptInput(text='foo').parse())
 		names.autocomplete_vim_command.assert_called_once_with('foo')
 
 	def test_query_vim_commands_even_if_partial_match(self):
-		self.autocomplete.hint(PromptInput(text='b').parse())
+		self.autocomplete.search_for(PromptInput(text='b').parse())
 		names.autocomplete_vim_command.assert_called_once_with('b')
 
 	def test_mount_spaces(self):
-		self.autocomplete.hint(PromptInput(text='  !   foo').parse())
+		self.autocomplete.search_for(PromptInput(text='  !   foo').parse())
 		self.autocomplete.cycle(1)
 		self.assertEqual('  !   foobar', self.autocomplete.mount_input())
 
@@ -42,12 +42,12 @@ class AutocompleteTestCase(unittest.TestCase):
 		names.autocomplete_vim_command.assert_not_called()
 
 	def test_bang_vim_command_is_mounted(self):
-		self.autocomplete.hint(PromptInput(text='!foo').parse())
+		self.autocomplete.search_for(PromptInput(text='!foo').parse())
 		self.autocomplete.highlight_index = 0
 		self.assertEqual(self.autocomplete.mount_input(), '!foobar')
 
 	def test_bang_vim_command_is_mounted_even_if_empty(self):
-		self.autocomplete.hint(PromptInput(text='!').parse())
+		self.autocomplete.search_for(PromptInput(text='!').parse())
 		self.autocomplete.highlight_index = 0
 		self.assertEqual('!foobar', self.autocomplete.mount_input())
 
