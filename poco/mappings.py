@@ -23,6 +23,8 @@ keys = [
 	Key(['<Ctrl>h'], layout.increase_master_area, [-0.05]),
 	Key(['<Ctrl>u'], layout.change_function, ['C']),
 	Key(['<Ctrl>t'], layout.change_function, ['T']),
+	Key(['<Ctrl>m'], layout.change_function, ['M']),
+	Key(['<Ctrl>f'], layout.change_function, [None]),
 
 	# xmonad bindings https://xmonad.org/manpage.html
 	Key(['<Ctrl><Shift>j'], layout.swap_focused_with, [1]),

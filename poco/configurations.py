@@ -86,7 +86,7 @@ def get_css_file_path():
 
 
 def get_custom_mappings_module_path():
-	return os.path.join(config_dir, "config.py")
+	return os.path.join(config_dir, "mappings.py")
 
 
 def is_list_workspaces():
