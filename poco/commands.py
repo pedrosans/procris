@@ -16,8 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import re
-import poco.applications as applications
-import poco.terminal as terminal
 
 LIST = []
 NAME_MAP = {}
@@ -31,34 +29,10 @@ def add(command):
 	ALIAS_MAP[command.alias] = command
 
 
-def autocomplete(c_in, reading):
-	if not c_in.vim_command:
-		return sorted(list(NAME_MAP.keys()))
-
-	if c_in.vim_command_spacer or c_in.vim_command == '!':
-		return autocomplete_parameter(c_in, reading)
-
-	if c_in.vim_command and not c_in.vim_command_spacer:
-		return autocomplete_vim_command(c_in.text)
-
-	return None
-
-
 def autocomplete_vim_command(user_input):
 	user_input = user_input.lstrip()
 	filtered = filter(lambda n: n.startswith(user_input), NAME_MAP.keys())
 	return sorted(list(set(filtered)))
-
-
-def autocomplete_parameter(c_in, reading):
-	if c_in.vim_command == 'edit':
-		return applications.list_completions(c_in.vim_command_parameter)
-	elif c_in.vim_command in ['buffer']:
-		return reading.windows.list_completions(c_in.vim_command_parameter)
-	elif c_in.vim_command == '!':
-		return terminal.list_completions(c_in)
-	elif c_in.vim_command == 'decorate':
-		return reading.windows.decoration_options_for(c_in.vim_command_parameter)
 
 
 class Command:

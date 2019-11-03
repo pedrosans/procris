@@ -16,7 +16,29 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import re
 import poco.commands as commands
-from poco.commands import Command
+from poco import applications as applications, terminal as terminal
+
+
+def autocomplete(c_in, reading):
+
+	if not c_in.vim_command_spacer and c_in.vim_command != '!':
+		return commands.autocomplete_vim_command(c_in.text)
+
+	if c_in.vim_command_spacer or c_in.vim_command == '!':
+		return autocomplete_parameter(c_in, reading)
+
+	return None
+
+
+def autocomplete_parameter(c_in, reading):
+	if c_in.vim_command == 'edit':
+		return applications.list_completions(c_in.vim_command_parameter)
+	elif c_in.vim_command in ['buffer', 'b']:
+		return reading.windows.list_completions(c_in.vim_command_parameter)
+	elif c_in.vim_command == '!':
+		return terminal.list_completions(c_in)
+	elif c_in.vim_command == 'decorate':
+		return reading.windows.decoration_options_for(c_in.vim_command_parameter)
 
 
 class Autocomplete:
@@ -42,7 +64,7 @@ class Autocomplete:
 	def hint(self, parsed_input):
 		self.original_input = parsed_input
 		self.highlight_index = -1
-		self.hints = commands.autocomplete(parsed_input, self.reading)
+		self.hints = autocomplete(parsed_input, self.reading)
 		self.hinting = self.hints and len(self.hints) > 0
 
 	def mount_input(self):
