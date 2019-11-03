@@ -29,17 +29,16 @@ def add(command):
 	ALIAS_MAP[command.alias] = command
 
 
-def autocomplete_vim_command(user_input):
-	user_input = user_input.lstrip()
-	filtered = filter(lambda n: n.startswith(user_input), NAME_MAP.keys())
+def completions_for(user_input):
+	filtered = filter(lambda n: n.startswith(user_input) if user_input else True, NAME_MAP.keys())
 	return sorted(list(set(filtered)))
 
 
-def has_multiple_commands(command_input):
+def has_multiple_names(command_input):
 	return MULTIPLE_COMMANDS_PATTERN.match(command_input)
 
 
-def get_matching_command(command_input):
+def match(command_input):
 	vim_command = command_input.vim_command
 	"""
 	Returns matching command function if any

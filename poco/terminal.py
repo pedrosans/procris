@@ -84,10 +84,9 @@ def list_completions(c_in):
 def query_command_parameters(c_in):
 	cmd = COMPLETIONS_FUNCTION + 'get_completions \'' + c_in.vim_command_parameter + '\''
 	proc = subprocess.Popen(cmd, executable='bash', shell=True, stdin=PIPE, stdout=PIPE)
-	result = proc.communicate()[0].decode('utf-8')
-	completions = map(lambda x: x.strip(), result.splitlines())
+	completions = proc.communicate()[0].decode('utf-8')
+	completions = map(lambda x: x.strip(), completions.splitlines())
 	completions = filter(lambda x: x.startswith(c_in.terminal_command_parameter), completions)
-	completions = filter(lambda x: x != c_in.terminal_command_parameter, completions)
 	return sorted(list(set(completions)))
 
 
