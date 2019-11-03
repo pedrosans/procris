@@ -21,7 +21,7 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from poco.view import ReadingWindow
-from poco.completions import Matches
+from poco.assistant import Completion
 from poco.names import PromptHistory
 from poco.names import PromptInput
 
@@ -44,7 +44,7 @@ class Reading:
 		self.cmd_handler_ids = []
 		self.view = None
 		self.windows = windows
-		self.matches = Matches(self)
+		self.completion = Completion(self)
 		self.prompt_history = PromptHistory()
 		self._create_and_install_view()
 		self.clean_state()
@@ -55,7 +55,7 @@ class Reading:
 		for handler_id in self.cmd_handler_ids:
 			self.view.colon_prompt.disconnect(handler_id)
 		self.cmd_handler_ids.clear()
-		self.matches.clean()
+		self.completion.clean()
 
 	def _create_and_install_view(self):
 		self.view = ReadingWindow(self, self.windows)
@@ -118,12 +118,12 @@ class Reading:
 			return True
 
 		if self.configurations.is_auto_hint():
-			self.matches.search_for(PromptInput(text=self.view.get_command()).parse())
+			self.completion.search_for(PromptInput(text=self.view.get_command()).parse())
 		else:
-			self.matches.clean()
+			self.completion.clean()
 
-		if self.matches.matching:
-			self.view.offer(self.matches.completions, self.matches.index, self.matches.should_auto_hint())
+		if self.completion.assisting:
+			self.view.offer(self.completion.options, self.completion.index, self.completion.should_auto_assist())
 		else:
 			self.view.clean_hints()
 
@@ -132,7 +132,7 @@ class Reading:
 			self.prompt_history.navigate_history(-1 if event.keyval == Gdk.KEY_Up else 1, self.view.get_command())
 			self.view.set_command(self.prompt_history.current_command())
 			self.view.clean_hints()
-			self.matches.clean()
+			self.completion.clean()
 			return True
 		else:
 			self.prompt_history.reset_history_pointer()
@@ -140,18 +140,18 @@ class Reading:
 		if event.keyval not in HINT_NAVIGATION_KEYS:
 			return False
 
-		if not self.matches.matching and event.keyval in HINT_LAUNCH_KEYS:
-			self.matches.search_for(PromptInput(text=self.view.get_command()).parse())
+		if not self.completion.assisting and event.keyval in HINT_LAUNCH_KEYS:
+			self.completion.search_for(PromptInput(text=self.view.get_command()).parse())
 
-		if self.matches.matching:
+		if self.completion.assisting:
 			shift_mask = event.state & Gdk.ModifierType.SHIFT_MASK
 			right = event.keyval in HINT_RIGHT or (event.keyval in HINT_LAUNCH_KEYS and not shift_mask )
-			self.matches.cycle(1 if right else -1)
-			if len(self.matches.completions) == 1:
+			self.completion.cycle(1 if right else -1)
+			if len(self.completion.options) == 1:
 				self.view.clean_hints()
 			else:
-				self.view.offer(self.matches.completions, self.matches.index, self.matches.should_auto_hint())
-			self.view.set_command(self.matches.mount_input())
+				self.view.offer(self.completion.options, self.completion.index, self.completion.should_auto_assist())
+			self.view.set_command(self.completion.mount_input())
 
 		return True
 
@@ -162,9 +162,9 @@ class Reading:
 		gtk_time = Gtk.get_current_event_time()
 		cmd = self.view.get_command()
 
-		if self.matches.should_auto_hint():
-			self.matches.cycle(1)
-			cmd = self.matches.mount_input()
+		if self.completion.should_auto_assist():
+			self.completion.cycle(1)
+			cmd = self.completion.mount_input()
 
 		self.prompt_history.append(cmd)
 

@@ -36,31 +36,31 @@ def completions_for(c_in, reading):
 	return None
 
 
-class Matches:
+class Completion:
 
 	def __init__(self, reading):
 		self.reading = reading
-		self.completions = []
-		self.matching = False
+		self.options = []
+		self.assisting = False
 		self.index = -1
 		self.original_input = None
 
 	def clean(self):
-		if self.completions:
-			del self.completions[:]
-		self.matching = False
+		if self.options:
+			del self.options[:]
+		self.assisting = False
 		self.index = -1
 		self.original_input = None
 
-	def should_auto_hint(self):
+	def should_auto_assist(self):
 		return self.reading.configurations.is_auto_select_first_hint() \
-				and self.index == -1 and self.matching
+				and self.index == -1 and self.assisting
 
 	def search_for(self, c_in):
 		self.original_input = c_in
 		self.index = -1
-		self.completions = completions_for(c_in, self.reading)
-		self.matching = self.completions and len(self.completions) > 0
+		self.options = completions_for(c_in, self.reading)
+		self.assisting = self.options and len(self.options) > 0
 
 	def mount_input(self):
 		i = self.index
@@ -68,18 +68,18 @@ class Matches:
 		if i == -1:
 			return o_in.text
 		elif o_in.terminal_command_spacer:
-			return o_in.mount_vim_command() + o_in.terminal_command + o_in.terminal_command_spacer + self.completions[i]
+			return o_in.mount_vim_command() + o_in.terminal_command + o_in.terminal_command_spacer + self.options[i]
 		elif o_in.vim_command_spacer or o_in.vim_command == '!':
-			return o_in.mount_vim_command() + self.completions[i]
+			return o_in.mount_vim_command() + self.options[i]
 		else:
-			return o_in.colon_spacer + self.completions[i]
+			return o_in.colon_spacer + self.options[i]
 
 	def cycle(self, direction):
-		if len(self.completions) == 1:
+		if len(self.options) == 1:
 			self.index = 0
 			return
 		self.index += direction
-		if self.index == len(self.completions):
+		if self.index == len(self.options):
 			self.index = -1
 		elif self.index < -1:
-			self.index = len(self.completions) - 1
+			self.index = len(self.options) - 1

@@ -1,12 +1,12 @@
 import unittest
 import tests.names
 import tests.terminal
-import tests.autocomplete
+import tests.assistant
 import tests.layout
 
 test_case_classes = (tests.names.CommandInputTestCase,
                      tests.terminal.TerminalTestCase,
-                     tests.autocomplete.AutocompleteTestCase,
+                     tests.assistant.AssistantTestCase,
                      tests.layout.LayoutTestCase
                      )
 
