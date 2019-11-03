@@ -37,6 +37,13 @@ class Monitor:
 		self.wh = height
 
 
+def monocle(stack, monitor):
+	layout = []
+	for c in stack:
+		layout.append([monitor.wx, monitor.wy, monitor.ww, monitor.wh])
+	return layout
+
+
 def tile(stack, monitor):
 	layout = []
 
@@ -108,15 +115,15 @@ def centeredmaster(stack, monitor):
 	return layout
 
 
-FUNCTIONS_MAP = {'C': centeredmaster, 'T': tile}
-FUNCTIONS_NAME_MAP = {'C': 'centeredmaster', 'T': 'tile'}
+FUNCTIONS_MAP = {'C': centeredmaster, 'T': tile, 'M': monocle}
+FUNCTIONS_NAME_MAP = {'C': 'centeredmaster', 'T': 'tile', 'M': 'monocle'}
 
 
 # TODO: the the window is maximized, the layout function fails
 class Layout:
 
 	def __init__(self, windows):
-		self.function_key = 'T'
+		self.function_key = 'M'
 		self.window_monitor_map = {}
 		self.gap = 10
 		self.windows = windows
