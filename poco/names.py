@@ -66,13 +66,13 @@ class PromptInput:
 		self.text = text
 		self.keyval = keyval
 		self.parameters = parameters
-		self.colon_spacer = None
-		self.vim_command = None
-		self.vim_command_spacer = None
-		self.vim_command_parameter = None
-		self.terminal_command = None
-		self.terminal_command_spacer = None
-		self.terminal_command_parameter = None
+		self.colon_spacer = ''
+		self.vim_command = ''
+		self.vim_command_spacer = ''
+		self.vim_command_parameter = ''
+		self.terminal_command = ''
+		self.terminal_command_spacer = ''
+		self.terminal_command_parameter = ''
 
 	def parse(self):
 		if not self.text:
