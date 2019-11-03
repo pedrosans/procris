@@ -37,7 +37,7 @@ from poco.status import StatusIcon
 from poco.keyboard import KeyboardListener
 from poco.layout import Layout
 from poco.windows import Windows
-from poco.names import CommandInput
+from poco.names import PromptInput
 from poco.remote import NavigatorBusService
 
 SIGINT = getattr(signal, "SIGINT", None)
@@ -106,7 +106,7 @@ def keyboard_listener(key, x_key_event, multiplier=1):
 
 
 def _inside_main_loop(key, x_key_event, multiplier):
-	command_input = CommandInput(
+	command_input = PromptInput(
 		time=x_key_event.time, keyval=x_key_event.keyval, parameters=key.parameters)
 
 	execute(key.function, command_input, multiplier)

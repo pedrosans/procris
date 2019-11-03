@@ -22,8 +22,8 @@ gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from poco.view import NavigatorWindow
 from poco.autocomplete import Autocomplete
-from poco.names import CommandHistory
-from poco.names import CommandInput
+from poco.names import PromptHistory
+from poco.names import PromptInput
 
 HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]
 HINT_LEFT = [Gdk.KEY_Left]
@@ -45,7 +45,7 @@ class Reading:
 		self.view = None
 		self.windows = windows
 		self.autocomplete = Autocomplete(self)
-		self.command_history = CommandHistory()
+		self.prompt_history = PromptHistory()
 		self._create_and_install_view()
 		self.clean_state()
 		messages.clean()
@@ -95,18 +95,18 @@ class Reading:
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
 
 		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft):
-			self.escape(CommandInput(time=event.time, keyval=event.keyval))
+			self.escape(PromptInput(time=event.time, keyval=event.keyval))
 			return
 
 		if self.in_command_mode():
 			return
 
 		if event.keyval == Gdk.KEY_colon and not ctrl:
-			self.colon(CommandInput(time=event.time, keyval=event.keyval))
+			self.colon(PromptInput(time=event.time, keyval=event.keyval))
 			return True
 
 		if event.keyval == Gdk.KEY_Return:
-			self.enter(CommandInput(time=event.time, keyval=event.keyval))
+			self.enter(PromptInput(time=event.time, keyval=event.keyval))
 			return True
 
 	def on_entry_key_release(self, widget, event):
@@ -119,7 +119,7 @@ class Reading:
 			return True
 
 		if self.configurations.is_auto_hint():
-			self.autocomplete.hint(CommandInput(text=self.view.get_command()).parse())
+			self.autocomplete.hint(PromptInput(text=self.view.get_command()).parse())
 		else:
 			self.autocomplete.clear_state()
 
@@ -130,19 +130,19 @@ class Reading:
 
 	def on_entry_key_press(self, widget, event):
 		if event.keyval in HISTORY_NAVIGATION_KEYS:
-			self.command_history.navigate_history(-1 if event.keyval == Gdk.KEY_Up else 1, self.view.get_command())
-			self.view.set_command(self.command_history.current_command())
+			self.prompt_history.navigate_history(-1 if event.keyval == Gdk.KEY_Up else 1, self.view.get_command())
+			self.view.set_command(self.prompt_history.current_command())
 			self.view.clean_hints()
 			self.autocomplete.clear_state()
 			return True
 		else:
-			self.command_history.reset_history_pointer()
+			self.prompt_history.reset_history_pointer()
 
 		if event.keyval not in HINT_NAVIGATION_KEYS:
 			return False
 
 		if not self.autocomplete.hinting and event.keyval in HINT_LAUNCH_KEYS:
-			self.autocomplete.hint(CommandInput(text=self.view.get_command()).parse())
+			self.autocomplete.hint(PromptInput(text=self.view.get_command()).parse())
 
 		if self.autocomplete.hinting:
 			shift_mask = event.state & Gdk.ModifierType.SHIFT_MASK
@@ -167,16 +167,16 @@ class Reading:
 			self.autocomplete.cycle(1)
 			cmd = self.autocomplete.mount_input()
 
-		self.command_history.append(cmd)
+		self.prompt_history.append(cmd)
 
 		if names.has_multiple_commands(cmd):
 			raise Exception('TODO: iterate multiple commands')
 
-		command_input = CommandInput(time=gtk_time, text=cmd).parse()
-		command = names.get_matching_command(command_input)
+		c_in = PromptInput(time=gtk_time, text=cmd).parse()
+		command = names.get_matching_command(c_in)
 
 		if command:
-			poco.service.execute(command.function, command_input)
+			poco.service.execute(command.function, c_in)
 		else:
 			self.clean_state()
 			self.show(gtk_time, error_message='Not an editor command: ' + cmd)
@@ -184,9 +184,9 @@ class Reading:
 	# TODO: remove from here
 	def execute(self, cmd):
 		self.windows.read_screen()
-		command_input = CommandInput(time=None, text=cmd).parse()
-		command = names.get_matching_command(command_input)
-		command.function(command_input)
+		c_in = PromptInput(time=None, text=cmd).parse()
+		command = names.get_matching_command(c_in)
+		command.function(c_in)
 
 	#
 	# COMMANDS

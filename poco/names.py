@@ -60,7 +60,7 @@ class Name:
 		self.function = function
 
 
-class CommandInput:
+class PromptInput:
 
 	def __init__(self, time=None, text=None, keyval=None, parameters=None):
 		self.time = time
@@ -114,7 +114,7 @@ class CommandInput:
 		print('tcp::{}::'.format(self.terminal_command_parameter))
 
 
-class CommandHistory:
+class PromptHistory:
 
 	def __init__(self):
 		self.history = []

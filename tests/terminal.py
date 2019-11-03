@@ -1,6 +1,6 @@
 import unittest
 import poco.terminal as terminal
-from poco.names import CommandInput
+from poco.names import PromptInput
 
 
 class TerminalTestCase(unittest.TestCase):
@@ -37,4 +37,4 @@ class TerminalTestCase(unittest.TestCase):
 		terminal.query_command_parameters = lambda x: ['bar']
 		self.assertEqual(
 			['bar'],
-			terminal.list_completions(CommandInput(text='!foo ').parse()))
+			terminal.list_completions(PromptInput(text='!foo ').parse()))
