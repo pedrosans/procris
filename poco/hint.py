@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import re
+import poco.commands as commands
 from poco.commands import Command
 from poco.commands import CommandInput
 
@@ -48,9 +49,9 @@ class HintStatus:
 	def list_hints(self, parsed_input):
 		command = Command.get_matching_command(parsed_input)
 		if command and (parsed_input.vim_command_spacer or command.name == '!'):
-			return command.hint_vim_command_parameter(self.controller, parsed_input)
+			return commands.hint_vim_command_parameter(self.controller, parsed_input)
 		elif not parsed_input.vim_command_spacer:
-			return Command.hint_vim_command(parsed_input.text)
+			return commands.hint_vim_command(parsed_input.text)
 		else:
 			return None
 

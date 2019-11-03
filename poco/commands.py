@@ -31,28 +31,29 @@ def add(command):
 	ALIAS_MAP[command.alias] = command
 
 
+def hint_vim_command_parameter(reading, c_in):
+	if c_in.vim_command == 'edit':
+		return applications.list_completions(c_in.vim_command_parameter)
+	elif c_in.vim_command in ['buffer']:
+		return reading.windows.list_completions(c_in.vim_command_parameter)
+	elif c_in.vim_command == '!':
+		return terminal.list_completions(c_in)
+	elif c_in.vim_command == 'decorate':
+		return reading.windows.decoration_options_for(c_in.vim_command_parameter)
+
+
+def hint_vim_command(user_input):
+	user_input = user_input.lstrip()
+	filtered = filter(lambda n: n.startswith(user_input), NAME_MAP.keys())
+	return sorted(list(set(filtered)))
+
+
 class Command:
 
 	def __init__(self, name, alias, function):
 		self.name = name
 		self.alias = alias
 		self.function = function
-
-	def hint_vim_command_parameter(self, controller, input):
-		if self.name == 'edit':
-			return applications.list_completions(input.vim_command_parameter)
-		elif self.name in ['buffer']:
-			return controller.windows.list_completions(input.vim_command_parameter)
-		elif self.name == '!':
-			return terminal.list_completions(input)
-		elif self.name == 'decorate':
-			return controller.windows.decoration_options_for(input.vim_command_parameter)
-
-	@staticmethod
-	def hint_vim_command(user_input):
-		user_input = user_input.lstrip()
-		filtered = filter(lambda n: n.startswith(user_input), NAME_MAP.keys())
-		return sorted(list(set(filtered)))
 
 	@staticmethod
 	def has_multiple_commands(command_input):

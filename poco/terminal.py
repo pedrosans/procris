@@ -27,8 +27,8 @@ NAME_MAP = {}
 
 
 def load():
-	_read_aliases()
-	_read_commands()
+	_load_aliases()
+	_load_commands()
 
 
 def reload():
@@ -37,16 +37,26 @@ def reload():
 	load()
 
 
-def _read_aliases():
-	proc = subprocess.Popen(['bash', '-ic', 'alias'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
-	result = proc.communicate()[0].decode('utf-8')
-	for stdout_line in result.splitlines():
+def _load_commands():
+	for commands_glob in COMMANDS_GLOB:
+		for path in glob.glob(commands_glob):
+			name = path.split('/')[-1]
+			NAME_MAP[name] = path
+
+
+def _load_aliases():
+	for stdout_line in get_sys_aliases().splitlines():
 		if not re.match(ALIAS_PATTERN, stdout_line):
 			continue
 		aliases_definition = parse_alias_line(stdout_line)
 		for alias_definition in aliases_definition:
 			name, cmd = alias_definition
 			ALIASES_MAP[name] = cmd
+
+
+def get_sys_aliases():
+	proc = subprocess.Popen(['bash', '-ic', 'alias'], stdin=PIPE, stdout=PIPE, stderr=PIPE)
+	return proc.communicate()[0].decode('utf-8')
 
 
 def parse_alias_line(line):
@@ -58,13 +68,6 @@ def parse_alias_line(line):
 		cmd = re.search(r'=\$?\'(.*)\'', alias).group(1)
 		result.append([name, cmd])
 	return result
-
-
-def _read_commands():
-	for commands_glob in COMMANDS_GLOB:
-		for path in glob.glob(commands_glob):
-			name = path.split('/')[-1]
-			NAME_MAP[name] = path
 
 
 def has_perfect_match(name):
