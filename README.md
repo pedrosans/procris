@@ -248,7 +248,15 @@ means both an application and a window. So the bellow commands will:
 
 ### Customization
 
-Configuration file is located at `$HOME/.config/poco/poco.cfg` and enables:
+#### Mappings
+
+A custom mappigns module can be provided by placing its definition in `~/.config/poco/mappings.py`.
+In the case of a custom module, it will be loaded instead of the default one. The default one at
+[poco/mappings.py](poco/mappings.py) is meant to be a starting point.
+
+#### Interface
+
+Configuration file is located at `~/.config/poco/poco.cfg` and enables:
 
 Section `[interface]` | Customization options
 -|-
@@ -267,11 +275,9 @@ position = midle
 width = 100%
 ```
 
-The style can be customized by creating and editing `$HOME/.config/poco/poco.css`
-
-The default CSS can be found and used as a reference at [poco/view.py](poco/view.py)
-
-`poco.css` example:
+The style can be customized by placing a custom css at `~/.config/poco/poco.css`.
+The default CSS in the module [view](poco/view.py) is meant to be used as a reference.
+A possible customization example is:
 
 ```css
 * {
