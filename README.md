@@ -196,7 +196,24 @@ means both an application and a window. So the bellow commands will:
 	sudo apt-get update
 	sudo apt-get install poco
 	```
-2. From source code
+2. Make file
+
+	```bash
+	sudo make install
+	```
+
+	Dependencies for debian/ubuntu:
+	```bash
+	sudo make dependencies
+	```
+
+	To uninstall:
+
+	```bash
+	sudo make uninstall
+	```
+
+3. Manually
 
 	1. Install poco's dependencies
 
