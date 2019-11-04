@@ -20,7 +20,7 @@ for size in (16, 48, 256):
 
 setup(
 	name='Poco',
-	version='0.1',
+	version='0.2',
 	description='Desktop environment utility to organize windows',
 	author='Pedro Santos',
 	author_email='pedrosans@gmail.com',
