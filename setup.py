@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
-
-import poco.layout
 from distutils.core import setup
+
+FUNCTION_KEYS = ['', 'C', 'T', 'M']
 
 icons = [
 	('/usr/share/icons/hicolor/symbolic', ['data/icon/poco.svg']),
@@ -10,7 +10,7 @@ icons = [
 
 for size in (16, 48, 256):
 	for name_diff in ('', '-light'):
-		for layout_key in [''] + list(poco.layout.FUNCTIONS_MAP.keys()):
+		for layout_key in FUNCTION_KEYS:
 			key_func_name_diff = ''
 			if layout_key:
 				key_func_name_diff = key_func_name_diff + '-' + layout_key
