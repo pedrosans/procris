@@ -15,59 +15,36 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os, json
-layout_file = '/tmp/poco_layout.json'
-decorations_file = '/tmp/poco_decoration.json'
+import poco.configurations as configurations
+
+layout_file = configurations.get_cache_dir() + '/layout.json'
+decorations_file = configurations.get_cache_dir() + '/decoration.json'
 
 
-def write(layout):
+def write_layout(layout):
 	with open(layout_file, 'w') as f:
-		json.dump(to_json(layout), f, indent=True)
-
-
-def write_decorations(decoration_map):
-	state_json = {}
-	for k in decoration_map.keys():
-		state_json[k] = decoration_map[k]
-	with open(decorations_file, 'w') as f:
-		json.dump(state_json, f, indent=True)
+		json.dump(layout, f, indent=True)
 
 
 def read_layout():
-	if os.path.exists(layout_file):
-		with open(layout_file, 'r') as f:
-			try:
-				return json.load(f)
-			except json.decoder.JSONDecodeError:
-				return None
-	return None
+	return _read_json(layout_file)
+
+
+def write_decorations(decoration_map):
+	with open(decorations_file, 'w') as f:
+		json.dump(decoration_map, f, indent=True)
 
 
 def read_decorations():
-	if os.path.exists(decorations_file):
-		with open(decorations_file, 'r') as f:
+	return _read_json(decorations_file)
+
+
+def _read_json(file):
+	if os.path.exists(file):
+		with open(file, 'r') as f:
 			try:
 				return json.load(f)
 			except json.decoder.JSONDecodeError:
-				return None
-	return None
+				return {}
+	return {}
 
-
-def to_json(layout):
-	stack_state = {}
-	state = {
-		'stack_state': stack_state,
-		'nmaster': layout.monitor.nmaster, 'mfact': layout.monitor.mfact,
-		'function': layout.function_key}
-	for w in layout.windows.buffers:
-		w_id = w.get_xid()
-		key = str(w_id)
-		if key not in stack_state:
-			stack_state[key] = {}
-		stack_state[key]['name'] = w.get_name()
-		stack_state[key]['stack_index'] = layout.stack.index(w_id) if w_id in layout.stack else -1
-
-	for client_key in list(stack_state.keys()):
-		if client_key not in map(lambda x: str(x.get_xid()), layout.windows.buffers):
-			del stack_state[client_key]
-
-	return state

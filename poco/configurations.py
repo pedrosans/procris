@@ -22,7 +22,6 @@ from configparser import ConfigParser
 
 POCO_DESKTOP = 'poco.desktop'
 POCO_PACKAGE = 'poco'
-DEFAULT_PREFIX_KEY = '<ctrl>q'
 DEFAULT_LIST_WORKSPACES = 'true'
 DEFAULT_POSITION = 'bottom'
 DEFAULT_WIDTH = '800'
@@ -32,21 +31,16 @@ DEFAULT_AUTO_SELECT_FIRST_HINT = 'true'
 
 autostart_dir = base.save_config_path("autostart")
 autostart_file = os.path.join(autostart_dir, POCO_DESKTOP)
-config_dir = base.load_first_config(POCO_PACKAGE)
-if not config_dir:
-	config_dir = base.save_config_path(POCO_PACKAGE)
-
-config_file_path = os.path.join(config_dir, "poco.cfg")
+config_dir = base.save_config_path(POCO_PACKAGE)
+config_file = os.path.join(config_dir, "poco.cfg")
+cache_dir = base.save_cache_path(POCO_PACKAGE)
 
 
 parser = ConfigParser(interpolation=None)
-parser.read(config_file_path)
+parser.read(config_file)
 need_write = False
 if not parser.has_section('interface'):
 	parser.add_section('interface')
-	need_write = True
-if not parser.has_option('interface', 'prefix_key'):
-	parser.set('interface', 'prefix_key', DEFAULT_PREFIX_KEY)
 	need_write = True
 if not parser.has_option('interface', 'list_workspaces'):
 	parser.set('interface', 'list_workspaces', DEFAULT_LIST_WORKSPACES)
@@ -73,12 +67,16 @@ if not parser.has_option('layout', 'remove_decorations'):
 	parser.set('layout', 'remove_decorations', 'false')
 	need_write = True
 if need_write:
-	with open(config_file_path, 'w') as f:
+	with open(config_file, 'w') as f:
 		parser.write(f)
 
 
 def reload():
-	parser.read(config_file_path)
+	parser.read(config_file)
+
+
+def get_cache_dir():
+	return cache_dir
 
 
 def get_css_file_path():
@@ -128,7 +126,7 @@ def get_icon():
 
 def set_icon(icon):
 	parser.set('interface', 'icon', icon)
-	with open(config_file_path, 'w') as f:
+	with open(config_file, 'w') as f:
 		parser.write(f)
 
 
@@ -139,7 +137,7 @@ def is_remove_decorations():
 def set_remove_decorations(remove):
 	parser.set('layout', 'remove_decorations', str(remove).lower())
 	# TODO: extract method
-	with open(config_file_path, 'w') as f:
+	with open(config_file, 'w') as f:
 		parser.write(f)
 
 

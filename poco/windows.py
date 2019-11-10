@@ -191,33 +191,32 @@ class Windows:
 
 	def remove_decorations(self):
 		decoration_map = state.read_decorations()
-		if not decoration_map:
-			decoration_map = {}
+
 		for w in self.buffers:
+
 			key = str(w.get_xid())
-			is_decorated, decorations = gdk_window_for(w).get_decorations()
 			gdk_w = gdk_window_for(w)
-			if key not in decoration_map:
-				if not is_decorated and not decorations:
-					# assume server side decoration
-					decorations = Gdk.WMDecoration.ALL
-				decoration_map[key] = decorations
+
+			is_decorated, decorations = gdk_w.get_decorations()
 			has_title = Gdk.WMDecoration.TITLE & decorations or Gdk.WMDecoration.ALL & decorations
-			if not is_decorated or has_title:
+			ssd = not is_decorated and not decorations
+
+			if has_title or ssd:
+				if key not in decoration_map:
+					decoration_map[key] = decorations if not ssd else Gdk.WMDecoration.ALL
 				gdk_w.set_decorations(Gdk.WMDecoration.BORDER)
+
 		for key in list(decoration_map.keys()):
 			if key not in map(lambda x: str(x.get_xid()), self.buffers):
 				del decoration_map[key]
+
 		state.write_decorations(decoration_map)
 
 	def restore_decorations(self):
-		decoration_map = state.read_decorations()
+		original_decorations = state.read_decorations()
 		for w in self.buffers:
-			key = str(w.get_xid())
-			gdk_w = gdk_window_for(w)
-			if key in decoration_map:
-				original = decoration_map[key]
-				gdk_w.set_decorations(Gdk.WMDecoration(original))
+			if str(w.get_xid()) in original_decorations:
+				gdk_window_for(w).set_decorations(Gdk.WMDecoration(original_decorations[str(w.get_xid())]))
 
 	#
 	# Query API

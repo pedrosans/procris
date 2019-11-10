@@ -44,9 +44,9 @@ SIGINT = getattr(signal, "SIGINT", None)
 SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP = getattr(signal, "SIGHUP", None)
 
+# GObject.threads_init()
 mappings = listener = bus_object = status_icon = None
 windows = Windows(configurations.is_list_workspaces())
-GObject.threads_init()
 reading = Reading(configurations=configurations, windows=windows)
 layout = Layout(reading.windows,)
 

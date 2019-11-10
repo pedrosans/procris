@@ -125,7 +125,7 @@ class Layout:
 		self.stack = list(map(lambda x: x.get_xid(), self.stack))
 
 		try:
-			self.set_state(state.read_layout())
+			self.from_json(state.read_layout())
 		except KeyError as e:
 			print('can not load last state, there is a unknown key in the json')
 
@@ -134,7 +134,7 @@ class Layout:
 		self.windows.screen.connect("window-closed", self._window_closed)
 		self.apply()
 
-	def set_state(self, json):
+	def from_json(self, json):
 		if not json:
 			return
 		self.monitor.nmaster = json['nmaster']
@@ -146,6 +146,26 @@ class Layout:
 			json['stack_state'][str(xid)]['stack_index']
 			if str(xid) in json['stack_state']
 			else copy.index(xid))
+
+	def to_json(self):
+		stack_state = {}
+		state = {
+			'stack_state': stack_state,
+			'nmaster': self.monitor.nmaster, 'mfact': self.monitor.mfact,
+			'function': self.function_key}
+		for w in self.windows.buffers:
+			w_id = w.get_xid()
+			key = str(w_id)
+			if key not in stack_state:
+				stack_state[key] = {}
+			stack_state[key]['name'] = w.get_name()
+			stack_state[key]['stack_index'] = self.stack.index(w_id) if w_id in self.stack else -1
+
+		for client_key in list(stack_state.keys()):
+			if client_key not in map(lambda x: str(x.get_xid()), self.windows.buffers):
+				del stack_state[client_key]
+
+		return state
 
 	#
 	# INTERNAL INTERFACE
@@ -238,7 +258,7 @@ class Layout:
 		self.apply()
 
 	def apply(self):
-		state.write(self)
+		state.write_layout(self.to_json())
 		self._install_state_handlers()
 
 		if not self.function_key:
