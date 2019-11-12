@@ -44,7 +44,7 @@ sources:
 #	publishes the sources package to pedrosans Ubuntu PPA
 publish:
 	debsign -pgpg2 ${PYTHONPATH}/deb_dist/procris_${VERSION}-1_source.changes && echo "Signed"
-	cd ${PYTHONPATH}/deb_dist && dput ppa:pedrosans/procris procris_${VERSION}-1_source.changes && echo "Published"
+	cd ${PYTHONPATH}/deb_dist && dput ppa:pedrosans/desktop procris_${VERSION}-1_source.changes && echo "Published"
 dependencies:
 	# binaries / sources
 	apt-get install python3-distutils python3-stdeb -y 1>/dev/null
