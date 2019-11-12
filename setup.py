@@ -20,7 +20,7 @@ for size in (16, 48, 256):
 
 setup(
 	name='Procris',
-	version='0.2',
+	version='0.3',
 	description='Tiling desktop environment plugin',
 	author='Pedro Santos',
 	author_email='pedrosans@gmail.com',
