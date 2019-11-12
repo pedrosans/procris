@@ -1,11 +1,11 @@
 import unittest
 
-import poco.assistant
-import poco.names as names
-import poco.terminal as terminal
+import procris.assistant
+import procris.names as names
+import procris.terminal as terminal
 from unittest.mock import MagicMock
-from poco.assistant import Completion
-from poco.names import PromptInput
+from procris.assistant import Completion
+from procris.names import PromptInput
 
 
 class AssistantTestCase(unittest.TestCase):
@@ -35,7 +35,7 @@ class AssistantTestCase(unittest.TestCase):
 
 	def test_dont_query_vim_command_if_bang(self):
 		command_input = PromptInput(text='!foo').parse()
-		poco.assistant.completions_for(command_input, self.reading)
+		procris.assistant.completions_for(command_input, self.reading)
 		names.completions_for.assert_not_called()
 
 	def test_mount_spaces(self):

@@ -1,5 +1,5 @@
 import unittest
-from poco.names import PromptInput
+from procris.names import PromptInput
 
 
 class CommandInputTestCase(unittest.TestCase):

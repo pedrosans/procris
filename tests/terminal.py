@@ -1,6 +1,6 @@
 import unittest
-import poco.terminal as terminal
-from poco.names import PromptInput
+import procris.terminal as terminal
+from procris.names import PromptInput
 
 
 class TerminalTestCase(unittest.TestCase):

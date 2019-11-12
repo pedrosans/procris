@@ -1,0 +1,6 @@
+[Desktop Entry]
+Type=Application
+Name=Procris
+Icon=procris
+Exec=procris start
+Categories=Utility;

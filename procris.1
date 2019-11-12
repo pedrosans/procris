@@ -1,0 +1,101 @@
+.TH Procris 1 procris\-VERSION
+.SH NAME
+Procris \- desktop environment utility
+.SH SYNOPSIS
+.B procris
+.RB [start|status|stop][\-h]
+.SH DESCRIPTION
+Procris is a desktop environment utility to organize windows in a stack and to operate on their focus, position, state, layout using commands bound to keys and names.
+.SH OPTIONS
+.TP
+.B start
+start Procris
+.TP
+.B stop
+stop Procris
+.TP
+.B status
+status of the running instance
+.TP
+.B \-h
+print help message
+.SH USAGE
+.SS Commands
+.TP
+.B Ctrl\-Shift\-j
+Swap the focused window with the next window
+.TP
+.B Ctrl\-Shift\-k
+Swap the focused window with the previous window
+.TP
+.B Ctrl\-q
+Prefix key, opens reading window and listen to the next input.
+.TP
+.B prefix\-w
+Move focus to the window below/right of the current one
+.TP
+.B prefix\-h
+.TP
+.B prefix\-j
+.TP
+.B prefix\-k
+.TP
+.B prefix\-l
+Change the focus to the window on the left/down/up/right side.
+.TP
+.B prefix\-H
+.TP
+.B prefix\-J
+.TP
+.B prefix\-K
+.TP
+.B prefix\-L
+Move the current window to the far left/down/up/right part of the screen.
+.TP
+.B :db[elete] {winname}
+Close window {winname} (default: current buffer)
+.TP
+.B :bd[elete] [N]
+Close window [N] (default: current buffer) and delete it from the window list
+.TP
+.B :b[uffer] {winname}
+Open window {winname}
+.TP
+.B :b[uffer] [N]
+Open window [N] from the window list
+.TP
+.B :buffers :ls
+List windows
+.TP
+.B :ce[ntralize]
+Centralize the active window
+.TP
+.B prefix\-o
+.TP
+.B :on[ly]
+Make the active window the only one on the screen.  All other windows are minimized.
+.TP
+.B :ma[ximize]
+Maximize the active window
+.TP
+.B prefix\-q
+.TP
+.B :q[uit]
+Minimize the active window
+.TP
+.B :e[dit] {appname}
+Launch {appname}
+.TP
+.B :!{cmd}
+Execute {cmd} with the shell
+.TP
+.B prefix\-esq
+.TP
+.B prefix\-ctrl\-[
+Quit procris operation and close its UI
+.SH CUSTOMIZATION
+keys and command names can be customized by providing a custom mappings module in
+.B ~/.config/procris/mappigns.py
+the interface can be customized at
+.B
+~/.config/procris/procris.cfg

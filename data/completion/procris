@@ -1,0 +1,10 @@
+_procris ()
+{
+  local cur
+  cur=${COMP_WORDS[COMP_CWORD]}
+  COMPREPLY=( $( compgen -W  'start stop status open' -- $cur ) )
+
+  return 0
+}
+
+complete -F _procris -o filenames procris

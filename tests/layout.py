@@ -1,7 +1,7 @@
 import unittest
-import poco.layout as layout
+import procris.layout as layout
 from unittest.mock import MagicMock
-from poco.layout import Layout
+from procris.layout import Layout
 
 
 class LayoutTestCase(unittest.TestCase):

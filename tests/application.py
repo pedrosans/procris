@@ -2,7 +2,7 @@ import unittest, subprocess
 from unittest.mock import patch
 from unittest.mock import MagicMock
 from gi.repository import Gio
-from poco.applications import Applications
+from procris.applications import Applications
 
 
 class ApplicationTestCase(unittest.TestCase):
