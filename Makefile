@@ -12,16 +12,17 @@ clean:
 	[ -f ${PYTHONPATH}/tags ] && rm ${PYTHONPATH}/tags && echo "	tags file - removed" || echo "	OK: no tags file"
 	[ -f ${PYTHONPATH}/procris-*.tar.gz ] && rm ${PYTHONPATH}/procris-*.tar.gz && echo "	build artifact - removed" || echo "	OK: no dist tar"
 	[ -f ${PYTHONPATH}/MANIFEST ] && rm ${PYTHONPATH}/MANIFEST && echo "	MANIFEST - removed" || echo "	OK: no MANIFEST"
-#	[ -f ${PYTHONPATH}/procris.1.gz ] && rm ${PYTHONPATH}/procris.1.gz && echo "	procris.1.gz - removed" || echo "	OK: no procris.1.gz"
 	[ -d ${PYTHONPATH}/build ] && rm -rf ${PYTHONPATH}/build && echo "	build directory - removed" || echo "	OK: no build dir"
 	[ -d ${PYTHONPATH}/deb_dist ] && rm -r ${PYTHONPATH}/deb_dist && echo "	build dependency dirs - removed" || echo "	OK: no dist deb dir"
 	[ -d ${PYTHONPATH}/dist ] && rm -r ${PYTHONPATH}/dist && echo "	source package dir - removed" || echo "	OK: no dist dir"
 	echo "	OK: package files are gone"
 #	install locally
-install:
+manual:
 	sed "s/VERSION/$(VERSION)/" procris.1 > procris.1~
 	gzip -c procris.1~ > procris.1.gz
 	rm procris.1~
+	echo "	OK: documentation updated and compressed to procris.1.gz"
+install:
 	${SETUP_SCRIPT} install --record $(PYTHONPATH)/installed_files.txt 1>/dev/null
 	echo "	OK: procris files installed"
 	update-icon-caches /usr/share/icons/* 1>/dev/null && echo "	OK: icons cache updated" || echo "	WARN: failed to update icons cache"
