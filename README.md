@@ -1,13 +1,16 @@
 # ![alt text](data/icon/procris.svg "Procris logo") Procris
 
-Procris is a desktop environment utility to organize windows in a stack and to
-operate on their focus, position, state, layout using commands bound to keys and
-names.
+Procris is a desktop environment plugin that adds tiling features from mainly dwm and Vim to the desktop environment of choice.
 
 ### Rationale
 
-Procris is an attempt to bring the most comfortable mappings and logic to work
-with windows inside (mainly) dwm and Vim to the desktop environment of choice.
+The daily work creating, organizing, navigating between windows and panes inside Vim and Tmux carry a common logic: the prefix key + command key and the prefix key + colon, to open the command prompt. The idea behind Procris is to bring this same logic to the rest of the windows being worked with, the ones in the DE itself, thus centralizing the feature "working with windows".
+
+By doing so, Procris grabs two keys in the same way they are handled by Tmux and Vim: consuming them inside their processes; which is accomplished by both grabbing the first key at the root window event handling level and the second key at the Procris window event handling itself.
+
+Besides the Vim/Tmux logic, a set of single keys are bound to windows tiling features in dwm to add the missing master/stack/layout features DE windows.
+
+Being so, the project is an attempt to bring the most comfortable mappings and logic to work with windows inside (mainly) dwm and Vim to the desktop environment of choice in a standardized way.
 
 ### Usage
 
