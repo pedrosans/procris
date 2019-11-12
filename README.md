@@ -197,7 +197,7 @@ means both an application and a window. So the bellow commands will:
 
 1. From PPA, for Ubuntu distributions
 	```bash
-	sudo add-apt-repository ppa:pedrosans/procris
+	sudo add-apt-repository ppa:pedrosans/desktop
 	sudo apt-get update
 	sudo apt-get install procris
 	```
