@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from distutils.core import setup
 
-FUNCTION_KEYS = ['', 'C', 'T', 'M']
+FUNCTION_KEYS = ['', 'T', 'M', 'C', 'B']
 
 icons = [
 	('/usr/share/icons/hicolor/symbolic', ['data/icon/procris.svg']),

@@ -106,8 +106,37 @@ def centeredmaster(stack, monitor):
 	return layout
 
 
-FUNCTIONS_MAP = {'C': centeredmaster, 'T': tile, 'M': monocle}
-FUNCTIONS_NAME_MAP = {'C': 'centeredmaster', 'T': 'tile', 'M': 'monocle'}
+def biasedstack(stack, monitor):
+	layout = []
+	oty = 0
+	n = len(stack)
+
+	mw = monitor.ww * monitor.mfact
+	mx = (monitor.ww - mw) / 2
+	my = 0
+	tw = (monitor.ww - mw) / 2
+
+	for i in range(len(stack)):
+		c = stack[i]
+		if i < monitor.nmaster:
+			# nmaster clients are stacked vertically, in the center of the screen
+			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i)
+			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
+			my += h
+		else:
+			# stack clients are stacked vertically
+			if (i - monitor.nmaster) == 0:
+				layout.append([monitor.wx, monitor.wy, tw, h])
+			else:
+				h = (monitor.wh - oty) / (n - i)
+				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
+				oty += h
+
+	return layout
+
+
+FUNCTIONS_MAP = {'M': monocle, 'T': tile, 'C': centeredmaster, 'B': biasedstack}
+FUNCTIONS_NAME_MAP = {'M': 'monocle', 'T': 'tile', 'C': 'centeredmaster', 'B': 'biasedstack'}
 
 
 # TODO: the the window is maximized, the layout function fails
@@ -116,7 +145,7 @@ class Layout:
 	def __init__(self, windows):
 		self.function_key = None
 		self.window_monitor_map = {}
-		self.gap = 10
+		self.gap = 5
 		self.windows = windows
 		self.monitor = Monitor()
 		self.windows.read_screen()

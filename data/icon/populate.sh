@@ -12,7 +12,7 @@ _export_sizes() {
 
 _export_sizes ""
 
-for LETTER in "T" "C" "M" ; do
+for LETTER in "T" "M" "C" "B" ; do
 	SVG_NAME_DIFF="-$LETTER"
 	LETTER_SVG=$DIR/procris$SVG_NAME_DIFF.svg
 	cp $DIR/procris-layout.svg $LETTER_SVG
