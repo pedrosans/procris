@@ -78,28 +78,28 @@ def centeredmaster(stack, monitor):
 	n = len(stack)
 
 	if n > monitor.nmaster:
-		mw = monitor.ww * monitor.mfact if monitor.nmaster else 0
+		mw = int(monitor.ww * monitor.mfact) if monitor.nmaster else 0
 		tw = monitor.ww - mw
 
 		if n - monitor.nmaster > 1:
-			mx = (monitor.ww - mw) / 2
-			tw = (monitor.ww - mw) / 2
+			mx = int((monitor.ww - mw) / 2)
+			tw = int((monitor.ww - mw) / 2)
 
 	for i in range(len(stack)):
 		c = stack[i]
 		if i < monitor.nmaster:
 			# nmaster clients are stacked vertically, in the center of the screen
-			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i)
+			h = int((monitor.wh - my) / (min(n, monitor.nmaster) - i))
 			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
 			my += h
 		else:
 			# stack clients are stacked vertically
 			if (i - monitor.nmaster) % 2:
-				h = (monitor.wh - ety) / int((1 + n - i) / 2)
+				h = int((monitor.wh - ety) / int((1 + n - i) / 2))
 				layout.append([monitor.wx, monitor.wy + ety, tw, h])
 				ety += h
 			else:
-				h = (monitor.wh - oty) / int((1 + n - i) / 2)
+				h = int((monitor.wh - oty) / int((1 + n - i) / 2))
 				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
 				oty += h
 
@@ -111,24 +111,23 @@ def biasedstack(stack, monitor):
 	oty = 0
 	n = len(stack)
 
-	mw = monitor.ww * monitor.mfact
-	mx = (monitor.ww - mw) / 2
+	mw = int(monitor.ww * monitor.mfact) if monitor.nmaster else 0
+	mx = tw = int((monitor.ww - mw) / 2)
 	my = 0
-	tw = (monitor.ww - mw) / 2
 
 	for i in range(len(stack)):
 		c = stack[i]
 		if i < monitor.nmaster:
 			# nmaster clients are stacked vertically, in the center of the screen
-			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i)
+			h = int((monitor.wh - my) / (min(n, monitor.nmaster) - i))
 			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
 			my += h
 		else:
 			# stack clients are stacked vertically
 			if (i - monitor.nmaster) == 0:
-				layout.append([monitor.wx, monitor.wy, tw, h])
+				layout.append([monitor.wx, monitor.wy, tw, monitor.wh])
 			else:
-				h = (monitor.wh - oty) / (n - i)
+				h = int((monitor.wh - oty) / (n - i))
 				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
 				oty += h
 
@@ -315,8 +314,10 @@ class Layout:
 			x=wa.x + self.gap, y=wa.y + self.gap, width=wa.width - self.gap * 2, height=wa.height - self.gap * 2)
 
 		arrange = FUNCTIONS_MAP[self.function_key](w_stack, self.monitor)
-
 		separation = self.gap + self.border
+
+		# map(lambda x: [x[0] + separation, x[1] + separation, x[2] - separation * 2, x[3] - separation * 2], arrange)
+
 		for i in range(len(arrange)):
 			a = arrange[i]
 			w = w_stack[i]
