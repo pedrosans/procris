@@ -114,12 +114,8 @@ class KeyboardListener:
 		print('recording thread ended')
 
 	#
-	# Thread targets
+	# xlib plugs
 	#
-	def _drop_key(self):
-		while not self.stopped:
-			self.well_connection.next_event()
-
 	def _record(self):
 		self.recording_connection.record_enable_context(self.context, self.handler)
 		self.recording_connection.record_free_context(self.context)
@@ -143,6 +139,8 @@ class KeyboardListener:
 	def _grab_keys(self, code, mask):
 		self.root.grab_key(code, mask, True, X.GrabModeAsync, X.GrabModeAsync)
 		self.root.grab_key(code, mask | X.Mod2Mask, True, X.GrabModeAsync, X.GrabModeAsync)
+		self.root.grab_key(code, mask | X.LockMask, True, X.GrabModeAsync, X.GrabModeAsync)
+		self.root.grab_key(code, mask | X.Mod2Mask | X.LockMask, True, X.GrabModeAsync, X.GrabModeAsync)
 
 	def _bind_single_accelerator(self, key):
 		gdk_keyval, code, mask = parse_accelerator(key.accelerators[0])
@@ -175,6 +173,10 @@ class KeyboardListener:
 	#
 	# Event handling
 	#
+	def _drop_key(self):
+		while not self.stopped:
+			self.well_connection.next_event()
+
 	def handler(self, reply):
 		data = reply.data
 		while len(data):
