@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, procris
 import procris.messages as messages
 import procris.names as names
+
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
@@ -38,7 +39,7 @@ HISTORY_NAVIGATION_KEYS = [Gdk.KEY_Up, Gdk.KEY_Down]
 class Reading:
 
 	def __init__(self, configurations=None, windows=None):
-		self.started = False
+		self.long = False
 		self.command_mode = False
 		self.configurations = configurations
 		self.cmd_handler_ids = []
@@ -47,29 +48,51 @@ class Reading:
 		self.completion = Completion(self)
 		self.prompt_history = PromptHistory()
 		self._create_and_install_view()
-		self.clean_state()
+		self.reset()
 		messages.clean()
 
-	def clean_state(self):
+	def _create_and_install_view(self):
+		self.view = ReadingWindow(self, self.windows)
+		self.view.connect("key-press-event", self._window_key_press_callback)
+
+	#
+	# Cycle state API
+	#
+	def begin(self, *args):
+		self.long = True
+
+	def is_transient(self):
+		return not self.long
+
+	def end(self):
+		self.long = False
+
+	#
+	# Internal state API
+	#
+	def show(self, e_time, error_message=None):
+		# TODO move to view
+		self.view.present_with_time(e_time)
+		self.view.get_window().focus(e_time)
+		if error_message:
+			messages.add(error_message, 'error')
+		self.view.update()
+
+	def reset(self):
 		self.command_mode = False
 		for handler_id in self.cmd_handler_ids:
 			self.view.colon_prompt.disconnect(handler_id)
 		self.cmd_handler_ids.clear()
 		self.completion.clean()
 
-	def _create_and_install_view(self):
-		self.view = ReadingWindow(self, self.windows)
-		self.view.connect("focus-out-event", self._focus_out_callback)
-		self.view.connect("key-press-event", self._window_key_press_callback)
+	def hide(self):
+		messages.clean()
+		self.end()
+		self.view.hide()
 
 	#
-	# PUBLIC API
+	# Command mode
 	#
-	def reload(self, e_time):
-		self.clean_state()
-		self.view.close()
-		self._create_and_install_view()
-
 	def set_command_mode(self):
 		self.command_mode = True
 
@@ -87,21 +110,18 @@ class Reading:
 	#
 	# CALLBACKS
 	#
-	def _focus_out_callback(self, widget, event):
-		self.end()
-
 	def _window_key_press_callback(self, widget, event):
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
 
 		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft):
-			self.escape(PromptInput(time=event.time, keyval=event.keyval))
+			self.hide()
 			return
 
 		if self.in_command_mode():
 			return
 
 		if event.keyval == Gdk.KEY_colon and not ctrl:
-			self.colon(PromptInput(time=event.time, keyval=event.keyval))
+			self.colon()
 			return True
 
 		if event.keyval == Gdk.KEY_Return:
@@ -113,7 +133,7 @@ class Reading:
 			return False
 
 		if not self.view.colon_prompt.get_text().strip():
-			self.clean_state()
+			self.reset()
 			self.show(Gtk.get_current_event_time())
 			return True
 
@@ -145,7 +165,7 @@ class Reading:
 
 		if self.completion.assisting:
 			shift_mask = event.state & Gdk.ModifierType.SHIFT_MASK
-			right = event.keyval in HINT_RIGHT or (event.keyval in HINT_LAUNCH_KEYS and not shift_mask )
+			right = event.keyval in HINT_RIGHT or (event.keyval in HINT_LAUNCH_KEYS and not shift_mask)
 			self.completion.cycle(1 if right else -1)
 			if len(self.completion.options) == 1:
 				self.view.clean_hints()
@@ -177,45 +197,20 @@ class Reading:
 		if name:
 			procris.service.execute(name.function, c_in)
 		else:
-			self.clean_state()
+			self.reset()
 			self.show(gtk_time, error_message='Not an editor command: ' + cmd)
 
-	# TODO: remove from here
-	def execute(self, cmd):
-		self.windows.read_screen()
-		c_in = PromptInput(time=None, text=cmd).parse()
-		name = names.match(c_in)
-		name.function(c_in)
-
 	#
-	# COMMANDS
+	# UI handlers
 	#
-	def start(self, c_in):
-		self.started = True
-		messages.clean()
-
-	def show(self, e_time, error_message=None):
-		# TODO move to view
-		self.view.present_with_time(e_time)
-		self.view.get_window().focus(e_time)
-		if error_message:
-			messages.add(error_message, 'error')
-		self.view.update()
-
-	def end(self):
-		self.started = False
-		messages.clean()
-		self.clean_state()
-		self.view.hide()
-
-	# TODO: remove from command format
-	def colon(self, c_in):
+	def colon(self):
 		self.set_command_mode()
 
 	def enter(self, c_in):
 		messages.clean()
 		self.show(c_in.time)
 
-	def escape(self, c_in):
-		self.end()
-
+	def reload(self, c_in):
+		self.reset()
+		self.view.close()
+		self._create_and_install_view()

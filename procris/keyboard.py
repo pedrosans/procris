@@ -39,7 +39,7 @@ def parse_accelerator(accelerator_string):
 	if Gdk.keyval_to_upper(gdk_keyval) != Gdk.keyval_to_lower(gdk_keyval):
 		gdk_keyval = Gdk.keyval_from_name(accelerator_string[-1])
 	code = a.accelerator_codes[0]
-	mapped_the_same, non_virtual_counterpart = Gdk.Keymap.get_default().map_virtual_modifiers(a.accelerator_mods)
+	mapped_the_same, non_virtual_counterpart = Gdk.Keymap.get_for_display(Gdk.Display.get_default()).map_virtual_modifiers(a.accelerator_mods)
 	mask = normalize_state(non_virtual_counterpart)
 	return gdk_keyval, code, mask
 

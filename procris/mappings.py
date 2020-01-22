@@ -31,7 +31,7 @@ keys = [
 	Key(['<Ctrl><Shift>k'], layout.swap_focused_with, [-1]),
 
 	# procris reading binding
-	Key([prefix_key], reading.start),
+	Key([prefix_key], reading.begin),
 
 	# Vim bindings
 	Key([prefix_key, 'q'], windows.active.minimize),

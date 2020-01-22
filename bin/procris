@@ -20,14 +20,15 @@ import argparse
 
 parser = argparse.ArgumentParser()
 commands_parser = parser.add_subparsers(help='procris sub-commands help', dest='action')
-commands_parser.add_parser('start',	help='Start procris service')
-commands_parser.add_parser('stop',	help='Stop the running procris service if any')
-commands_parser.add_parser('status',help='Show the status of procris service')
+commands_parser.add_parser('start',	 help='Start procris service')
+commands_parser.add_parser('stop',	 help='Stop the running procris service if any')
+commands_parser.add_parser('status', help='Show the status of procris service')
 
 args = parser.parse_args()
 
 if args.action == 'start':
 	import procris.service
+	procris.service.load()
 	procris.service.start()
 elif args.action == 'stop':
 	from procris.remote import RemoteInterface

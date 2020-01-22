@@ -3,11 +3,13 @@ import tests.names
 import tests.terminal
 import tests.assistant
 import tests.layout
+import tests.service
 
 test_case_classes = (tests.names.CommandInputTestCase,
                      tests.terminal.TerminalTestCase,
                      tests.assistant.AssistantTestCase,
-                     tests.layout.LayoutTestCase
+                     tests.layout.LayoutTestCase,
+                     tests.service.ServiceTestCase
                      )
 
 

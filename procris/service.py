@@ -44,40 +44,26 @@ SIGINT = getattr(signal, "SIGINT", None)
 SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP = getattr(signal, "SIGHUP", None)
 
-mappings = listener = bus_object = status_icon = None
-windows = Windows(configurations.is_list_workspaces())
-reading = Reading(configurations=configurations, windows=windows)
-layout = Layout(reading.windows,)
+mappings = listener = bus_object = status_icon = windows = reading = layout = None
 
 
-def start():
-	global listener, bus_object, status_icon
+def load():
+	global listener, bus_object, status_icon, windows, reading, layout
 
-	# as soon as possible so new instances as notified
+	# as soon as possible so new instances are notified
 	from procris.remote import BusObject
 	bus_object = BusObject(procris.service)
+
+	windows = Windows(configurations.is_list_workspaces())
+	reading = Reading(configurations=configurations, windows=windows)
+	layout = Layout(reading.windows, )
+	status_icon = StatusIcon(layout, stop_function=stop)
+	listener = KeyboardListener(callback=keyboard_listener, on_error=stop)
+
 	configure_process()
 	applications.load()
 	terminal.load()
-
-	listener = KeyboardListener(callback=keyboard_listener, on_error=stop)
-
 	load_mappings()
-
-	for name in mappings.names:
-		names.add(name)
-
-	for key in mappings.keys:
-		listener.bind(key)
-
-	listener.start()
-
-	status_icon = StatusIcon(layout, stop_function=stop)
-	status_icon.activate()
-
-	Gtk.main()
-
-	print("Ending procris service, pid: {}".format(os.getpid()))
 
 
 def load_mappings():
@@ -98,6 +84,40 @@ def load_mappings():
 		import procris.mappings as default_mappings
 		mappings = default_mappings
 
+	for name in mappings.names:
+		names.add(name)
+
+	for key in mappings.keys:
+		listener.bind(key)
+
+
+#
+# Service lifecycle API
+#
+def start():
+	listener.start()
+
+	status_icon.activate()
+
+	Gtk.main()
+
+	print("Ending procris service, pid: {}".format(os.getpid()))
+
+
+def reload(c_in):
+	configurations.reload()
+	status_icon.reload()
+	applications.reload()
+	terminal.reload()
+	messages.clean()
+	reading.reload(c_in.time)
+
+
+def stop():
+	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
+	listener.stop()
+	release_bus_object()
+
 
 def keyboard_listener(key, x_key_event, multiplier=1):
 	GLib.idle_add(
@@ -116,25 +136,15 @@ def _inside_main_loop(key, x_key_event, multiplier):
 
 def execute(function, command_input, multiplier=1):
 	try:
-		reading.clean_state()
-		windows.read_screen()
+
+		pre_processing()
 
 		for i in range(multiplier):
 			return_message = function(command_input)
 			if return_message:
 				messages.add_message(return_message)
 
-		# reload to show the current layout icon
-		status_icon.reload()
-
-		if windows.staging:
-			windows.commit_navigation(command_input.time)
-			reading.end()
-
-		if reading.started or messages.LIST:
-			reading.show(command_input.time)
-		else:
-			reading.end()
+		post_processing(command_input.time)
 
 	except Exception as inst:
 		msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
@@ -142,8 +152,35 @@ def execute(function, command_input, multiplier=1):
 		reading.show(command_input.time, error_message=msg)
 
 
+def pre_processing():
+	reading.reset()
+	windows.read_screen()
+
+
+def post_processing(time):
+	if reading.is_transient() and (messages.LIST or messages.prompt_placeholder):
+		reading.begin()
+
+	if windows.staging:
+		windows.commit_navigation(time)
+		reading.end()
+
+	if reading.is_transient():
+		reading.hide()
+		messages.clean()
+	else:
+		reading.show(time)
+		reading.end()
+
+	# reload to show the current layout icon
+	status_icon.reload()
+
+
 def message(ipc_message):
-	reading.execute(ipc_message)
+	windows.read_screen()
+	c_in = PromptInput(time=None, text=ipc_message).parse()
+	name = names.match(c_in)
+	name.function(c_in)
 	for m in messages.LIST:
 		print(m.content)
 
@@ -158,15 +195,6 @@ def configure_process():
 
 	for sig in (SIGINT, SIGTERM, SIGHUP):
 		install_glib_handler(sig)
-
-
-def reload(c_in):
-	configurations.reload()
-	status_icon.reload()
-	applications.reload()
-	terminal.reload()
-	messages.clean()
-	reading.reload(c_in.time)
 
 
 def debug(c_in):
@@ -198,12 +226,6 @@ def release_bus_object():
 	if bus_object:
 		bus_object.release()
 		bus_object = None
-
-
-def stop():
-	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
-	listener.stop()
-	release_bus_object()
 
 
 def show_warning(error):
