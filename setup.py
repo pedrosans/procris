@@ -27,7 +27,7 @@ setup(
 	url='https://github.com/pedrosans/procris',
 	classifiers=['License :: GPL3'],
 	packages=['procris'],
-	scripts=['bin/procris'],
+	scripts=['bin/procris', 'bin/procris-msg'],
 	data_files=
 	[
 		('/usr/share/bash-completion/completions/', ['data/completion/procris']),

@@ -22,10 +22,10 @@ SERVICE_NAME = "io.github.procris"
 SERVICE_OBJECT_PATH = "/io/github/procris"
 
 
-class NavigatorBusService (ExportedGObject):
+class BusObject (ExportedGObject):
 
-	def __init__(self, stop_function=None):
-		self.stop_function = stop_function
+	def __init__(self, procris_service):
+		self.procris_service = procris_service
 		self.main_loop = DBusGMainLoop(set_as_default=True)
 		dbus.mainloop.glib.threads_init()
 		self.bus = dbus.Bus()
@@ -40,15 +40,19 @@ class NavigatorBusService (ExportedGObject):
 			quit()
 
 		bus_name = dbus.service.BusName(SERVICE_NAME, self.bus)
-		super(NavigatorBusService, self).__init__(conn=self.bus, object_path=SERVICE_OBJECT_PATH, bus_name=bus_name)
+		super(BusObject, self).__init__(conn=self.bus, object_path=SERVICE_OBJECT_PATH, bus_name=bus_name)
 
 	@dbus.service.method("io.github.procris.Service", in_signature='', out_signature='s')
 	def get_id(self):
 		return str(os.getpid())
 
+	@dbus.service.method("io.github.procris.Service", in_signature='s', out_signature='')
+	def message(self, ipc_message):
+		self.procris_service.message(ipc_message)
+
 	@dbus.service.method("io.github.procris.Service", in_signature='', out_signature='')
 	def stop(self):
-		self.stop_function()
+		self.procris_service.stop()
 
 	def release(self):
 		self.bus.release_name(SERVICE_NAME)
@@ -62,22 +66,28 @@ class RemoteInterface:
 		if not self.bus:
 			print("no session")
 			quit()
+		self.service = None
+		if self.bus.name_has_owner(SERVICE_NAME):
+			self.service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
 
 	def get_status(self):
-		if self.bus.name_has_owner(SERVICE_NAME):
+		if self.service:
 			return "Active, pid: " + self.get_running_instance_id()
 		else:
 			return "Inactive"
 
+	def send_message(self, ipc_message):
+		self.service.get_dbus_method(
+			'message', 'io.github.procris.Service'
+		)(ipc_message)
+
 	def get_running_instance_id(self):
-		service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
-		get_remote_id = service.get_dbus_method('get_id', 'io.github.procris.Service')
+		get_remote_id = self.service.get_dbus_method('get_id', 'io.github.procris.Service')
 		return get_remote_id()
 
 	def stop_running_instance(self):
-		if self.bus.name_has_owner(SERVICE_NAME):
-			service = self.bus.get_object(SERVICE_NAME, SERVICE_OBJECT_PATH)
-			quit_function = service.get_dbus_method('stop', 'io.github.procris.Service')
+		if self.service:
+			quit_function = self.service.get_dbus_method('stop', 'io.github.procris.Service')
 			quit_function()
 			print("Remote instance were stopped")
 		else:

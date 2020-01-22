@@ -23,6 +23,7 @@ x11.XInitThreads()
 from Xlib import threaded
 
 import os, gi, signal, setproctitle, logging, traceback
+import procris
 import procris.names as names
 import procris.configurations as configurations
 import procris.applications as applications
@@ -32,19 +33,17 @@ import procris.terminal as terminal
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from procris.reading import Reading
-from gi.repository import GObject, Gtk, GLib, Gdk
+from gi.repository import Gtk, GLib, Gdk
 from procris.status import StatusIcon
 from procris.keyboard import KeyboardListener
 from procris.layout import Layout
 from procris.windows import Windows
 from procris.names import PromptInput
-from procris.remote import NavigatorBusService
 
 SIGINT = getattr(signal, "SIGINT", None)
 SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP = getattr(signal, "SIGHUP", None)
 
-# GObject.threads_init()
 mappings = listener = bus_object = status_icon = None
 windows = Windows(configurations.is_list_workspaces())
 reading = Reading(configurations=configurations, windows=windows)
@@ -55,7 +54,8 @@ def start():
 	global listener, bus_object, status_icon
 
 	# as soon as possible so new instances as notified
-	bus_object = NavigatorBusService(stop)
+	from procris.remote import BusObject
+	bus_object = BusObject(procris.service)
 	configure_process()
 	applications.load()
 	terminal.load()
@@ -140,6 +140,12 @@ def execute(function, command_input, multiplier=1):
 		msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
 		print(traceback.format_exc())
 		reading.show(command_input.time, error_message=msg)
+
+
+def message(ipc_message):
+	reading.execute(ipc_message)
+	for m in messages.LIST:
+		print(m.content)
 
 
 def configure_process():
