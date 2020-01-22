@@ -145,7 +145,8 @@ class Layout:
 	def __init__(self, windows):
 		self.function_key = None
 		self.window_monitor_map = {}
-		self.gap = 5
+		self.gap = 0
+		self.border = 4
 		self.windows = windows
 		self.monitor = Monitor()
 		self.windows.read_screen()
@@ -286,6 +287,14 @@ class Layout:
 		self.monitor.nmaster = min(len(self.stack), self.monitor.nmaster)
 		self.apply()
 
+	def move_stacked(self, c_in):
+		parameter = c_in.vim_command_parameter
+		array = list(map(lambda x: int(x), parameter.split()))
+		w_stack = list(filter(
+			lambda x: x is not None,
+			map(lambda xid: self.windows.visible_map[xid] if xid in self.windows.visible_map else None, self.stack)))
+		self.windows.set_geometry(w_stack[array[0]], array[1], array[2], array[3], array[4])
+
 	def apply(self):
 		state.write_layout(self.to_json())
 		self._install_state_handlers()
@@ -307,8 +316,9 @@ class Layout:
 
 		arrange = FUNCTIONS_MAP[self.function_key](w_stack, self.monitor)
 
+		separation = self.gap + self.border
 		for i in range(len(arrange)):
 			a = arrange[i]
 			w = w_stack[i]
 			self.windows.set_geometry(
-				w, x=a[0] + self.gap, y=a[1] + self.gap, w=a[2] - self.gap * 2, h=a[3] - self.gap * 2)
+				w, x=a[0] + separation, y=a[1] + separation, w=a[2] - separation * 2, h=a[3] - separation * 2)

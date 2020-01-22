@@ -69,6 +69,7 @@ names = [
 	Name('decorate', None, windows.active.decorate),
 	Name('report', None, procris.service.debug),
 	Name('move', None, windows.active.move),
+	Name('stack', None, layout.move_stacked),
 	Name('quit', 'q', windows.active.minimize),
 	Name('only', 'on', windows.active.only),
 ]
