@@ -74,10 +74,8 @@ class KeyboardListener:
 
 		self.root = self.well_connection.screen().root
 		self.root.change_attributes(event_mask=X.KeyPressMask | X.KeyReleaseMask)
-		self.modifiers_count = self.modified_count = 0
-		self.code_map = {}
-		self.composed_code_map = {}
-		self.composed_mapping_first_code = None
+		self.contextual_accelerators = self.accelerators_root = {}
+		self.accelerators_root['level'] = 0
 		self.multiplier = ''
 
 	#
@@ -86,15 +84,32 @@ class KeyboardListener:
 	def bind(self, key):
 		if self.stopped:
 			return
-		if len(key.accelerators) == 1:
-			self._bind_single_accelerator(key)
-		elif len(key.accelerators) == 2:
-			self._bind_composed_accelerator(key)
+
+		last_node = self.accelerators_root
+
+		for accelerator_string in key.accelerators:
+			gdk_key_val, code, mask = parse_accelerator(accelerator_string)
+			last_node['has_children'] = True
+
+			if (code, mask) not in last_node:
+				last_node[(code, mask)] = {}
+				last_node[(code, mask)]['has_children'] = False
+
+			child = last_node[(code, mask)]
+			child['level'] = last_node['level'] + 1
+			if child['level'] == 1:
+				self._grab_keys(code, mask)
+			last_node = child
+
+		if 'key' in last_node:
+			raise Exception('key ({}) already mapped'.format(', '.join(key.accelerators)))
+
+		last_node['key'] = key
+
 		self.well_connection.sync()
+
 		if self.stopped:
-			print(
-				'Unable to bind: {}'.format(', '.join(key.accelerators)),
-				file=sys.stderr)
+			print('Unable to bind: {}'.format(', '.join(key.accelerators)), file=sys.stderr)
 
 	def start(self):
 		self.well_connection.sync()
@@ -142,34 +157,6 @@ class KeyboardListener:
 		self.root.grab_key(code, mask | X.LockMask, True, X.GrabModeAsync, X.GrabModeAsync)
 		self.root.grab_key(code, mask | X.Mod2Mask | X.LockMask, True, X.GrabModeAsync, X.GrabModeAsync)
 
-	def _bind_single_accelerator(self, key):
-		gdk_keyval, code, mask = parse_accelerator(key.accelerators[0])
-
-		self._grab_keys(code, mask)
-
-		if code not in self.code_map:
-			self.code_map[code] = {}
-
-		self.code_map[code][mask] = key
-
-	def _bind_composed_accelerator(self, key):
-		gdk_keyval, code, mask = parse_accelerator(key.accelerators[0])
-		second_gdk_keyval, second_code, second_mask = parse_accelerator(key.accelerators[1])
-
-		self._grab_keys(code, mask)
-
-		if code not in self.composed_code_map:
-			self.composed_code_map[code] = {}
-		if mask not in self.composed_code_map[code]:
-			self.composed_code_map[code][mask] = {}
-		if second_code not in self.composed_code_map[code][mask]:
-			self.composed_code_map[code][mask][second_code] = {}
-
-		if second_mask in self.composed_code_map[code][mask][second_code]:
-			raise Exception('key ({}) already mapped'.format(', '.join(key.accelerators)))
-
-		self.composed_code_map[code][mask][second_code][second_mask] = key
-
 	#
 	# Event handling
 	#
@@ -184,12 +171,7 @@ class KeyboardListener:
 				data, self.recording_connection.display, None, None)
 
 			if event.detail in self.mod_keys_set:
-				self.modifiers_count += 1 if event.type == X.KeyPress else -1
-				self.modified_count = 0
 				continue
-
-			if self.modifiers_count:
-				self.modified_count += 1 if event.type == X.KeyPress else -1
 
 			if event.type == X.KeyPress:
 				self.handle_keypress(event)
@@ -201,29 +183,25 @@ class KeyboardListener:
 		code = event.detail
 		event.keyval = keyval  # TODO: explain
 		mask = normalize_state(event.state)
+		key_name = Gdk.keyval_name(event.keyval)
 
-		if self.composed_mapping_first_code and self.composed_mapping_first_code != (code, mask):
+		if key_name and key_name.isdigit() and self.contextual_accelerators['level'] == 1:
+			self.multiplier = self.multiplier + key_name
+			return
 
-			key_name = Gdk.keyval_name(event.keyval)
-			if not mask and key_name and key_name.isdigit():
-				self.multiplier = self.multiplier + key_name
-				return
+		if (code, mask) not in self.contextual_accelerators:
+			self.reset_key_streak()
 
-			second_code_map = self.composed_code_map[self.composed_mapping_first_code[0]][self.composed_mapping_first_code[1]]
-			if code in second_code_map and mask in second_code_map[code]:
-				multiplier_int = int(self.multiplier) if self.multiplier else 1
-				self.callback(second_code_map[code][mask], event, multiplier=multiplier_int)
+		if (code, mask) in self.contextual_accelerators:
+			multiplier_int = int(self.multiplier) if self.multiplier else 1
+			self.callback(self.contextual_accelerators[(code, mask)]['key'], event, multiplier=multiplier_int)
+			if self.contextual_accelerators[(code, mask)]['has_children']:
+				self.contextual_accelerators = self.contextual_accelerators[(code, mask)]
+			else:
+				self.reset_key_streak()
 
-			self.composed_mapping_first_code = None
-
-		elif self.modified_count == 1:
-
-			if code in self.code_map and mask in self.code_map[code]:
-				self.callback(self.code_map[code][mask], event)
-
-			if code in self.composed_code_map and mask in self.composed_code_map[code]:
-				self.composed_mapping_first_code = (code, mask)
-
+	def reset_key_streak(self):
+		self.contextual_accelerators = self.accelerators_root
 		self.multiplier = ''
 
 
