@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import ctypes
 
-x11 = ctypes.cdll.LoadLibrary('libX11.so')
+x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
 x11.XInitThreads()
 # add python lock to Xlib internals
 from Xlib import threaded
