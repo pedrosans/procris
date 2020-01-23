@@ -14,29 +14,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from procris.windows import Windows
-
-ENTER_TO_CONTINUE = 'Press ENTER or type command to continue'
-
-
-command_placeholder = None
-LIST = []
-
-
-def clean():
-	global command_placeholder
-	del LIST[:]
-	command_placeholder = '^W'
-
-
-def add(content, type):
-	add_message(Message(content, type))
-
-
-def add_message(message):
-	global command_placeholder
-	LIST.append(message)
-	command_placeholder = ENTER_TO_CONTINUE
 
 
 class Message:
@@ -45,31 +22,47 @@ class Message:
 		self.content = content
 		self.level = level
 
-	def get_content(self, size):
+	def get_content(self, size_in_chars):
 		return self.content
 
+	def get_icon(self, size_in_px):
+		return None
 
-class BufferName(Message):
 
-	def __init__(self, window, windows: Windows):
-		super().__init__(None, None)
-		self.window = window
-		self.index = 1 + windows.buffers.index(self.window)
-		self.flags = ''
-		top, below = windows.get_left_right_top_windows()
-		if self.window is top:
-			self.flags += '%a'
-		elif self.window is below:
-			self.flags = '#'
+ENTER_TO_CONTINUE = 'Press ENTER or type command to continue'
+memory = []
+prompt_placeholder = None
 
-	def get_window(self):
-		return self.window
 
-	def get_content(self, size):
-		buffer_columns = min(100, size - 3)
-		description_columns = buffer_columns - 19
-		window_name = self.window.get_name().ljust(description_columns)[:description_columns]
-		name = '{:>2} {:2} {} {:12}'.format(
-			self.index, self.flags, window_name, self.window.get_workspace().get_name().lower())
-		return name
+def add_error(content: str):
+	add(Message(content, 'error'))
+
+
+def add(message: Message):
+	global prompt_placeholder
+	memory.append(message)
+	prompt_placeholder = ENTER_TO_CONTINUE
+
+
+def clean():
+	global prompt_placeholder
+	prompt_placeholder = None
+	del memory[:]
+
+
+def is_empty():
+	return memory or prompt_placeholder
+
+
+def has_standard_output():
+	return True if memory else False
+
+
+def get():
+	return memory
+
+
+def print_to_console():
+	for m in memory:
+		print(m.content)
 

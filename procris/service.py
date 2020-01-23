@@ -55,7 +55,7 @@ def load():
 	from procris.remote import BusObject
 	bus_object = BusObject(procris.service)
 
-	windows = Windows(configurations.is_list_workspaces())
+	windows = Windows()
 	reading = Reading(windows=windows)
 	layout = Layout(reading.windows, )
 	status_icon = StatusIcon(layout, stop_function=stop)
@@ -151,9 +151,9 @@ def execute(function, command_input, multiplier=1):
 		for i in range(multiplier):
 			return_message = function(command_input)
 			if return_message:
-				messages.add_message(return_message)
+				messages.add(return_message)
 
-		if messages.LIST or messages.prompt_placeholder:
+		if messages.is_empty():
 			reading.begin(command_input.time)
 
 		if windows.staging:
@@ -165,7 +165,7 @@ def execute(function, command_input, multiplier=1):
 	except Exception as inst:
 		msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
 		print(traceback.format_exc())
-		messages.add(msg, 'error')
+		messages.add_error(msg)
 		reading.begin(command_input.time)
 
 
@@ -190,8 +190,7 @@ def message(ipc_message):
 	c_in = PromptInput(time=None, text=ipc_message).parse()
 	name = names.match(c_in)
 	name.function(c_in)
-	for m in messages.LIST:
-		print(m.content)
+	messages.print_to_console()
 
 
 def configure_process():

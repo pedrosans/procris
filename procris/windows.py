@@ -19,6 +19,7 @@ import gi, os, re
 import procris.messages as messages
 import procris.configurations as configurations
 import procris.state as state
+
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 from typing import List
@@ -106,8 +107,7 @@ def sort_column(w):
 
 class Windows:
 
-	def __init__(self, list_workspaces=False):
-		self.list_workspaces = list_workspaces
+	def __init__(self):
 		self.active = Active(windows=self)
 		Wnck.set_client_type(Wnck.ClientType.PAGER)
 		self.staging = False
@@ -144,7 +144,7 @@ class Windows:
 			if wnck_window.is_skip_tasklist():
 				continue
 			in_active_workspace = wnck_window.is_in_viewport(active_workspace)
-			if in_active_workspace or self.list_workspaces:
+			if in_active_workspace or configurations.is_list_workspaces():
 				self.buffers.append(wnck_window)
 			if in_active_workspace and not wnck_window.is_minimized():
 				self.visible.append(wnck_window)
@@ -243,8 +243,9 @@ class Windows:
 	# COMMANDS
 	#
 	def list(self, c_in):
+		from procris.view import BufferName
 		for window in self.buffers:
-			messages.add_message(messages.BufferName(window, self))
+			messages.add(BufferName(window, self))
 
 	def activate(self, c_in):
 		buffer_number_match = re.match(r'^\s*(buffer|b)\s*([0-9]+)\s*$', c_in.text)

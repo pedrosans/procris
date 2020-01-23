@@ -18,8 +18,17 @@ import gi, io
 import procris.messages as messages
 import procris.configurations as configurations
 gi.require_version('Gtk', '3.0')
+gi.require_version('Wnck', '3.0')
+from gi.repository import Wnck
 from gi.repository import Gtk, Gdk, Pango, GLib
-from procris.messages import BufferName
+from procris.windows import Windows
+
+
+def create_icon_image(window: Wnck.Window, size):
+	icon = Gtk.Image()
+	icon.set_from_pixbuf(window.get_mini_icon() if size < 14 else window.get_icon())
+	icon.get_style_context().add_class('application-icon')
+	return icon
 
 
 # TODO show 'no name' active buffer if no active window at the buffers LIST
@@ -71,7 +80,7 @@ class ReadingWindow(Gtk.Window):
 
 	def clean_completions(self):
 		self.completions_line.clear_status_line()
-		if not messages.LIST:
+		if not messages.has_standard_output():
 			self.completions_line.add_status_text(' ', False)
 		self.completions_line.show_all()
 
@@ -104,7 +113,7 @@ class ReadingWindow(Gtk.Window):
 
 		self._render_command_line()
 
-		if not messages.LIST and not self.controller.in_command_mode():
+		if not messages.has_standard_output() and not self.controller.in_command_mode():
 			self.list_navigation_windows()
 
 		self.v_box.show_all()
@@ -124,13 +133,12 @@ class ReadingWindow(Gtk.Window):
 			self.completions_line.add_status_text(' ', False)
 
 	def show_messages(self):
-		for message in messages.LIST:
+		for message in messages.get():
 			line = Gtk.HBox(homogeneous=False)
 			self.messages_box.pack_start(line, expand=False, fill=True, padding=0)
 
-			if isinstance(message, BufferName):
-				icon = self.create_icon_image(message.get_window())
-				line.pack_start(icon, expand=False, fill=True, padding=0)
+			if message.get_icon(self.char_size):
+				line.pack_start(message.get_icon(self.char_size), expand=False, fill=True, padding=0)
 
 			label = Gtk.Label(message.get_content(self.columns))
 			label.set_valign(Gtk.Align.END)
@@ -148,7 +156,7 @@ class ReadingWindow(Gtk.Window):
 			self.colon_prompt.set_text(':')
 			self.colon_prompt.set_position(-1)
 		else:
-			self.colon_prompt.set_text(messages.command_placeholder)
+			self.colon_prompt.set_text(messages.prompt_placeholder if messages.prompt_placeholder else '')
 			self.colon_prompt.hide()
 			self.colon_prompt.show()  # cause entry to lose focus
 			self.colon_prompt.set_can_focus(False)
@@ -191,7 +199,7 @@ class ReadingWindow(Gtk.Window):
 
 		if self.get_gravity() == Gdk.Gravity.SOUTH_WEST:
 			midy += hei
-		#print('m1: h {} y {} hei {}'.format(geo.height, geo.y, hei))
+		# print('m1: h {} y {} hei {}'.format(geo.height, geo.y, hei))
 		self.move(midx, midy)
 
 	def _get_monitor_geometry(self):
@@ -220,12 +228,6 @@ class ReadingWindow(Gtk.Window):
 		provider = Gtk.CssProvider()
 		provider.load_from_data(css)
 		Gtk.StyleContext.add_provider_for_screen(self.get_screen(), provider, Gtk.STYLE_PROVIDER_PRIORITY_APPLICATION)
-
-	def create_icon_image(self, window):
-		icon = Gtk.Image()
-		icon.set_from_pixbuf(window.get_mini_icon() if self.char_size < 14 else window.get_icon())
-		icon.get_style_context().add_class('application-icon')
-		return icon
 
 
 class CompletionsLine(Gtk.Box):
@@ -256,7 +258,7 @@ class CompletionsLine(Gtk.Box):
 	def add_status_icon(self, window, selected):
 		if self.page_items + 2 > self.page_size:
 			return
-		icon = self.view.create_icon_image(window)
+		icon = create_icon_image(window, self.view.char_size)
 		icon.get_style_context().add_class('status-application-icon')
 		if selected:
 			icon.get_style_context().add_class('hint-selection')
@@ -288,6 +290,31 @@ class CompletionsLine(Gtk.Box):
 				self.add_status_text(' ' * (self.page_size - 3), False)
 
 		self.show_all()
+
+
+class BufferName(messages.Message):
+
+	def __init__(self, window: Wnck.Window, windows: Windows):
+		super().__init__(None, None)
+		self.window = window
+		self.index = 1 + windows.buffers.index(self.window)
+		self.flags = ''
+		top, below = windows.get_left_right_top_windows()
+		if self.window is top:
+			self.flags += '%a'
+		elif self.window is below:
+			self.flags = '#'
+
+	def get_icon(self, size):
+		return create_icon_image(self.window, size)
+
+	def get_content(self, size):
+		buffer_columns = min(100, size - 3)
+		description_columns = buffer_columns - 19
+		window_name = self.window.get_name().ljust(description_columns)[:description_columns]
+		name = '{:>2} {:2} {} {:12}'.format(
+			self.index, self.flags, window_name, self.window.get_workspace().get_name().lower())
+		return name
 
 
 GTK_3_18_CSS = b"""

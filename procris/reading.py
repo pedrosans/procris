@@ -194,7 +194,7 @@ class Reading:
 		if name:
 			procris.service.execute(name.function, c_in)
 		else:
-			messages.add('Not an editor command: ' + cmd, 'error')
+			messages.add_error('Not an editor command: ' + cmd)
 			self.begin(gtk_time)
 
 	#
