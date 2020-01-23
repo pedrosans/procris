@@ -18,37 +18,24 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, os, re
 import procris.messages as messages
 import procris.configurations as configurations
-import procris.state as state
+from procris import decoration
 
 gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck, GdkX11, Gdk
+from gi.repository import Wnck, Gdk
 from typing import List
 from procris.names import PromptInput
+from procris.wm import gdk_window_for, monitor_work_area_for, decoration_size_for, set_geometry, resize
+from procris.decoration import DECORATION_MAP
 
 
 class Axis:
+	position_mask: Wnck.WindowMoveResizeMask
+	size_mask: Wnck.WindowMoveResizeMask
+
 	def __init__(self, position_mask, size_mask):
 		self.position_mask = position_mask
 		self.size_mask = size_mask
 
-
-"""
-ALL - all decorations should be applied.
-BORDER - a frame should be drawn around the window.
-MAXIMIZE - a maximize button should be included.
-MENU - a button for opening a menu should be included.
-MINIMIZE - a minimize button should be included.
-RESIZEH - the frame should have resize handles.
-TITLE - a titlebar should be placed above the window.
-"""
-DECORATION_MAP = {'ALL': Gdk.WMDecoration.ALL,
-					'BORDER': Gdk.WMDecoration.BORDER,
-					'MAXIMIZE': Gdk.WMDecoration.MAXIMIZE,
-					'MENU': Gdk.WMDecoration.MENU,
-					'MINIMIZE ': Gdk.WMDecoration.MINIMIZE,
-					'RESIZEH': Gdk.WMDecoration.RESIZEH,
-					'TITLE': Gdk.WMDecoration.TITLE,
-					'NONE': 0}
 
 INCREMENT = 0.1
 DECREMENT = -0.1
@@ -57,42 +44,7 @@ VERTICAL = Axis(Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
 HORIZONTAL = Axis(Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
 HORIZONTAL.perpendicular_axis = VERTICAL
 VERTICAL.perpendicular_axis = HORIZONTAL
-X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH |\
-							Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
 STRETCH = 1000
-
-
-def gdk_window_for(window):
-	display = GdkX11.X11Display.get_default()
-	xid = window.get_xid()
-	return GdkX11.X11Window.foreign_new_for_display(display, xid)
-
-
-def monitor_work_area_for(window):
-	gdk_window = gdk_window_for(window)
-	gdk_display = gdk_window.get_display()
-	gdk_monitor = gdk_display.get_monitor_at_window(gdk_window)
-	return gdk_monitor.get_workarea()
-
-
-def decoration_size_for(window):
-	gdk_w = gdk_window_for(window)
-	is_decorated, decorations = gdk_w.get_decorations()
-	x, y, w, h = window.get_geometry()
-	cx, cy, cw, ch = window.get_client_window_geometry()
-	decoration_width = cx - x
-	decoration_height = cy - y
-
-	return is_decorated, decorations, decoration_width, decoration_height
-
-
-def unsnap(window):
-	if window.is_maximized():
-		window.unmaximize()
-	if window.is_maximized_horizontally():
-		window.unmaximize_horizontally()
-	if window.is_maximized_vertically():
-		window.unmaximize_vertically()
 
 
 def sort_line(w):
@@ -161,14 +113,6 @@ class Windows:
 				self.active.xid = stacked.get_xid()
 				break
 
-	def clear_state(self):
-		self.screen = None
-		self.active.clean()
-		self.visible =[]
-		self.buffers =[]
-		self.line = None
-		self.column = None
-
 	#
 	# API
 	#
@@ -186,43 +130,11 @@ class Windows:
 		self.buffers.remove(window)
 		self.update_active()
 
-	#
-	# Decoration
-	#
 	def apply_decoration_config(self):
 		if configurations.is_remove_decorations():
-			self.remove_decorations()
+			decoration.remove_decorations(self.buffers)
 		else:
-			self.restore_decorations()
-
-	def remove_decorations(self):
-		decoration_map = state.read_decorations()
-
-		for w in self.buffers:
-
-			key = str(w.get_xid())
-			gdk_w = gdk_window_for(w)
-
-			is_decorated, decorations = gdk_w.get_decorations()
-			has_title = Gdk.WMDecoration.TITLE & decorations or Gdk.WMDecoration.ALL & decorations
-			ssd = not is_decorated and not decorations
-
-			if has_title or ssd:
-				if key not in decoration_map:
-					decoration_map[key] = decorations if not ssd else Gdk.WMDecoration.ALL
-				gdk_w.set_decorations(Gdk.WMDecoration.BORDER)
-
-		for key in list(decoration_map.keys()):
-			if key not in map(lambda x: str(x.get_xid()), self.buffers):
-				del decoration_map[key]
-
-		state.write_decorations(decoration_map)
-
-	def restore_decorations(self):
-		original_decorations = state.read_decorations()
-		for w in self.buffers:
-			if str(w.get_xid()) in original_decorations:
-				gdk_window_for(w).set_decorations(Gdk.WMDecoration(original_decorations[str(w.get_xid())]))
+			decoration.restore_decorations(self.buffers)
 
 	#
 	# Query API
@@ -237,10 +149,6 @@ class Windows:
 		names = map(lambda x: x.get_name().strip(), self.buffers)
 		filtered = filter(lambda x: name.lower().strip() in x.lower(), names)
 		return list(filtered)
-
-	def complete_decoration_name(self, c_in: PromptInput):
-		option_name = c_in.vim_command_parameter
-		return list(filter(lambda x: x.lower().startswith(option_name.lower().strip()), DECORATION_MAP.keys()))
 
 	#
 	# COMMANDS
@@ -317,57 +225,6 @@ class Windows:
 		else:
 			return top, below
 
-	def snap_active_window(self, axis, position):
-		self.move_on_axis(self.active.get_wnck_window(), axis, position, 0.5)
-
-	def move_on_axis(self, window, axis, position, proportion):
-		if axis == HORIZONTAL:
-			self.resize(window, position, 0, proportion, 1)
-		else:
-			self.resize(window, 0, position, 1, proportion)
-
-	def resize(self, window, x_ratio, y_ratio, width_ratio, height_ratio):
-		"""
-		Moves the window base on the parameter geometry : screen ratio
-		"""
-		unsnap(window)
-		work_area = monitor_work_area_for(window)
-
-		new_x = int(work_area.width * x_ratio) + work_area.x
-		new_y = int(work_area.height * y_ratio) + work_area.y
-		new_width = int(work_area.width * width_ratio)
-		new_height = int(work_area.height * height_ratio)
-
-		self.set_geometry(window, x=new_x, y=new_y, w=new_width, h=new_height)
-		self.staging = True
-
-	def move_to(self, to_x, to_y):
-		work_area = monitor_work_area_for(self.active.get_wnck_window())
-		x = to_x + work_area.x
-		y = to_y + work_area.y
-		self.set_geometry(self.active.get_wnck_window(), x=x, y=y)
-		self.staging = True
-
-	def set_geometry(self, window, x=None, y=None, w=None, h=None):
-		if not w and not h:
-			geometry = window.get_geometry()
-			w = geometry.widthp
-			h = geometry.heightp
-
-		is_decorated, decorations, decoration_width, decoration_height = decoration_size_for(window)
-		has_title = Gdk.WMDecoration.TITLE & decorations or Gdk.WMDecoration.ALL & decorations
-
-		if is_decorated and not has_title and decoration_width >= 0 and decoration_height >= 0:
-			x -= decoration_width
-			y -= decoration_height
-			w += decoration_width
-			h += decoration_height
-
-		# print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
-		# print("window: x={} y={} width={} height={}".format(x, y, w, h))
-
-		window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
-
 	#
 	# Internal API
 	#
@@ -433,32 +290,49 @@ class Active:
 			self.windows.staging = True
 
 	def move_right(self, c_in):
-		self.windows.snap_active_window(HORIZONTAL, 0.5)
+		self._snap_active_window(HORIZONTAL, 0.5)
 
 	def move_left(self, c_in):
-		self.windows.snap_active_window(HORIZONTAL, 0)
+		self._snap_active_window(HORIZONTAL, 0)
 
 	def move_up(self, c_in):
-		self.windows.snap_active_window(VERTICAL, 0)
+		self._snap_active_window(VERTICAL, 0)
 
 	def move_down(self, c_in):
-		self.windows.snap_active_window(VERTICAL, 0.5)
+		self._snap_active_window(VERTICAL, 0.5)
+
+	def _snap_active_window(self, axis, position):
+		self._move_on_axis(self.get_wnck_window(), axis, position, 0.5)
+
+	def _move_on_axis(self, window, axis, position, proportion):
+		if axis == HORIZONTAL:
+			resize(window, l=position, t=0, w=proportion, h=1)
+		else:
+			resize(window, l=0, t=position, w=1, h=proportion)
+		self.windows.staging = True
 
 	def centralize(self, c_in):
-		self.windows.resize(self.get_wnck_window(), 0.1, 0.1, 0.8, 0.8)
+		resize(self.get_wnck_window(), l=0.1, t=0.1, w=0.8, h=0.8)
+		self.windows.staging = True
 
 	def decorate(self, c_in):
 		decoration_parameter = c_in.vim_command_parameter
 		if decoration_parameter in DECORATION_MAP.keys():
-			decoration = DECORATION_MAP[decoration_parameter]
+			opt = DECORATION_MAP[decoration_parameter]
 		gdk_window = gdk_window_for(self.get_wnck_window())
-		gdk_window.set_decorations(decoration)
+		gdk_window.set_decorations(opt)
 		self.windows.staging = True
 
 	def move(self, c_in):
 		parameter = c_in.vim_command_parameter
 		parameter_a = parameter.split()
-		self.windows.move_to(int(parameter_a[0]), int(parameter_a[1]))
+		to_x = int(parameter_a[0])
+		to_y = int(parameter_a[1])
+		work_area = monitor_work_area_for(self.get_wnck_window())
+		x = to_x + work_area.x
+		y = to_y + work_area.y
+		set_geometry(self.get_wnck_window(), x=x, y=y)
+		self.windows.staging = True
 
 
 class Focus:

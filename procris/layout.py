@@ -18,7 +18,8 @@ import gi, os
 import procris.state as state
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GLib, Gdk
-from procris.windows import monitor_work_area_for
+from procris.windows import Windows
+from procris.wm import monitor_work_area_for, set_geometry
 
 
 class Monitor:
@@ -140,6 +141,7 @@ FUNCTIONS_NAME_MAP = {'M': 'monocle', 'T': 'tile', 'C': 'centeredmaster', 'B': '
 
 # TODO: the the window is maximized, the layout function fails
 class Layout:
+	window: Windows
 
 	def __init__(self, windows):
 		self.function_key = None
@@ -291,7 +293,7 @@ class Layout:
 		w_stack = list(filter(
 			lambda x: x is not None,
 			map(lambda xid: self.windows.visible_map[xid] if xid in self.windows.visible_map else None, self.stack)))
-		self.windows.set_geometry(w_stack[array[0]], array[1], array[2], array[3], array[4])
+		set_geometry(w_stack[array[0]], array[1], array[2], array[3], array[4])
 
 	def apply(self):
 		state.write_layout(self.to_json())
@@ -320,5 +322,5 @@ class Layout:
 		for i in range(len(arrange)):
 			a = arrange[i]
 			w = w_stack[i]
-			self.windows.set_geometry(
+			set_geometry(
 				w, x=a[0] + separation, y=a[1] + separation, w=a[2] - separation * 2, h=a[3] - separation * 2)
