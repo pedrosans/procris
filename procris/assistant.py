@@ -14,9 +14,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import re
 import procris.names as names
-import procris.applications as applications
-import procris.terminal as terminal
 import procris.configurations as configurations
 from procris.names import Name
 
@@ -44,22 +43,29 @@ class Completion:
 	def search_for(self, c_in):
 		self.original_input = c_in
 		self.index = -1
-		name: Name = names.match(c_in)
-		parameter_completions = name.complete(c_in) if name and name.complete else None
-		self.options = parameter_completions if parameter_completions is not None else names.completions_for(c_in)
+		if c_in.vim_command_parameter or c_in.vim_command == '!' or c_in.vim_command_spacer:
+			name: Name = names.match(c_in)
+			self.options = name.complete(c_in) if name and name.complete else None
+		else:
+			self.options = names.completions_for(c_in)
 		self.assisting = self.options and len(self.options) > 0
 
 	def mount_input(self):
-		i = self.index
-		o_in = self.original_input
-		if i == -1:
-			return o_in.text
-		elif o_in.terminal_command_spacer:
-			return o_in.mount_vim_command() + o_in.terminal_command + o_in.terminal_command_spacer + self.options[i]
-		elif o_in.vim_command_spacer or o_in.vim_command == '!':
-			return o_in.mount_vim_command() + self.options[i]
+		if self.index == -1:
+			return self.original_input.text
 		else:
-			return o_in.colon_spacer + self.options[i]
+			prompt = self.original_input.text
+			completion = self.options[self.index]
+			for i in range(len(prompt)):
+				for j in range(len(completion)):
+					if completion[j] != prompt[i + j]:
+						break
+					if j + 1 == len(completion) or i + j + 1 == len(prompt):
+						return prompt[:i] + completion
+			if prompt[-1].isspace() or (prompt.strip() == '!'):
+				return prompt + completion
+			else:
+				return re.sub(r'[^\s]+$', completion, prompt)
 
 	def cycle(self, direction):
 		if len(self.options) == 1:

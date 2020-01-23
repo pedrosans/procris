@@ -37,4 +37,4 @@ class TerminalTestCase(unittest.TestCase):
 		terminal.query_command_parameters = lambda x: ['bar']
 		self.assertEqual(
 			['bar'],
-			terminal.list_completions(PromptInput(text='!foo ').parse()))
+			terminal.complete(PromptInput(text='!foo ').parse()))

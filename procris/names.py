@@ -23,44 +23,6 @@ ALIAS_MAP = {}
 MULTIPLE_COMMANDS_PATTERN = re.compile(r'.*[^\\]\|.*')
 
 
-def add(name):
-	LIST.append(name)
-	NAME_MAP[name.name] = name
-	ALIAS_MAP[name.alias] = name
-
-
-def completions_for(c_in):
-	user_input = c_in.vim_command
-	filtered = filter(lambda n: n.startswith(user_input) if user_input else True, NAME_MAP.keys())
-	return sorted(list(set(filtered)))
-
-
-def has_multiple_names(command_input):
-	return MULTIPLE_COMMANDS_PATTERN.match(command_input)
-
-
-def match(command_input):
-	vim_command = command_input.vim_command
-	"""
-	Returns matching command function if any
-	"""
-	if vim_command in NAME_MAP.keys():
-		return NAME_MAP[vim_command]
-	elif vim_command in ALIAS_MAP.keys():
-		return ALIAS_MAP[vim_command]
-
-	return None
-
-
-class Name:
-
-	def __init__(self, name, alias, function, *parameters):
-		self.name = name
-		self.alias = alias
-		self.function = function
-		self.complete = parameters[0] if parameters else None
-
-
 class PromptInput:
 
 	def __init__(self, time=None, text=None, keyval=None, parameters=None):
@@ -96,7 +58,7 @@ class PromptInput:
 
 		if self.vim_command == '!' and self.vim_command_parameter:
 			grouped_terminal_command = re.match(r'^(\w+)(\s*)(.*)', self.vim_command_parameter)
-			self.terminal_command = grouped_terminal_command.group(1)
+			self.terminal_command = grouped_terminal_command.group(1)  # TODO: AttributeError: 'NoneType' object has no attribute 'group'
 			self.terminal_command_spacer = grouped_terminal_command.group(2)
 			self.terminal_command_parameter = grouped_terminal_command.group(3)
 
@@ -113,6 +75,45 @@ class PromptInput:
 		print('tc ::{}::'.format(self.terminal_command))
 		print('tcs::{}::'.format(self.terminal_command_spacer))
 		print('tcp::{}::'.format(self.terminal_command_parameter))
+
+
+def add(name):
+	LIST.append(name)
+	NAME_MAP[name.name] = name
+	ALIAS_MAP[name.alias] = name
+
+
+def completions_for(c_in: PromptInput):
+	user_input = c_in.vim_command
+	filtered = filter(lambda n: n.startswith(user_input) if user_input else True, NAME_MAP.keys())
+	filtered = filter(lambda n: n != user_input, filtered)
+	return sorted(list(set(filtered)))
+
+
+def has_multiple_names(command_input):
+	return MULTIPLE_COMMANDS_PATTERN.match(command_input)
+
+
+def match(command_input):
+	vim_command = command_input.vim_command
+	"""
+	Returns matching command function if any
+	"""
+	if vim_command in NAME_MAP.keys():
+		return NAME_MAP[vim_command]
+	elif vim_command in ALIAS_MAP.keys():
+		return ALIAS_MAP[vim_command]
+
+	return None
+
+
+class Name:
+
+	def __init__(self, name, alias, function, *parameters):
+		self.name = name
+		self.alias = alias
+		self.function = function
+		self.complete = parameters[0] if parameters else None
 
 
 class PromptHistory:

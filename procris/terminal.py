@@ -87,7 +87,9 @@ def query_command_parameters(c_in):
 	proc = subprocess.Popen(cmd, executable='bash', shell=True, stdin=PIPE, stdout=PIPE)
 	completions = proc.communicate()[0].decode('utf-8')
 	completions = map(lambda x: x.strip(), completions.splitlines())
-	completions = filter(lambda x: x.startswith(c_in.terminal_command_parameter), completions)
+	# TODO: filter out matching completion
+	if not c_in.text[-1].isspace():
+		completions = filter(lambda x: x.startswith(c_in.text.split()[-1]), completions)
 	return sorted(list(set(completions)))
 
 
