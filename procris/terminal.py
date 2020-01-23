@@ -113,12 +113,12 @@ def bang(c_in):
 	return messages.Message('Command executed successfully with no return.', None)
 
 
-def execute(cmd):
+def execute(cmd, timeout=3):
 	if cmd in ALIASES_MAP.keys():
 		cmd = ALIASES_MAP[cmd]
 	try:
 		process = subprocess.Popen(shlex.split(cmd), stdout=PIPE, stderr=PIPE)
-		stdout, stderr = process.communicate(timeout=3)
+		stdout, stderr = process.communicate(timeout=timeout)
 		if stdout:
 			stdout = stdout.decode('utf-8')
 		if stderr:
@@ -131,8 +131,6 @@ def execute(cmd):
 		return None, 'Error ({}) running command: {}'.format(str(e), cmd)
 
 
-LIST_ALIASE = """
-"""
 #
 # Author: Brian Beffa <brbsix@gmail.com>
 # Original source: https://brbsix.github.io/2015/11/29/accessing-tab-completion-programmatically-in-bash/

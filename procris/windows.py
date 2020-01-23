@@ -18,11 +18,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, os, re
 import procris.messages as messages
 import procris.configurations as configurations
+import procris.scratchpads as scratchpads
 from procris import decoration
 
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
-from typing import List
+from typing import List, Dict, Callable
 from procris.names import PromptInput
 from procris.wm import gdk_window_for, monitor_work_area_for, decoration_size_for, set_geometry, resize
 from procris.decoration import DECORATION_MAP
@@ -98,12 +99,15 @@ class Windows:
 			in_active_workspace = wnck_window.is_in_viewport(active_workspace)
 			if in_active_workspace or configurations.is_list_workspaces():
 				self.buffers.append(wnck_window)
-			if in_active_workspace and not wnck_window.is_minimized():
+			if (
+					in_active_workspace
+					and not wnck_window.is_minimized()
+					and wnck_window.get_name() not in scratchpads.names()):
 				self.visible.append(wnck_window)
 				self.visible_map[wnck_window.get_xid()] = wnck_window
 
 		self.update_active()
-		self.line = sorted(list(self.visible), key=sort_line)
+		self.line   = sorted(list(self.visible), key=sort_line  )
 		self.column = sorted(list(self.visible), key=sort_column)
 
 	def update_active(self):

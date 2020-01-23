@@ -16,6 +16,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, os
 import procris.state as state
+from procris import scratchpads, wm
+
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GLib, Gdk
 from procris.windows import Windows
@@ -231,13 +233,17 @@ class Layout:
 
 	def _window_opened(self, screen, window):
 		if self.windows.is_visible(window):
-			self.stack.insert(0, window.get_xid())
+			if window.get_name() in scratchpads.names():
+				scratchpad = scratchpads.get(window.get_name())
+				wm.resize(window, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
+			else:
+				self.stack.insert(0, window.get_xid())
 			self.windows.read_screen(force_update=False)
 			self.windows.apply_decoration_config()
 			self.apply()
 
 	def _state_changed(self, window, changed_mask, new_state):
-		if changed_mask & Wnck.WindowState.MINIMIZED:
+		if changed_mask & Wnck.WindowState.MINIMIZED and window.get_name() not in scratchpads.names():
 			if self.windows.is_visible(window):
 				self.stack.insert(0, window.get_xid())
 			else:
