@@ -96,10 +96,11 @@ def load_mappings():
 # Service lifecycle API
 #
 def start():
+
+	layout.apply()
+	windows.apply_decoration_config()
 	listener.start()
-
 	status_icon.activate()
-
 	Gtk.main()
 
 	print("Ending procris service, pid: {}".format(os.getpid()))
@@ -120,6 +121,8 @@ def reload(c_in):
 	terminal.reload()
 	messages.clean()
 	reading.clean(recreate_view=True)
+	windows.read_screen()
+	windows.apply_decoration_config()
 
 
 def stop():

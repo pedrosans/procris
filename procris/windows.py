@@ -186,6 +186,9 @@ class Windows:
 		self.buffers.remove(window)
 		self.update_active()
 
+	#
+	# Decoration
+	#
 	def apply_decoration_config(self):
 		if configurations.is_remove_decorations():
 			self.remove_decorations()

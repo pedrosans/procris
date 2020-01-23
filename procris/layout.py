@@ -158,10 +158,9 @@ class Layout:
 		except KeyError as e:
 			print('can not load last state, there is a unknown key in the json')
 
-		self._install_state_handlers()
+		self._install_present_window_handlers()
 		self.windows.screen.connect("window-opened", self._window_opened)
 		self.windows.screen.connect("window-closed", self._window_closed)
-		self.apply()
 
 	def from_json(self, json):
 		if not json:
@@ -199,7 +198,7 @@ class Layout:
 	#
 	# INTERNAL INTERFACE
 	#
-	def _install_state_handlers(self):
+	def _install_present_window_handlers(self):
 		for window in self.windows.buffers:
 			if window.get_xid() not in self.window_monitor_map:
 				handler_id = window.connect("state-changed", self._state_changed)
@@ -296,7 +295,7 @@ class Layout:
 
 	def apply(self):
 		state.write_layout(self.to_json())
-		self._install_state_handlers()
+		self._install_present_window_handlers()
 
 		if not self.function_key:
 			return
