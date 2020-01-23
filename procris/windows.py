@@ -19,9 +19,10 @@ import gi, os, re
 import procris.messages as messages
 import procris.configurations as configurations
 import procris.state as state
-
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
+from typing import List
+from procris.names import PromptInput
 
 
 class Axis:
@@ -93,15 +94,24 @@ def unsnap(window):
 		window.unmaximize_vertically()
 
 
+def sort_line(w):
+	geometry = w.get_geometry()
+	return geometry.xp * STRETCH + geometry.yp
+
+
+def sort_column(w):
+	geometry = w.get_geometry()
+	return geometry.yp * STRETCH + geometry.xp
+
+
 class Windows:
 
 	def __init__(self, list_workspaces=False):
 		self.list_workspaces = list_workspaces
 		self.active = Active(windows=self)
-		self.focus = Focus(windows=self)
 		Wnck.set_client_type(Wnck.ClientType.PAGER)
 		self.staging = False
-		self.visible = []
+		self.visible: List[Wnck.Window] = []
 		self.visible_map = {}
 		self.buffers = []
 		self.screen = None
@@ -141,22 +151,15 @@ class Windows:
 				self.visible_map[wnck_window.get_xid()] = wnck_window
 
 		self.update_active()
-		self.line = sorted(list(self.visible), key=self.sort_line)
-		self.column = sorted(list(self.visible), key=self.sort_column)
+		self.line = sorted(list(self.visible), key=sort_line)
+		self.column = sorted(list(self.visible), key=sort_column)
 
 	def update_active(self):
+		self.active.xid = None
 		for stacked in reversed(self.screen.get_windows_stacked()):
-			if stacked in self.visible:
+			if stacked in self.visible and self.is_visible(stacked):
 				self.active.xid = stacked.get_xid()
 				break
-
-	def sort_line(self, w):
-		geometry = w.get_geometry()
-		return geometry.xp * STRETCH + geometry.yp
-
-	def sort_column(self, w):
-		geometry = w.get_geometry()
-		return geometry.yp * STRETCH + geometry.xp
 
 	def clear_state(self):
 		self.screen = None
@@ -173,7 +176,7 @@ class Windows:
 		"""
 		Commits any staged change in the active window
 		"""
-		if self.staging:
+		if self.staging and self.active.xid:
 			self.active.get_wnck_window().activate_transient(event_time)
 			self.staging = False
 
@@ -224,12 +227,16 @@ class Windows:
 	def find_by_name(self, name):
 		return next((w for w in self.buffers if name.lower().strip() in w.get_name().lower()), None)
 
-	def list_completions(self, name):
+	def complete_window_name(self, c_in: PromptInput):
+		if not c_in.vim_command_spacer:
+			return None
+		name = c_in.vim_command_parameter
 		names = map(lambda x: x.get_name().strip(), self.buffers)
 		filtered = filter(lambda x: name.lower().strip() in x.lower(), names)
 		return list(filtered)
 
-	def decoration_options_for(self, option_name):
+	def complete_decoration_name(self, c_in: PromptInput):
+		option_name = c_in.vim_command_parameter
 		return list(filter(lambda x: x.lower().startswith(option_name.lower().strip()), DECORATION_MAP.keys()))
 
 	#
@@ -364,7 +371,6 @@ class Windows:
 		resume = ''
 		for wn in self.buffers:
 			gdk_w = gdk_window_for(wn)
-			is_decorated, decorations = gdk_w.get_decorations()
 			x, y, w, h = wn.get_geometry()
 			cx, cy, cw, ch = wn.get_client_window_geometry()
 			is_decorated, decorations, decoration_width, decoration_height = decoration_size_for(wn)
@@ -382,9 +388,12 @@ class Windows:
 
 class Active:
 
+	windows: Windows = None
+
 	def __init__(self, windows=None):
 		self.windows = windows
 		self.xid = None
+		self.focus = Focus(windows=windows, active=self)
 
 	def get_wnck_window(self):
 		for w in self.windows.buffers:
@@ -450,9 +459,12 @@ class Active:
 
 class Focus:
 
-	def __init__(self, windows=None):
+	windows: Windows = None
+	active: Active = None
+
+	def __init__(self, windows=None, active=None):
 		self.windows = windows
-		self.active = windows.active
+		self.active = active
 
 	def move_right(self, c_in):
 		self.move(1, HORIZONTAL)

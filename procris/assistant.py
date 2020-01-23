@@ -17,29 +17,14 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import procris.names as names
 import procris.applications as applications
 import procris.terminal as terminal
-
-
-def completions_for(c_in, reading):
-	if c_in.vim_command == '!':
-		return terminal.list_completions(c_in)
-
-	if c_in.vim_command_spacer or c_in.vim_command_parameter:
-		if c_in.vim_command in ['edit', 'e']:
-			return applications.list_completions(c_in.vim_command_parameter)
-		elif c_in.vim_command in ['buffer', 'b']:
-			return reading.windows.list_completions(c_in.vim_command_parameter)
-		elif c_in.vim_command == 'decorate':
-			return reading.windows.decoration_options_for(c_in.vim_command_parameter)
-	else:
-		return names.completions_for(c_in.vim_command)
-
-	return None
+import procris.configurations as configurations
+from procris.names import Name
 
 
 class Completion:
 
-	def __init__(self, reading):
-		self.reading = reading
+	def __init__(self, windows=None):
+		self.windows = windows
 		self.options = []
 		self.assisting = False
 		self.index = -1
@@ -53,13 +38,15 @@ class Completion:
 		self.original_input = None
 
 	def should_auto_assist(self):
-		return self.reading.configurations.is_auto_select_first_hint() \
+		return configurations.is_auto_select_first_hint() \
 				and self.index == -1 and self.assisting
 
 	def search_for(self, c_in):
 		self.original_input = c_in
 		self.index = -1
-		self.options = completions_for(c_in, self.reading)
+		name: Name = names.match(c_in)
+		parameter_completions = name.complete(c_in) if name and name.complete else None
+		self.options = parameter_completions if parameter_completions is not None else names.completions_for(c_in)
 		self.assisting = self.options and len(self.options) > 0
 
 	def mount_input(self):

@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, io
 import procris.messages as messages
+import procris.configurations as configurations
 gi.require_version('Gtk', '3.0')
 from gi.repository import Gtk, Gdk, Pango, GLib
 from procris.messages import BufferName
@@ -164,7 +165,7 @@ class ReadingWindow(Gtk.Window):
 			return str(multiplier) + 'w'
 
 	def _calculate_width(self):
-		width_config = self.controller.configurations.get_width()
+		width_config = configurations.get_width()
 		if '100%' == width_config:
 			self.window_width = self._get_monitor_geometry().width
 		else:
@@ -181,9 +182,9 @@ class ReadingWindow(Gtk.Window):
 		geo = self._get_monitor_geometry()
 		wid, hei = self.get_size()
 		midx = geo.x + geo.width / 2 - wid / 2
-		if self.controller.configurations.get_position() == 'top':
+		if configurations.get_position() == 'top':
 			midy = geo.y
-		elif self.controller.configurations.get_position() == 'middle':
+		elif configurations.get_position() == 'middle':
 			midy = geo.y + geo.height / 2 - hei
 		else:
 			midy = geo.y + geo.height - hei
@@ -207,7 +208,7 @@ class ReadingWindow(Gtk.Window):
 		if Gtk.get_major_version() >= 3 and Gtk.get_minor_version() >= 20:
 			self.apply_css(GTK_3_20_CSS)
 
-		css_file_path = self.controller.configurations.get_css_file_path()
+		css_file_path = configurations.get_css_file_path()
 		try:
 			with open(css_file_path, 'r') as custom_css:
 				s = custom_css.read()

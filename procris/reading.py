@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, procris
 import procris.messages as messages
 import procris.names as names
+import procris.configurations as configurations
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
@@ -25,6 +26,8 @@ from procris.view import ReadingWindow
 from procris.assistant import Completion
 from procris.names import PromptHistory
 from procris.names import PromptInput
+from procris.windows import Windows
+from procris.assistant import Completion
 
 HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]
 HINT_LEFT = [Gdk.KEY_Left]
@@ -39,21 +42,19 @@ HISTORY_NAVIGATION_KEYS = [Gdk.KEY_Up, Gdk.KEY_Down]
 class Reading:
 
 	view: ReadingWindow = None
+	windows: Windows = None
+	completions: Completion = None
+	prompt_history: PromptHistory = PromptHistory()
+	long = False
+	command_mode = False
+	cmd_handler_ids = []
 
-	def __init__(self, configurations=None, windows=None):
-		self.long = False
-		self.command_mode = False
-		self.configurations = configurations
-		self.cmd_handler_ids = []
+	def __init__(self, windows=None):
 		self.windows = windows
-		self.completion = Completion(self)
-		self.prompt_history = PromptHistory()
+		self.completion = Completion(self.windows)
 		self._create_and_install_view()
-		self.clean()
 
 	def _create_and_install_view(self):
-		if self.view:
-			self.view.close()
 		self.view = ReadingWindow(self, self.windows)
 		self.view.connect("key-press-event", self._window_key_press_callback)
 
@@ -61,6 +62,7 @@ class Reading:
 	# Lifecycle state API
 	#
 	def begin(self, time):
+		self.clean()
 		self.long = True
 		self.view.present_and_focus(time)
 		self.view.update()
@@ -84,6 +86,7 @@ class Reading:
 		self.cmd_handler_ids.clear()
 		self.completion.clean()
 		if recreate_view:
+			self.view.close()
 			self._create_and_install_view()
 
 	def set_command_mode(self):
@@ -131,7 +134,7 @@ class Reading:
 			self.view.update()
 			return True
 
-		if self.configurations.is_auto_hint():
+		if configurations.is_auto_hint():
 			self.completion.search_for(PromptInput(text=self.view.get_command()).parse())
 		else:
 			self.completion.clean()
@@ -191,9 +194,8 @@ class Reading:
 		if name:
 			procris.service.execute(name.function, c_in)
 		else:
-			self.clean()
 			messages.add('Not an editor command: ' + cmd, 'error')
-			self.view.update()
+			self.begin(gtk_time)
 
 	#
 	# UI handlers

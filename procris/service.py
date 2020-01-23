@@ -19,21 +19,17 @@ import ctypes
 
 x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
 x11.XInitThreads()
-# add python lock to Xlib internals
-from Xlib import threaded
-
-import os, gi, signal, setproctitle, logging, traceback
+import os, gi, signal, setproctitle, traceback
 import procris
 import procris.names as names
 import procris.configurations as configurations
 import procris.applications as applications
 import procris.messages as messages
 import procris.terminal as terminal
-
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from procris.reading import Reading
-from gi.repository import Gtk, GLib, Gdk
+from gi.repository import Gtk, GLib
 from procris.status import StatusIcon
 from procris.keyboard import KeyboardListener
 from procris.layout import Layout
@@ -44,8 +40,12 @@ SIGINT = getattr(signal, "SIGINT", None)
 SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP = getattr(signal, "SIGHUP", None)
 
-reading: Reading
-mappings = listener = bus_object = status_icon = windows = layout = None
+reading: Reading = None
+listener: KeyboardListener = None
+windows: Windows = None
+layout: Layout = None
+status_icon: StatusIcon = None
+mappings = bus_object = None
 
 
 def load():
@@ -56,7 +56,7 @@ def load():
 	bus_object = BusObject(procris.service)
 
 	windows = Windows(configurations.is_list_workspaces())
-	reading = Reading(configurations=configurations, windows=windows)
+	reading = Reading(windows=windows)
 	layout = Layout(reading.windows, )
 	status_icon = StatusIcon(layout, stop_function=stop)
 	listener = KeyboardListener(callback=keyboard_listener, on_error=stop)
@@ -109,6 +109,10 @@ def read_command_key(c_in):
 	reading.begin(c_in.time)
 
 
+def debug(c_in):
+	return messages.Message(windows.get_metadata_resume(), None)
+
+
 def reload(c_in):
 	configurations.reload()
 	status_icon.reload()
@@ -156,7 +160,7 @@ def execute(function, command_input, multiplier=1):
 			windows.commit_navigation(command_input.time)
 			reading.make_transient()
 
-		post_processing(command_input.time)
+		post_processing()
 
 	except Exception as inst:
 		msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
@@ -167,17 +171,15 @@ def execute(function, command_input, multiplier=1):
 
 def pre_processing():
 
-	reading.clean()
+	reading.make_transient()
 	windows.read_screen()
 
 
-def post_processing(time):
+def post_processing():
 
 	if reading.is_transient():
 		reading.end()
 		messages.clean()
-
-	reading.make_transient()
 
 	# reload to show the current layout icon
 	status_icon.reload()
@@ -193,19 +195,10 @@ def message(ipc_message):
 
 
 def configure_process():
-	# https://lazka.github.io/pgi-docs/GLib-2.0/functions.html#GLib.log_set_handler
-	GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_WARNING, log_function)
-	GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_ERROR, log_function)
-	GLib.log_set_handler(None, GLib.LogLevelFlags.LEVEL_CRITICAL, log_function)
-
 	setproctitle.setproctitle("procris")
 
 	for sig in (SIGINT, SIGTERM, SIGHUP):
 		install_glib_handler(sig)
-
-
-def debug(c_in):
-	return messages.Message(windows.get_metadata_resume(), None)
 
 
 def install_glib_handler(sig):
@@ -233,29 +226,3 @@ def release_bus_object():
 	if bus_object:
 		bus_object.release()
 		bus_object = None
-
-
-def show_warning(error):
-	error_dialog = Gtk.MessageDialog(
-		None, Gtk.DialogFlags.MODAL, Gtk.MessageType.WARNING,
-		Gtk.ButtonsType.CLOSE, error, title="procris - warning")
-	error_dialog.run()
-	error_dialog.destroy()
-
-
-def show_error(error):
-	error_dialog = Gtk.MessageDialog(
-		None, Gtk.DialogFlags.MODAL, Gtk.MessageType.ERROR,
-		Gtk.ButtonsType.CLOSE, error, title="procris error")
-	error_dialog.run()
-	error_dialog.destroy()
-
-
-def log_function(log_domain, log_level, message):
-	if log_level in (GLib.LogLevelFlags.LEVEL_ERROR, GLib.LogLevelFlags.LEVEL_CRITICAL):
-		logging.error('GLib log[%s]:%s', log_domain, message)
-		show_error(message)
-		Exception(message)
-	else:
-		logging.warning('GLib log[%s]:%s', log_domain, message)
-		show_warning(message)

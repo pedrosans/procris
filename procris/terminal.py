@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os, glob, subprocess, shlex, re, traceback
 import procris.messages as messages
 from subprocess import PIPE
+from procris.names import PromptInput
 
 COMMANDS_GLOB = ["/usr/bin/*", "/snap/bin/*", os.path.expanduser('~/.local/bin')+'/*']
 ALIAS_PATTERN = r'^\s*alias\s+.*$'
@@ -74,7 +75,7 @@ def has_perfect_match(name):
 	return name in NAME_MAP.keys()
 
 
-def list_completions(c_in):
+def complete(c_in: PromptInput):
 	if c_in.terminal_command_spacer:
 		return query_command_parameters(c_in)
 	else:

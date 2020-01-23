@@ -29,7 +29,8 @@ def add(name):
 	ALIAS_MAP[name.alias] = name
 
 
-def completions_for(user_input):
+def completions_for(c_in):
+	user_input = c_in.vim_command
 	filtered = filter(lambda n: n.startswith(user_input) if user_input else True, NAME_MAP.keys())
 	return sorted(list(set(filtered)))
 
@@ -53,10 +54,11 @@ def match(command_input):
 
 class Name:
 
-	def __init__(self, name, alias, function):
+	def __init__(self, name, alias, function, *parameters):
 		self.name = name
 		self.alias = alias
 		self.function = function
+		self.complete = parameters[0] if parameters else None
 
 
 class PromptInput:

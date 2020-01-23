@@ -14,6 +14,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from procris.windows import Windows
+
 ENTER_TO_CONTINUE = 'Press ENTER or type command to continue'
 
 
@@ -49,7 +51,7 @@ class Message:
 
 class BufferName(Message):
 
-	def __init__(self, window, windows):
+	def __init__(self, window, windows: Windows):
 		super().__init__(None, None)
 		self.window = window
 		self.index = 1 + windows.buffers.index(self.window)

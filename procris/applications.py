@@ -21,6 +21,7 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib, Gio
 from procris.messages import Message
+from procris.names import PromptInput
 
 APPS_GLOB = [
 		"/usr/share/applications/*.desktop",
@@ -67,7 +68,8 @@ def reload():
 	load()
 
 
-def list_completions(name_filter):
+def complete(c_in: PromptInput):
+	name_filter = c_in.vim_command_parameter
 	lower = name_filter.lower()
 	matches = filter(lambda x: lower in x.lower(), NAME_MAP.keys())
 	matches = filter(lambda x: lower != x.lower(), matches)
