@@ -1,12 +1,12 @@
 from procris.keyboard import Key
 from procris.names import Name
-import procris
-
-applications = procris.applications
-windows = procris.service.windows
-reading = procris.service.reading
-layout = procris.service.layout
-terminal = procris.terminal
+import procris.applications as applications
+import procris.terminal as terminal
+import procris.service as service
+import procris.decoration as decoration
+windows = service.windows
+reading = service.reading
+layout = service.layout
 
 layout.gap = 0
 layout.border = 0
@@ -33,7 +33,7 @@ keys = [
 	Key(['<Ctrl><Shift>k'], layout.swap_focused_with, [-1]),
 
 	# procris reading binding
-	Key([prefix_key], procris.service.read_command_key),
+	Key([prefix_key], service.read_command_key),
 
 	# Vim bindings
 	Key([prefix_key, 'q'], windows.active.minimize),
@@ -67,9 +67,9 @@ names = [
 	Name('buffer', 'b', windows.activate, windows.complete_window_name),
 	Name('centralize', 'ce', windows.active.centralize),
 	Name('maximize', 'ma', windows.active.maximize),
-	Name('reload', None, procris.service.reload),
-	Name('decorate', None, windows.active.decorate, procris.decoration.complete_decoration_name),
-	Name('report', None, procris.service.debug),
+	Name('reload', None, service.reload),
+	Name('decorate', None, windows.active.decorate, decoration.complete_decoration_name),
+	Name('report', None, service.debug),
 	Name('move', None, windows.active.move),
 	Name('stack', None, layout.move_stacked),
 	Name('quit', 'q', windows.active.minimize),
