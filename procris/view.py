@@ -61,24 +61,22 @@ class ReadingWindow(Gtk.Window):
 		self.connect("size-allocate", self._move_to_preferred_position)
 		self.set_size_request(0, 0)
 
+	#
+	# Completions
+	#
 	def offer(self, completions, index, auto_select_first):
-		"""
-		Show options of a command or parameter based on the
-		completions array, plus auto complete the current input
-		if any complete command
-		"""
 		self._calculate_width()
 		self.completions_line.show(completions, index, auto_select_first)
 
-	def clean_hints(self):
-		"""
-		Clean the status line and render it again
-		"""
+	def clean_completions(self):
 		self.completions_line.clear_status_line()
 		if not messages.LIST:
 			self.completions_line.add_status_text(' ', False)
 		self.completions_line.show_all()
 
+	#
+	# Command input API
+	#
 	def get_command(self):
 		return self.colon_prompt.get_text()[1:]
 
@@ -86,11 +84,12 @@ class ReadingWindow(Gtk.Window):
 		self.colon_prompt.set_text(':' + cmd)
 		self.colon_prompt.set_position(len(self.colon_prompt.get_text()))
 
-	def get_monitor_geometry(self):
-		display = self.get_display()
-		screen, x, y, modifiers = display.get_pointer()
-		monitor_nr = screen.get_monitor_at_point(x, y)
-		return screen.get_monitor_workarea(monitor_nr)
+	#
+	# User API
+	#
+	def present_and_focus(self, time):
+		self.present_with_time(time)
+		self.get_window().focus(time)
 
 	def update(self):
 		self.set_gravity(Gdk.Gravity.NORTH_WEST)
@@ -98,7 +97,7 @@ class ReadingWindow(Gtk.Window):
 		for c in self.messages_box.get_children(): c.destroy()
 
 		self._calculate_width()
-		self.clean_hints()
+		self.clean_completions()
 
 		self.show_messages()
 
@@ -167,7 +166,7 @@ class ReadingWindow(Gtk.Window):
 	def _calculate_width(self):
 		width_config = self.controller.configurations.get_width()
 		if '100%' == width_config:
-			self.window_width = self.get_monitor_geometry().width
+			self.window_width = self._get_monitor_geometry().width
 		else:
 			self.window_width = int(width_config)
 		self.set_size_request(self.window_width, -1)
@@ -179,7 +178,7 @@ class ReadingWindow(Gtk.Window):
 		self.completions_line.page_size = self.columns
 
 	def _move_to_preferred_position(self, allocation, data):
-		geo = self.get_monitor_geometry()
+		geo = self._get_monitor_geometry()
 		wid, hei = self.get_size()
 		midx = geo.x + geo.width / 2 - wid / 2
 		if self.controller.configurations.get_position() == 'top':
@@ -193,6 +192,12 @@ class ReadingWindow(Gtk.Window):
 			midy += hei
 		#print('m1: h {} y {} hei {}'.format(geo.height, geo.y, hei))
 		self.move(midx, midy)
+
+	def _get_monitor_geometry(self):
+		display = self.get_display()
+		screen, x, y, modifiers = display.get_pointer()
+		monitor_nr = screen.get_monitor_at_point(x, y)
+		return screen.get_monitor_workarea(monitor_nr)
 
 	def _on_window_realize(self, widget):
 		try:

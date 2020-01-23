@@ -38,61 +38,54 @@ HISTORY_NAVIGATION_KEYS = [Gdk.KEY_Up, Gdk.KEY_Down]
 # TODO chain commands
 class Reading:
 
+	view: ReadingWindow = None
+
 	def __init__(self, configurations=None, windows=None):
 		self.long = False
 		self.command_mode = False
 		self.configurations = configurations
 		self.cmd_handler_ids = []
-		self.view = None
 		self.windows = windows
 		self.completion = Completion(self)
 		self.prompt_history = PromptHistory()
 		self._create_and_install_view()
-		self.reset()
-		messages.clean()
+		self.clean()
 
 	def _create_and_install_view(self):
+		if self.view:
+			self.view.close()
 		self.view = ReadingWindow(self, self.windows)
 		self.view.connect("key-press-event", self._window_key_press_callback)
 
 	#
-	# Cycle state API
+	# Lifecycle state API
 	#
-	def begin(self, *args):
+	def begin(self, time):
 		self.long = True
+		self.view.present_and_focus(time)
+		self.view.update()
 
 	def is_transient(self):
 		return not self.long
 
-	def end(self):
+	def make_transient(self):
 		self.long = False
 
-	#
-	# Internal state API
-	#
-	def show(self, e_time, error_message=None):
-		# TODO move to view
-		self.view.present_with_time(e_time)
-		self.view.get_window().focus(e_time)
-		if error_message:
-			messages.add(error_message, 'error')
-		self.view.update()
+	def end(self):
+		self.view.hide()
 
-	def reset(self):
+	#
+	# State API
+	#
+	def clean(self, recreate_view=False):
 		self.command_mode = False
 		for handler_id in self.cmd_handler_ids:
 			self.view.colon_prompt.disconnect(handler_id)
 		self.cmd_handler_ids.clear()
 		self.completion.clean()
+		if recreate_view:
+			self._create_and_install_view()
 
-	def hide(self):
-		messages.clean()
-		self.end()
-		self.view.hide()
-
-	#
-	# Command mode
-	#
 	def set_command_mode(self):
 		self.command_mode = True
 
@@ -114,7 +107,8 @@ class Reading:
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
 
 		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft):
-			self.hide()
+			self.end()
+			messages.clean()
 			return
 
 		if self.in_command_mode():
@@ -133,8 +127,8 @@ class Reading:
 			return False
 
 		if not self.view.colon_prompt.get_text().strip():
-			self.reset()
-			self.show(Gtk.get_current_event_time())
+			self.clean()
+			self.view.update()
 			return True
 
 		if self.configurations.is_auto_hint():
@@ -145,13 +139,13 @@ class Reading:
 		if self.completion.assisting:
 			self.view.offer(self.completion.options, self.completion.index, self.completion.should_auto_assist())
 		else:
-			self.view.clean_hints()
+			self.view.clean_completions()
 
 	def on_entry_key_press(self, widget, event):
 		if event.keyval in HISTORY_NAVIGATION_KEYS:
 			self.prompt_history.navigate_history(-1 if event.keyval == Gdk.KEY_Up else 1, self.view.get_command())
 			self.view.set_command(self.prompt_history.current_command())
-			self.view.clean_hints()
+			self.view.clean_completions()
 			self.completion.clean()
 			return True
 		else:
@@ -168,7 +162,7 @@ class Reading:
 			right = event.keyval in HINT_RIGHT or (event.keyval in HINT_LAUNCH_KEYS and not shift_mask)
 			self.completion.cycle(1 if right else -1)
 			if len(self.completion.options) == 1:
-				self.view.clean_hints()
+				self.view.clean_completions()
 			else:
 				self.view.offer(self.completion.options, self.completion.index, self.completion.should_auto_assist())
 			self.view.set_command(self.completion.mount_input())
@@ -197,8 +191,9 @@ class Reading:
 		if name:
 			procris.service.execute(name.function, c_in)
 		else:
-			self.reset()
-			self.show(gtk_time, error_message='Not an editor command: ' + cmd)
+			self.clean()
+			messages.add('Not an editor command: ' + cmd, 'error')
+			self.view.update()
 
 	#
 	# UI handlers
@@ -208,9 +203,4 @@ class Reading:
 
 	def enter(self, c_in):
 		messages.clean()
-		self.show(c_in.time)
-
-	def reload(self, c_in):
-		self.reset()
-		self.view.close()
-		self._create_and_install_view()
+		self.view.update()

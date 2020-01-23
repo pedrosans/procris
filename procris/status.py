@@ -30,6 +30,8 @@ ICON_STYLE_NAME_MAP = {'dark': "Dark icon", 'light': "Light icon", 'default': "D
 
 class StatusIcon:
 
+	autostart_item: Gtk.CheckMenuItem = None
+
 	def __init__(self, layout, stop_function=None):
 		# Track reloading routine to stop any layout side effect when updating the UI
 		self._reloading = False

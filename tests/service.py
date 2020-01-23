@@ -17,16 +17,18 @@ class ServiceTestCase(unittest.TestCase):
 		service.execute(self.foo, PromptInput())
 		self.foo.assert_called()
 
+	def test_is_pre_processed(self):
+		service.execute(self.foo, PromptInput())
+		service.reading.make_transient.assert_called()
+
 	def test_end_conversation(self):
 		service.execute(self.foo, PromptInput())
 		service.reading.end.assert_called()
 
-	def test_end_conversation(self):
+	def test_dont_end_long_conversation(self):
+		service.reading.is_transient = lambda: False
 		service.execute(self.foo, PromptInput())
-		service.reading.end.assert_called()
-
-
-# self.assertEqual('!foobar', self.completion.mount_input())
+		service.reading.end.assert_not_called()
 
 
 if __name__ == '__main__':

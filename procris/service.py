@@ -44,7 +44,8 @@ SIGINT = getattr(signal, "SIGINT", None)
 SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP = getattr(signal, "SIGHUP", None)
 
-mappings = listener = bus_object = status_icon = windows = reading = layout = None
+reading: Reading
+mappings = listener = bus_object = status_icon = windows = layout = None
 
 
 def load():
@@ -104,13 +105,17 @@ def start():
 	print("Ending procris service, pid: {}".format(os.getpid()))
 
 
+def read_command_key(c_in):
+	reading.begin(c_in.time)
+
+
 def reload(c_in):
 	configurations.reload()
 	status_icon.reload()
 	applications.reload()
 	terminal.reload()
 	messages.clean()
-	reading.reload(c_in.time)
+	reading.clean(recreate_view=True)
 
 
 def stop():
@@ -144,33 +149,35 @@ def execute(function, command_input, multiplier=1):
 			if return_message:
 				messages.add_message(return_message)
 
+		if messages.LIST or messages.prompt_placeholder:
+			reading.begin(command_input.time)
+
+		if windows.staging:
+			windows.commit_navigation(command_input.time)
+			reading.make_transient()
+
 		post_processing(command_input.time)
 
 	except Exception as inst:
 		msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
 		print(traceback.format_exc())
-		reading.show(command_input.time, error_message=msg)
+		messages.add(msg, 'error')
+		reading.begin(command_input.time)
 
 
 def pre_processing():
-	reading.reset()
+
+	reading.clean()
 	windows.read_screen()
 
 
 def post_processing(time):
-	if reading.is_transient() and (messages.LIST or messages.prompt_placeholder):
-		reading.begin()
-
-	if windows.staging:
-		windows.commit_navigation(time)
-		reading.end()
 
 	if reading.is_transient():
-		reading.hide()
-		messages.clean()
-	else:
-		reading.show(time)
 		reading.end()
+		messages.clean()
+
+	reading.make_transient()
 
 	# reload to show the current layout icon
 	status_icon.reload()
