@@ -21,7 +21,7 @@ from procris import scratchpads, wm
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from procris.windows import Windows
-from procris.wm import set_geometry, is_visible
+from procris.wm import set_geometry, is_visible, resize
 
 
 class Monitor:
@@ -149,7 +149,8 @@ class Layout:
 		if is_visible(window):
 			if window.get_name() in scratchpads.names():
 				scratchpad = scratchpads.get(window.get_name())
-				wm.resize(window, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
+				primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
+				resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
 			else:
 				self.stack.insert(0, window.get_xid())
 			self.windows.read_screen(force_update=False)
