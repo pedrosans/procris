@@ -247,8 +247,11 @@ class Layout:
 		for i in range(len(arrange)):
 			a = arrange[i]
 			w = visible_windows[i]
-			set_geometry(
-				w, x=a[0] + separation, y=a[1] + separation, w=a[2] - separation * 2, h=a[3] - separation * 2)
+			try:
+				set_geometry(
+					w, x=a[0] + separation, y=a[1] + separation, w=a[2] - separation * 2, h=a[3] - separation * 2)
+			except wm.DirtyState:
+				pass  # we did our best to keep WNCK objects fresh, but it can happen and it's ok to just skip
 
 	def servant_monitor(self):
 		servent_monitor = Monitor()

@@ -25,7 +25,10 @@ X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResize
 def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
 	display = GdkX11.X11Display.get_default()
 	xid = window.get_xid()
-	return GdkX11.X11Window.foreign_new_for_display(display, xid)
+	try:
+		return GdkX11.X11Window.foreign_new_for_display(display, xid)
+	except TypeError:
+		raise DirtyState()
 
 
 def monitor_work_area_for(window: Wnck.Window) -> Gdk.Rectangle:
@@ -101,3 +104,7 @@ def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None):
 	# print("window: x={} y={} width={} height={}".format(x, y, w, h))
 
 	window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
+
+
+class DirtyState(Exception):
+	pass
