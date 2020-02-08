@@ -162,6 +162,7 @@ class Layout:
 				stack = self.get_active_stack()
 				old_index = stack.index(window.get_xid())
 				stack.insert(0, stack.pop(old_index))
+			self.windows.read_screen(force_update=False)
 			self.windows.apply_decoration_config()
 			self.apply()
 
