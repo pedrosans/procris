@@ -69,7 +69,7 @@ def get():
 
 def print_to_console():
 	for m in memory:
-		print(m.get_content())
+		print(m.get_content(1000))
 
 
 def to_string():

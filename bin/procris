@@ -23,6 +23,7 @@ commands_parser = parser.add_subparsers(help='procris sub-commands help', dest='
 commands_parser.add_parser('start',	 help='Start procris service')
 commands_parser.add_parser('stop',	 help='Stop the running procris service if any')
 commands_parser.add_parser('status', help='Show the status of procris service')
+parser.add_argument('-c', required=False)
 
 args = parser.parse_args()
 
@@ -36,5 +37,16 @@ elif args.action == 'stop':
 elif args.action == 'status':
 	from procris.remote import RemoteInterface
 	print(RemoteInterface().get_status())
+elif args.c:
+	import procris.service
+	import procris.names as names
+	procris.service.load()
+	procris.service.pre_processing()
+	c_in = names.CommandLine(text=args.c).parse()
+	name = names.match(c_in)
+	message = name.function(c_in)
+	if message:
+		procris.service.messages.add(message)
+	procris.service.messages.print_to_console()
 else:
 	parser.print_help()

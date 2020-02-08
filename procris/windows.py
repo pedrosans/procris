@@ -227,14 +227,19 @@ class Windows:
 			cx, cy, cw, ch = wn.get_client_window_geometry()
 			is_decorated, decorations, decoration_width, decoration_height = decoration_size_for(wn)
 			compensate = is_decorated and not decorations and decoration_width >= 0 and decoration_height >= 0
-			resume += '{:10} - {:20}\n'.format(
-				wn.get_xid(), wn.get_name()[:10])
-			resume += '\tcompensate({:5} {:3d},{:3d}) g({:3d},{:3d}) c_g({:3d},{:3d})\n'.format(
-				str(compensate), decoration_width, decoration_height,
-				x, y, cx, cy)
-			resume += '\thint({:8}) dec({} {})\n'.format(
+
+			resume += '\n'
+			resume += '[{:8}] - {}\n'.format(wn.get_xid(), wn.get_name())
+
+			resume += '\tx: {:5d} h: {:3d} w: {:7.2f} h: {:7.2f} | client window x: {:5d} h: {:5d} w: {:7.2f} h: {:7.2f} \n'.format(
+				x, y, w, h, cx, cy, cw, ch)
+
+			resume += '\tcompensate: {:5}\t\tdecoration_width: {:3d}\t\tdecoration_height: {:3d}\n'.format(
+				str(compensate), decoration_width, decoration_height)
+
+			resume += '\ttype: {:8}\t\t\tdecorated: {:5}\t\t\tflags: {}\n'.format(
 				gdk_w.get_type_hint().value_name.replace('GDK_WINDOW_TYPE_HINT_', '')[:8],
-				is_decorated, decorations.value_names)
+				str(is_decorated), list(map(lambda n: n.replace('GDK_DECOR_', ''), decorations.value_names)))
 		return resume
 
 
