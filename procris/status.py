@@ -144,6 +144,7 @@ class StatusIcon:
 	def _change_decorations(self, data):
 		to_remove = self.decorations_item.get_active()
 		configurations.set_remove_decorations(to_remove)
+		self.layout.windows.read_screen()
 		self.layout.windows.apply_decoration_config()
 
 	def _quit(self, data):
