@@ -66,6 +66,9 @@ class Monitor:
 		self.nservent = max(0, self.nservent)
 		self.nservent = min(upper_limit - self.nmaster, self.nservent)
 
+	def print(self):
+		print('monitor: {} {} {} {}'.format(self.wx, self.wy, self.ww, self.wh))
+
 
 def is_managed(window):
 	return is_buffer(window) and window.get_name() not in scratchpads.names()
@@ -79,11 +82,11 @@ class Layout:
 	window: Windows
 	stacks: Dict[int, List[int]] = {}
 	monitors: Dict[int, Monitor] = {}
+	read: Dict[int, Wnck.Window] = {}
 
 	def __init__(self, windows):
 		self.window_monitor_map = {}
 		self.windows = windows
-		self.read = {}
 
 	def start(self):
 		self.read_display()
@@ -144,11 +147,8 @@ class Layout:
 	# CALLBACKS
 	#
 	def _window_closed(self, screen, window):
-		stack = self.get_active_stack()
 		self.read_display()
-		if window.get_xid() in stack:
-			stack.remove(window.get_xid())
-		if is_visible(window, Wnck.Screen.get_default().get_active_workspace()):
+		if is_visible(window):
 			self.apply()
 
 	def _window_opened(self, screen: Wnck.Screen, window):
@@ -167,9 +167,9 @@ class Layout:
 			self.apply()
 
 	def _state_changed(self, window, changed_mask, new_state):
-		if changed_mask & Wnck.WindowState.MINIMIZED and window.get_name() not in scratchpads.names():
-			stack = self.get_active_stack()
+		if changed_mask & Wnck.WindowState.MINIMIZED and is_managed(window):
 			self.read_display()
+			stack = self.get_active_stack()
 			if is_visible(window):
 				old_index = stack.index(window.get_xid())
 				stack.insert(0, stack.pop(old_index))
@@ -252,6 +252,7 @@ class Layout:
 			return
 
 		monitor.set_rectangle(Gdk.Display.get_default().get_primary_monitor().get_workarea())
+		# monitor.print()
 		separation = monitor.gap + monitor.border
 		servant = self.servant_monitor()
 		split_point = len(visible_windows) - (self.get_active_monitor().nservent if servant else 0)
@@ -262,6 +263,7 @@ class Layout:
 
 		for i in range(len(arrange)):
 			a = arrange[i]
+			# print(a)
 			w = visible_windows[i]
 			try:
 				set_geometry(
@@ -287,7 +289,7 @@ class Layout:
 
 			for to_remove in filter(
 					lambda xid: xid not in self.read or not is_visible(self.read[xid], workspace),
-					stack):
+					stack.copy()):
 				stack.remove(to_remove)
 
 	def from_json(self, json):
