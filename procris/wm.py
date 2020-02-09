@@ -22,6 +22,7 @@ gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH | Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
+border_compensation = 1
 
 
 def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
@@ -45,8 +46,8 @@ def decoration_size_for(window: Wnck.Window):
 	is_decorated, decorations = gdk_w.get_decorations()
 	x, y, w, h = window.get_geometry()
 	cx, cy, cw, ch = window.get_client_window_geometry()
-	decoration_width = cx - x
-	decoration_height = cy - y
+	decoration_width = cx - x - border_compensation
+	decoration_height = cy - y - border_compensation
 
 	return is_decorated, decorations, decoration_width, decoration_height
 
@@ -107,19 +108,26 @@ def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None):
 		w = geometry.widthp
 		h = geometry.heightp
 
+	xo, yo, wo, ho = calculate_geometry_offset(window)
+	window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x + xo, y + yo, w + wo, h + ho)
+
+
+def calculate_geometry_offset(window: Wnck.Window):
 	is_decorated, decorations, decoration_width, decoration_height = decoration_size_for(window)
-	has_title = Gdk.WMDecoration.TITLE & decorations or Gdk.WMDecoration.ALL & decorations
+	client_side_decoration = is_decorated and not decorations and decoration_width < 0 and decoration_height < 0
+	has_title = (
+			Gdk.WMDecoration.TITLE & decorations
+			or Gdk.WMDecoration.ALL & decorations
+			or (not is_decorated and not decorations)  # assume server side decoration
+	)
 
-	if is_decorated and not has_title and decoration_width >= 0 and decoration_height >= 0:
-		x -= decoration_width
-		y -= decoration_height
-		w += decoration_width
-		h += decoration_height
+	if client_side_decoration:
+		return border_compensation, border_compensation, -border_compensation * 2, -border_compensation * 2
 
-	# print("monitor: x={}  w={} y={}  h={}".format(monitor_geo.x, monitor_geo.width, monitor_geo.y, monitor_geo.height))
-	# print("window: x={} y={} width={} height={}".format(x, y, w, h))
+	if not has_title and not client_side_decoration:
+		return -decoration_width, -decoration_height, decoration_width, decoration_height
 
-	window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
+	return 0, 0, 0, 0
 
 
 class DirtyState(Exception):

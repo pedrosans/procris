@@ -312,6 +312,7 @@ class Active:
 		resize(self.get_wnck_window(), l=0.1, t=0.1, w=0.8, h=0.8)
 		self.windows.staging = True
 
+	# TODO: apply layout
 	def decorate(self, c_in):
 		decoration_parameter = c_in.vim_command_parameter
 		if decoration_parameter in DECORATION_MAP.keys():

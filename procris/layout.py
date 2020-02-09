@@ -238,7 +238,10 @@ class Layout:
 		array = list(map(lambda x: int(x), parameter.split()))
 		visible_windows = self.get_active_windows_as_list()
 
-		set_geometry(visible_windows[array[0]], x=array[1] + monitor.x, y=array[2] + monitor.y, w=array[3], h=array[4])
+		set_geometry(
+			visible_windows[array[0]], x=array[1] + monitor.wx, y=array[2] + monitor.wy,
+			w=array[3] if len(array) > 3 else None,
+			h=array[4] if len(array) > 3 else None)
 
 		self.windows.staging = True
 
