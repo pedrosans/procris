@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 
+# TODO: simplify, no multiple options to report like to append or return from a command
 class Message:
 
 	def __init__(self, content, level):

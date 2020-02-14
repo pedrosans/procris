@@ -219,7 +219,7 @@ class Windows:
 	#
 	# Internal API
 	#
-	def get_metadata_resume(self):
+	def resume(self):
 		resume = ''
 		for wn in self.buffers:
 			gdk_w = gdk_window_for(wn)
@@ -240,6 +240,7 @@ class Windows:
 			resume += '\ttype: {:8}\t\t\tdecorated: {:5}\t\t\tflags: {}\n'.format(
 				gdk_w.get_type_hint().value_name.replace('GDK_WINDOW_TYPE_HINT_', '')[:8],
 				str(is_decorated), list(map(lambda n: n.replace('GDK_DECOR_', ''), decorations.value_names)))
+
 		return resume
 
 

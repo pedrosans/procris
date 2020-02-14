@@ -14,16 +14,15 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from typing import List, Dict
 
-import gi, os
+import gi, traceback
 import procris.persistent_config as persistor
-from procris import scratchpads, wm
-
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
+from typing import List, Dict
+from procris import scratchpads, wm
 from procris.windows import Windows
-from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_window
+from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_window, is_on_primary_monitor
 
 
 class Monitor:
@@ -93,7 +92,7 @@ class Layout:
 	read: Dict[int, Wnck.Window] = {}
 
 	def __init__(self, windows):
-		self.window_monitor_map = {}
+		self.transient_callbacks = {}
 		self.windows = windows
 
 	def start(self):
@@ -113,6 +112,7 @@ class Layout:
 	def get_active_windows_as_list(self) -> List[Wnck.Window]:
 		return list(map(lambda xid: self.read[xid], self.get_active_stack()))
 
+	# TODO: rename to screen, which has n Monitors
 	def get_active_monitor(self) -> Monitor:
 		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
 		return self.monitors[active_workspace.get_number()]
@@ -129,9 +129,9 @@ class Layout:
 
 	def _install_present_window_handlers(self):
 		for window in Wnck.Screen.get_default().get_windows():
-			if window.get_xid() not in self.window_monitor_map and is_managed(window):
+			if window.get_xid() not in self.transient_callbacks and is_managed(window):
 				handler_id = window.connect("state-changed", self._state_changed)
-				self.window_monitor_map[window.get_xid()] = handler_id
+				self.transient_callbacks[window.get_xid()] = handler_id
 
 	def _incremented_index(self, increment):
 		stack = self.get_active_stack()
@@ -294,6 +294,7 @@ class Layout:
 				self.monitors[workspace.get_number()] = Monitor()
 				self.stacks[workspace.get_number()] = []
 
+			primary_monitor: Monitor = self.monitors[workspace.get_number()]
 			stack: List[int] = self.stacks[workspace.get_number()]
 			stack.extend(map(lambda w: w.get_xid(), filter(
 					lambda w: w.get_xid() not in stack and is_visible(w, workspace) and is_managed(w),
@@ -304,8 +305,32 @@ class Layout:
 					stack.copy()):
 				stack.remove(to_remove)
 
+			primary_monitor.nservant = len(list(filter(lambda xid: not is_on_primary_monitor(self.read[xid]), stack)))
+			copy = stack.copy()
+			stack.sort(key=lambda xid: copy.index(xid) + (10000 if not is_on_primary_monitor(self.read[xid]) else 0))
+
+	def resume(self):
+		resume = ''
+		for workspace in Wnck.Screen.get_default().get_workspaces():
+			resume += 'Workspace {}\n'.format(workspace.get_number())
+			for i in range(Gdk.Display.get_default().get_n_monitors()):
+				m = Gdk.Display.get_default().get_monitor(i)
+				rect = m.get_workarea()
+				resume += '\tMonitor {}\tPrimary: {}\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
+					i, m.is_primary(), rect.x, rect.y, rect.width, rect.height)
+
+				stack = self.stacks[workspace.get_number()]
+				resume += '\t\tStack: ['
+				for xid in stack:
+					w = self.read[xid]
+					xp, yp, widthp, heightp = w.get_geometry()
+					if rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height):
+						resume += '{:10} '.format(xid)
+				resume += ']\n'
+
+		return resume
+
 	def from_json(self, json):
-		import traceback
 		Wnck.Screen.get_default().force_update()
 		self.read_display()
 		try:

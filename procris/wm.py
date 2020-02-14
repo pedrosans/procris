@@ -77,6 +77,12 @@ def is_visible(window: Wnck.Window, workspace: Wnck.Workspace = None) -> bool:
 			and window.is_visible_on_workspace(workspace))
 
 
+def is_on_primary_monitor(window: Wnck.Window):
+	rect = Gdk.Display.get_default().get_primary_monitor().get_workarea()
+	xp, yp, widthp, heightp = window.get_geometry()
+	return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
+
+
 def get_active_window(workspace: Wnck.Workspace = None, window_filter: Callable = None):
 	workspace = workspace if workspace else Wnck.Screen.get_default().get_active_workspace()
 	for stacked in reversed(Wnck.Screen.get_default().get_windows_stacked()):

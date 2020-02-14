@@ -117,7 +117,9 @@ def read_command_key(c_in):
 
 
 def debug(c_in):
-	return messages.Message(windows.get_metadata_resume(), None)
+	text = windows.resume()
+	text += layout.resume()
+	return messages.Message(text, None)
 
 
 def reload(c_in):
