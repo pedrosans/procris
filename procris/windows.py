@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import gi, os, re
 import procris.messages as messages
-import procris.persistent_config as configurations
+import procris.cache as configurations
 from procris import decoration
 
 gi.require_version('Wnck', '3.0')

@@ -22,7 +22,7 @@ x11.XInitThreads()
 import os, gi, signal, setproctitle, traceback
 import procris
 import procris.names as names
-import procris.persistent_config as configurations
+import procris.cache as cache
 import procris.applications as applications
 import procris.messages as messages
 import procris.terminal as terminal
@@ -74,14 +74,14 @@ def load_mappings():
 	imported = False
 	try:
 		import importlib.util
-		spec = importlib.util.spec_from_file_location("module.name", configurations.get_custom_mappings_module_path())
+		spec = importlib.util.spec_from_file_location("module.name", cache.get_custom_mappings_module_path())
 		config = importlib.util.module_from_spec(spec)
 		spec.loader.exec_module(config)
 		imported = True
 	except FileNotFoundError as e:
 		print(
 			'info: not possible to load custom config at: {}'.format(
-				configurations.get_custom_mappings_module_path()))
+				cache.get_custom_mappings_module_path()))
 
 	if not imported:
 		import procris.config as default_config
@@ -93,8 +93,8 @@ def load_mappings():
 	for key in config.keys:
 		listener.bind(key)
 
-	configurations.set_defaults(config.default_interface)
-	layout.from_json(configurations.read_layout(default=config.default_layout))
+	cache.load(default=config.default_interface)
+	layout.from_json(cache.read_layout(default=config.default_layout))
 
 
 #
@@ -123,7 +123,7 @@ def debug(c_in):
 
 
 def reload(c_in):
-	configurations.reload()
+	cache.reload()
 	status_icon.reload()
 	applications.reload()
 	terminal.reload()

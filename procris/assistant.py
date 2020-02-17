@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import re
 import procris.names as names
-import procris.persistent_config as configurations
+import procris.cache as configurations
 from procris.names import Name
 
 

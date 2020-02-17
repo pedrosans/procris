@@ -16,8 +16,9 @@ default_interface = {
 	'width': 800,
 	'auto_hint': True,
 	'auto_select_first_hint': True,
-	'icon': 'default',
-	'remove_decorations': False
+	'icon': 'light',
+	'remove_decorations': False,
+	'window_manger_border': 0
 }
 
 default_layout = {
@@ -38,6 +39,8 @@ default_layout = {
 		},
 	}
 }
+
+# procris.cache.clean()
 
 prefix_key = '<Ctrl>q'
 

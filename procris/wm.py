@@ -17,12 +17,12 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import gi
 import traceback
+import procris.cache as config
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 from typing import Callable
 
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH | Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
-border_compensation = 1
 
 
 def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
@@ -42,6 +42,7 @@ def monitor_work_area_for(window: Wnck.Window) -> Gdk.Rectangle:
 
 
 def decoration_size_for(window: Wnck.Window):
+	border_compensation = config.get_window_manger_border()
 	gdk_w = gdk_window_for(window)
 
 	with Trap():
@@ -122,6 +123,7 @@ def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None):
 
 
 def calculate_geometry_offset(window: Wnck.Window):
+	border_compensation = config.get_window_manger_border()
 	is_decorated, decorations, decoration_width, decoration_height = decoration_size_for(window)
 	client_side_decoration = is_decorated and not decorations and decoration_width < 0 and decoration_height < 0
 	has_title = (

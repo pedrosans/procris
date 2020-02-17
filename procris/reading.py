@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, procris
 import procris.messages as messages
 import procris.names as names
-import procris.persistent_config as configurations
+import procris.cache as configurations
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')

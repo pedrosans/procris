@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import gi
-import procris.persistent_config as configurations
+import procris.cache as configurations
 import procris.layout
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
