@@ -142,8 +142,8 @@ def calculate_geometry_offset(window: Wnck.Window):
 class DirtyState(Exception):
 
 	def __init__(self, message: str = None, window: Wnck.Window = None):
+		super(DirtyState, self).__init__(message)
 		self.window = window
-		self.message = message
 
 	def print(self):
 		if self.window:
@@ -170,4 +170,4 @@ class Trap:
 	def __exit__(self, type, exception, traceback):
 		error: int = self.display.error_trap_pop()
 		if error:
-			raise DirtyState(message='Error code {}'.format(error)) from exception
+			raise DirtyState(message='X11 Error code {}'.format(error)) from exception
