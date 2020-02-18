@@ -328,9 +328,10 @@ class Layout:
 		monitor = primary_monitor
 		visible = workspace_windows
 		while monitor and visible:
-			# primary_monitor.set_rectangle(Gdk.Display.get_default().get_primary_monitor().get_workarea())
 			split_point = len(visible) - monitor.nservant
-			arrange += FUNCTIONS_MAP[monitor.function_key](visible[:split_point], monitor)
+
+			if monitor.function_key:
+				arrange += FUNCTIONS_MAP[monitor.function_key](visible[:split_point], monitor)
 
 			monitor = monitor.next()
 			visible = visible[split_point:]
@@ -389,7 +390,7 @@ class Layout:
 				monitor: Monitor = primary_monitor if m.is_primary() else primary_monitor.next()
 
 				resume += '\tMonitor\t\t\tLayout: {}\tPrimary: {}\n'.format(
-					FUNCTIONS_NAME_MAP[monitor.function_key], m.is_primary())
+					FUNCTIONS_NAME_MAP[monitor.function_key] if monitor.function_key else None, m.is_primary())
 				resume += '\t\t[GDK]\t\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
 					rect.x, rect.y, rect.width, rect.height)
 				resume += '\t\t[PROCRIS]\tRectangle: {:5}, {:5}, {:5}, {:5}\tborder: {} gap: {}\n'.format(
