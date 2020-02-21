@@ -31,7 +31,7 @@ class TerminalIntegrationTestCase(unittest.TestCase):
 	def test_run_command(self):
 		t = tests.integration.run(execute_alacritty)
 		windows = Windows()
-		windows.read_screen()
+		windows.read_default_screen()
 		opened = None
 		for w in windows.visible:
 			if w.get_name() == INTEGRATION_TEST_NAME:

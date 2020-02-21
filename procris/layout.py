@@ -44,12 +44,23 @@ class Monitor:
 	def get_window_padding(self):
 		return self.border + self.gap
 
+	def set_border(self, border):
+		self.border = border
+		self._update_work_area()
+
+	def set_gap(self, gap):
+		self.gap = gap
+		self._update_work_area()
+
 	def set_rectangle(self, rectangle: Gdk.Rectangle):
 		self.visible_area = rectangle
-		self.wx = rectangle.x + self.gap
-		self.wy = rectangle.y + self.gap
-		self.ww = rectangle.width - self.gap * 2
-		self.wh = rectangle.height - self.gap * 2
+		self._update_work_area()
+
+	def _update_work_area(self):
+		self.wx = self.visible_area.x + self.gap
+		self.wy = self.visible_area.y + self.gap
+		self.ww = self.visible_area.width - self.gap * 2
+		self.wh = self.visible_area.height - self.gap * 2
 
 	def increase_master_area(self, increment: float = None):
 		self.mfact += increment
@@ -119,10 +130,17 @@ class Layout:
 		self.transient_callbacks = {}
 		self.windows = windows
 
-	def start(self):
-		self._install_present_window_handlers()
-		Wnck.Screen.get_default().connect("window-opened", self._window_opened)
-		Wnck.Screen.get_default().connect("window-closed", self._window_closed)
+	def bind_to(self, screen: Wnck.Screen):
+		self._install_present_window_handlers(screen)
+		screen.connect("window-opened", self._window_opened)
+		screen.connect("window-closed", self._window_closed)
+
+	def _install_present_window_handlers(self, screen: Wnck.Screen):
+		# TODO: uninstall when closed
+		for window in screen.get_windows():
+			if window.get_xid() not in self.transient_callbacks and is_managed(window):
+				handler_id = window.connect("state-changed", self._state_changed)
+				self.transient_callbacks[window.get_xid()] = handler_id
 
 	#
 	# INTERNAL INTERFACE
@@ -138,19 +156,49 @@ class Layout:
 		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
 		return self.primary_monitors[active_workspace.get_number()]
 
-	def _install_present_window_handlers(self):
-		# TODO: uninstall when closed
-		for window in Wnck.Screen.get_default().get_windows():
-			if window.get_xid() not in self.transient_callbacks and is_managed(window):
-				handler_id = window.connect("state-changed", self._state_changed)
-				self.transient_callbacks[window.get_xid()] = handler_id
-
 	def _incremented_index(self, increment):
 		stack = self.get_active_stack()
 		active = get_active_stacked_window()
 		old_index = stack.index(active.get_xid())
 		new_index = old_index + increment
 		return min(max(new_index, 0), len(stack) - 1)
+
+	def _read_default_display(self):
+		self.read_from(Wnck.Screen.get_default())
+
+	def read_from(self, screen: Wnck.Screen):
+		self.read.clear()
+		for window in screen.get_windows():
+			self.read[window.get_xid()] = window
+
+		for workspace in screen.get_workspaces():
+
+			if workspace.get_number() not in self.stacks:
+				self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
+				self.stacks[workspace.get_number()] = []
+
+			primary_monitor: Monitor = self.primary_monitors[workspace.get_number()]
+			stack: List[int] = self.stacks[workspace.get_number()]
+			stack.extend(map(lambda w: w.get_xid(), filter(
+				lambda w: w.get_xid() not in stack and is_visible(w, workspace) and is_managed(w),
+				reversed(screen.get_windows_stacked()))))
+
+			for to_remove in filter(
+					lambda xid: xid not in self.read or not is_visible(self.read[xid], workspace),
+					stack.copy()):
+				stack.remove(to_remove)
+
+			primary_monitor.nservant = len(list(filter(lambda xid: not is_on_primary_monitor(self.read[xid]), stack)))
+			copy = stack.copy()
+			stack.sort(key=lambda xid: copy.index(xid) + (10000 if not is_on_primary_monitor(self.read[xid]) else 0))
+
+			for i in range(Gdk.Display.get_default().get_n_monitors()):
+				gdk_monitor = Gdk.Display.get_default().get_monitor(i)
+				if gdk_monitor.is_primary():
+					primary_monitor.set_rectangle(gdk_monitor.get_workarea())
+				elif primary_monitor.next():
+					primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
+					break
 
 	#
 	# PUBLIC INTERFACE
@@ -162,25 +210,25 @@ class Layout:
 	def set_function(self, function_key):
 		monitor = self.get_active_primary_monitor()
 		monitor.function_key = function_key
-		self.windows.read_screen()
-		self.read_display()
+		self.windows.read_default_screen()
+		self._read_default_display()
 		self.apply()
 
 	#
 	# CALLBACKS
 	#
-	def _window_closed(self, screen, window):
+	def _window_closed(self, screen: Wnck.Screen, window):
 		try:
 			if is_visible(window):
-				self.read_display()
+				self.read_from(screen)
 				self.apply()
 		except DirtyState:
 			pass  # It was just a try
 
-	def _window_opened(self, screen: Wnck.Screen, window):
-		self._install_present_window_handlers()
+	def _window_opened(self, screen: Wnck.Screen, window: Wnck.Window):
+		self._install_present_window_handlers(screen)
 		if is_visible(window, screen.get_active_workspace()):
-			self.read_display()
+			self.read_from(screen)
 			if window.get_name() in scratchpads.names():
 				scratchpad = scratchpads.get(window.get_name())
 				primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
@@ -199,15 +247,15 @@ class Layout:
 
 			try:
 				with Trap():
-					self.windows.read_screen(force_update=False)
+					self.windows.read_default_screen(force_update=False)
 					self.windows.apply_decoration_config()
 					self.apply()
 			except DirtyState:
 				pass  # It was just a try
 
-	def _state_changed(self, window, changed_mask, new_state):
+	def _state_changed(self, window: Wnck.Window, changed_mask, new_state):
 		if changed_mask & Wnck.WindowState.MINIMIZED and is_managed(window):
-			self.read_display()
+			self.read_from(window.get_screen())
 			stack = self.get_active_stack()
 			if is_visible(window):
 				old_index = stack.index(window.get_xid())
@@ -228,14 +276,14 @@ class Layout:
 		self.set_function(function_key)
 
 	def set_border(self, c_in):
-		self.get_active_primary_monitor().border = int(c_in.vim_command_parameter)
-		self.read_display()
+		border = int(c_in.vim_command_parameter)
+		self.get_active_primary_monitor().set_border(border)
 		self.windows.staging = True
 		self.apply()
 
 	def set_gap(self, c_in):
-		self.get_active_primary_monitor().gap = int(c_in.vim_command_parameter)
-		self.read_display()
+		gap = int(c_in.vim_command_parameter)
+		self.get_active_primary_monitor().set_gap(gap)
 		self.windows.staging = True
 		self.apply()
 
@@ -358,40 +406,6 @@ class Layout:
 			monitor = monitor.next()
 			visible = visible[split_point:]
 
-	def read_display(self):
-		self.read.clear()
-		for window in Wnck.Screen.get_default().get_windows():
-			self.read[window.get_xid()] = window
-
-		for workspace in Wnck.Screen.get_default().get_workspaces():
-
-			if workspace.get_number() not in self.stacks:
-				self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
-				self.stacks[workspace.get_number()] = []
-
-			primary_monitor: Monitor = self.primary_monitors[workspace.get_number()]
-			stack: List[int] = self.stacks[workspace.get_number()]
-			stack.extend(map(lambda w: w.get_xid(), filter(
-					lambda w: w.get_xid() not in stack and is_visible(w, workspace) and is_managed(w),
-					reversed(Wnck.Screen.get_default().get_windows_stacked()))))
-
-			for to_remove in filter(
-					lambda xid: xid not in self.read or not is_visible(self.read[xid], workspace),
-					stack.copy()):
-				stack.remove(to_remove)
-
-			primary_monitor.nservant = len(list(filter(lambda xid: not is_on_primary_monitor(self.read[xid]), stack)))
-			copy = stack.copy()
-			stack.sort(key=lambda xid: copy.index(xid) + (10000 if not is_on_primary_monitor(self.read[xid]) else 0))
-
-			for i in range(Gdk.Display.get_default().get_n_monitors()):
-				gdk_monitor = Gdk.Display.get_default().get_monitor(i)
-				if gdk_monitor.is_primary():
-					primary_monitor.set_rectangle(gdk_monitor.get_workarea())
-				elif primary_monitor.next():
-					primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
-					break
-
 	def resume(self):
 		resume = ''
 		for workspace in Wnck.Screen.get_default().get_workspaces():
@@ -418,8 +432,9 @@ class Layout:
 		return resume
 
 	def from_json(self, json):
-		Wnck.Screen.get_default().force_update()
-		self.read_display()
+		screen = Wnck.Screen.get_default()
+		screen.force_update()
+		self.read_from(screen)
 		try:
 			for key in json['workspaces']:
 				index = int(key)

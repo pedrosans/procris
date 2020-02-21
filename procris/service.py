@@ -102,11 +102,19 @@ def load_mappings():
 #
 def start():
 	Wnck.set_client_type(Wnck.ClientType.PAGER)
-	windows.read_screen()
-	layout.start()
+	screen = Wnck.Screen.get_default()
+
+	windows.read(screen)
 	windows.apply_decoration_config()
+
+	layout.bind_to(Wnck.Screen.get_default())
+	layout.read_from(screen)
+	layout.apply()
+
 	listener.start()
+
 	status_icon.activate()
+
 	Gtk.main()
 
 	print("Ending procris service, pid: {}".format(os.getpid()))
@@ -129,7 +137,7 @@ def reload(c_in):
 	terminal.reload()
 	messages.clean()
 	reading.clean(recreate_view=True)
-	windows.read_screen()
+	windows.read_default_screen()
 	windows.apply_decoration_config()
 
 
@@ -203,10 +211,12 @@ def _execute(function, command_input, multiplier=1):
 
 
 def pre_processing():
+	screen = Wnck.Screen.get_default()
+
+	windows.read(screen)
+	layout.read_from(screen)
 
 	reading.make_transient()
-	windows.read_screen()
-	layout.read_display()
 
 
 def post_processing():

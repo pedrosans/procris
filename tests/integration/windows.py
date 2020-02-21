@@ -36,7 +36,7 @@ class ServiceIntegrationTestCase(unittest.TestCase):
 
 	def test_minimize(self):
 		windows = Windows()
-		GLib.idle_add(windows.read_screen, priority=GLib.PRIORITY_HIGH)
+		GLib.idle_add(windows.read_default_screen, priority=GLib.PRIORITY_HIGH)
 		time.sleep(1)
 
 		active: Wnck.Window = windows.active.get_wnck_window()
@@ -47,7 +47,7 @@ class ServiceIntegrationTestCase(unittest.TestCase):
 
 		self.assertNotEqual(windows.active.xid, active.get_xid())
 
-		GLib.idle_add(windows.read_screen, priority=GLib.PRIORITY_HIGH)
+		GLib.idle_add(windows.read_default_screen, priority=GLib.PRIORITY_HIGH)
 		time.sleep(1)
 
 		self.assertNotEqual(WINDOW_NAME, windows.active.get_wnck_window().get_name())

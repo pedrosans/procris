@@ -26,8 +26,8 @@ class LayoutIntegrationTestCase(unittest.TestCase):
 
 		tests.integration.run_and_join(launch_setup_apps)
 
-		self.windows.read_screen()
-		self.layout.read_display()
+		self.windows.read_default_screen()
+		self.layout._read_default_display()
 
 		for w in Wnck.Screen.get_default().get_windows():
 			if w.get_name() in ['Calculator', 'Logs']:

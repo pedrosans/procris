@@ -69,21 +69,24 @@ class Windows:
 		self.staging = False
 		self.count = 0
 
-	def read_screen(self, force_update=True):
+	def read_default_screen(self, force_update=True):
+		self.read(Wnck.Screen.get_default(), force_update=force_update)
+
+	def read(self, screen: Wnck.Screen, force_update=True):
 		del self.buffers[:]
 		del self.visible[:]
 		self.active.clean()
 
 		if force_update:
-			Wnck.Screen.get_default().force_update()  # make sure we query X server
+			screen.force_update()  # make sure we query X server
 
-		for wnck_window in Wnck.Screen.get_default().get_windows():
+		for wnck_window in screen.get_windows():
 			if wnck_window.get_pid() == os.getpid() or wnck_window.is_skip_tasklist():
 				continue
 
 			self.buffers.append(wnck_window)
 
-			if wnck_window.is_in_viewport(Wnck.Screen.get_default().get_active_workspace()) and not wnck_window.is_minimized():
+			if wnck_window.is_in_viewport(screen.get_active_workspace()) and not wnck_window.is_minimized():
 				self.visible.append(wnck_window)
 
 		self.update_active()
