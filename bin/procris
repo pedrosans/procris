@@ -41,7 +41,7 @@ elif args.c:
 	import procris.service
 	import procris.names as names
 	procris.service.load()
-	procris.service.pre_processing()
+	procris.service._pre_processing()
 	c_in = names.CommandLine(text=args.c).parse()
 	name = names.match(c_in)
 	message = name.function(c_in)

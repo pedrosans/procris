@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, procris
 import procris.messages as messages
 import procris.names as names
-import procris.cache as configurations
+import procris.state as configurations
 import procris.service as service
 
 gi.require_version('Gtk', '3.0')
@@ -49,7 +49,7 @@ class Reading:
 	command_mode = False
 	cmd_handler_ids = []
 
-	def __init__(self, windows=None):
+	def __init__(self, windows: Windows):
 		self.windows = windows
 		self.completion = Completion(self.windows)
 		self._create_and_install_view()

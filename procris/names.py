@@ -26,6 +26,7 @@ MULTIPLE_COMMANDS_PATTERN = re.compile(r'.*[^\\]\|.*')
 PROMPT = ':'
 
 
+# TODO: rename to input or move to an input type
 class CommandLine:
 
 	def __init__(self, time=None, text=None, parameters=None, keyval=None, keymod=None):

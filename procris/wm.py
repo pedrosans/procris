@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import gi
 import traceback
-import procris.cache as config
+import procris.state as config
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 from typing import Callable

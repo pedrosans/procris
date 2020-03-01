@@ -15,6 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os, dbus, dbus.service
+from typing import Callable
+
 from dbus.mainloop.glib import DBusGMainLoop
 from dbus.gi_service import ExportedGObject
 
@@ -22,10 +24,12 @@ SERVICE_NAME = "io.github.procris"
 SERVICE_OBJECT_PATH = "/io/github/procris"
 
 
+# TODO: remove subclass
 class BusObject (ExportedGObject):
 
-	def __init__(self, procris_service):
-		self.procris_service = procris_service
+	def __init__(self, ipc_handler: Callable = None, stop: Callable = None):
+		self.ipc_handler = ipc_handler
+		self.stop = stop
 		self.main_loop = DBusGMainLoop(set_as_default=True)
 		dbus.mainloop.glib.threads_init()
 		self.bus = dbus.Bus()
@@ -48,11 +52,11 @@ class BusObject (ExportedGObject):
 
 	@dbus.service.method("io.github.procris.Service", in_signature='s', out_signature='')
 	def message(self, ipc_message):
-		self.procris_service.message(ipc_message)
+		self.ipc_handler(ipc_message)
 
 	@dbus.service.method("io.github.procris.Service", in_signature='', out_signature='')
 	def stop(self):
-		self.procris_service.stop()
+		self.stop()
 
 	def release(self):
 		self.bus.release_name(SERVICE_NAME)

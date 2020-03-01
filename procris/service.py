@@ -16,110 +16,81 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import ctypes
-
 x11 = ctypes.cdll.LoadLibrary('libX11.so.6')
-x11.XInitThreads()
+xlib_support_initialized = x11.XInitThreads()
+if not xlib_support_initialized:
+	raise Exception('Unable to initialize Xlib support for multiple threads.')
 import os, gi, signal, setproctitle, traceback
-import procris
 import procris.names as names
-import procris.cache as cache
+import procris.state as cache
 import procris.applications as applications
 import procris.messages as messages
 import procris.terminal as terminal
-import Xlib
 gi.require_version('Gtk', '3.0')
-gi.require_version('Gdk', '3.0')
 gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck, Gtk, GLib, Gdk
+from gi.repository import Wnck, Gtk, GLib
+from types import ModuleType
 from procris.reading import Reading
 from procris.status import StatusIcon
 from procris.keyboard import KeyboardListener
 from procris.layout import Layout
 from procris.windows import Windows
 from procris.names import CommandLine
-
-SIGINT = getattr(signal, "SIGINT", None)
-SIGTERM = getattr(signal, "SIGTERM", None)
-SIGHUP = getattr(signal, "SIGHUP", None)
-
-reading: Reading = None
-listener: KeyboardListener = None
-windows: Windows = None
-layout: Layout = None
-status_icon: StatusIcon = None
-config = bus_object = None
+from procris.remote import BusObject
 
 
 def load():
-	global listener, bus_object, status_icon, windows, reading, layout
-
-	# as soon as possible so new instances are notified
-	from procris.remote import BusObject
-	bus_object = BusObject(procris.service)
-
-	windows = Windows()
-	reading = Reading(windows=windows)
-	layout = Layout(reading.windows)
-	status_icon = StatusIcon(layout, stop_function=stop)
-	listener = KeyboardListener(callback=keyboard_listener, on_error=stop)
-
-	configure_process()
+	_configure_process()
 	applications.load()
 	terminal.load()
-	load_mappings()
+	cache.load()
+	_configure(cache.get_config_module())
+	_install_window_handlers(Wnck.Screen.get_default())
 
 
-def load_mappings():
-	global config
-	imported = False
-	try:
-		import importlib.util
-		spec = importlib.util.spec_from_file_location("module.name", cache.get_custom_mappings_module_path())
-		config = importlib.util.module_from_spec(spec)
-		spec.loader.exec_module(config)
-		imported = True
-	except FileNotFoundError as e:
-		print(
-			'info: not possible to load custom config at: {}'.format(
-				cache.get_custom_mappings_module_path()))
-
-	if not imported:
-		import procris.config as default_config
-		config = default_config
-
-	for name in config.names:
+def _configure(config: ModuleType):
+	layout.from_json(cache.get_layout_config())
+	for name in config.NAMES:
 		names.add(name)
-
-	for key in config.keys:
+	for key in config.KEYS:
 		listener.bind(key)
 
-	cache.load(default=config.default_interface)
-	layout.from_json(cache.read_layout(default=config.default_layout))
+
+def _install_window_handlers(screen: Wnck.Screen):
+	windows.read(screen)
+	layout.read_from(screen)
+	layout.bind_to(screen)
+
+
+def _configure_process():
+	Wnck.set_client_type(Wnck.ClientType.PAGER)
+	setproctitle.setproctitle("procris")
+	unix_signal_add = _signal_function()
+	for sig in (SIGINT, SIGTERM, SIGHUP):
+		unix_signal_add(GLib.PRIORITY_HIGH, sig, _unix_signal_handler, sig)
 
 
 #
 # Service lifecycle API
 #
 def start():
-	Wnck.set_client_type(Wnck.ClientType.PAGER)
-	screen = Wnck.Screen.get_default()
-
-	windows.read(screen)
 	windows.apply_decoration_config()
-
-	layout.bind_to(Wnck.Screen.get_default())
-	layout.read_from(screen)
 	layout.apply()
-
 	listener.start()
-
 	status_icon.activate()
-
 	Gtk.main()
-
 	print("Ending procris service, pid: {}".format(os.getpid()))
 
 
+def stop():
+	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
+	listener.stop()
+	bus_object.release()
+
+
+#
+# Commands
+#
 def read_command_key(c_in):
 	messages.prompt_placeholder = Gtk.accelerator_name(c_in.keyval, c_in.keymod)
 
@@ -141,12 +112,9 @@ def reload(c_in):
 	windows.apply_decoration_config()
 
 
-def stop():
-	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
-	listener.stop()
-	release_bus_object()
-
-
+#
+# Callbacks
+#
 def keyboard_listener(key, x_key_event, multiplier=1):
 	command_input = CommandLine(
 		time=x_key_event.time, parameters=key.parameters, keyval=x_key_event.keyval, keymod=x_key_event.keymod)
@@ -159,6 +127,9 @@ def message(ipc_message):
 	execute(cmd=ipc_message, timestamp=datetime.now().microsecond)
 
 
+#
+# API
+#
 def execute(cmd: str = None, timestamp: int = None, move_to_main_loop=True):
 	if names.has_multiple_names(cmd):
 		raise names.InvalidName('TODO: iterate multiple commands')
@@ -177,15 +148,10 @@ def execute(cmd: str = None, timestamp: int = None, move_to_main_loop=True):
 	return True
 
 
-def _execute_inside_main_loop(function, command_input, multiplier=1):
-
-	GLib.idle_add(_execute, function, command_input, multiplier,  priority=GLib.PRIORITY_HIGH)
-
-
 def _execute(function, command_input, multiplier=1):
 	try:
 
-		pre_processing()
+		_pre_processing()
 
 		for i in range(multiplier):
 			return_message = function(command_input)
@@ -199,7 +165,7 @@ def _execute(function, command_input, multiplier=1):
 			windows.commit_navigation(command_input.time)
 			reading.make_transient()
 
-		post_processing()
+		_post_processing()
 
 	except Exception as inst:
 		msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
@@ -210,7 +176,7 @@ def _execute(function, command_input, multiplier=1):
 	return False
 
 
-def pre_processing():
+def _pre_processing():
 	screen = Wnck.Screen.get_default()
 
 	windows.read(screen)
@@ -219,7 +185,7 @@ def pre_processing():
 	reading.make_transient()
 
 
-def post_processing():
+def _post_processing():
 
 	if reading.is_transient():
 		reading.end()
@@ -231,35 +197,35 @@ def post_processing():
 	status_icon.reload()
 
 
-def configure_process():
-	setproctitle.setproctitle("procris")
+#
+# Util
+#
+def _execute_inside_main_loop(function, command_input, multiplier=1):
 
-	for sig in (SIGINT, SIGTERM, SIGHUP):
-		install_glib_handler(sig)
+	GLib.idle_add(_execute, function, command_input, multiplier,  priority=GLib.PRIORITY_HIGH)
 
 
-def install_glib_handler(sig):
-	unix_signal_add = None
-
+def _signal_function():
 	if hasattr(GLib, "unix_signal_add"):
-		unix_signal_add = GLib.unix_signal_add
+		return GLib.unix_signal_add
 	elif hasattr(GLib, "unix_signal_add_full"):
-		unix_signal_add = GLib.unix_signal_add_full
-
-	if unix_signal_add:
-		unix_signal_add(GLib.PRIORITY_HIGH, sig, unix_signal_handler, sig)
+		return GLib.unix_signal_add_full
 	else:
-		print("Can't install GLib signal handler, too old gi.")
+		raise Exception("Can't install GLib signal handler, too old gi.")
 
 
-def unix_signal_handler(*args):
+def _unix_signal_handler(*args):
 	signal_val = args[0]
 	if signal_val in (1, SIGHUP, 2, SIGINT, 15, SIGTERM):
 		stop()
 
 
-def release_bus_object():
-	global bus_object
-	if bus_object:
-		bus_object.release()
-		bus_object = None
+SIGINT = getattr(signal, "SIGINT", None)
+SIGTERM = getattr(signal, "SIGTERM", None)
+SIGHUP = getattr(signal, "SIGHUP", None)
+windows: Windows = Windows()
+reading: Reading = Reading(windows)
+layout: Layout = Layout(windows)
+status_icon: StatusIcon = StatusIcon(layout, stop_function=stop)
+bus_object: BusObject = BusObject(ipc_handler=message, stop=stop)
+listener: KeyboardListener = KeyboardListener(callback=keyboard_listener, on_error=stop)

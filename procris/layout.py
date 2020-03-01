@@ -16,12 +16,15 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import gi, traceback
-import procris.cache as persistor
+from procris.names import CommandLine
+
+import procris.state as persistor
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk, GLib
 from typing import List, Dict
 from procris import scratchpads
 from procris.windows import Windows
+from procris import state as config
 from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_window, is_on_primary_monitor, \
 	get_height, DirtyState, X_Y_W_H_GEOMETRY_MASK, gdk_window_for, Trap
 
@@ -29,53 +32,48 @@ from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_w
 # https://valadoc.org/gdk-3.0/Gdk.Monitor.html
 class Monitor:
 
-	def __init__(self, primary: bool = False, nmaster: int = 1, mfact: float = 0.5, gap: int = 0, border: int = 0, function_key: str = 'T'):
+	def __init__(self, primary: bool = False, nmaster: int = 1, mfact: float = 0.5, function_key: str = 'T'):
 		self.primary: bool = primary
 		self.function_key: str = function_key
 		self.nmaster: int = nmaster
 		self.nservant: int = 0
 		self.mfact: float = mfact
-		self.gap = gap
-		self.border = border
 		self.wx = self.wy = self.ww = self.wh = None
 		self.visible_area: Gdk.Rectangle = None
 		self.pointer: Monitor = None
 
-	def get_window_padding(self):
-		return self.border + self.gap
-
-	def set_border(self, border):
-		self.border = border
-		self._update_work_area()
-
-	def set_gap(self, gap):
-		self.gap = gap
-		self._update_work_area()
-
 	def set_rectangle(self, rectangle: Gdk.Rectangle):
 		self.visible_area = rectangle
-		self._update_work_area()
+		self.update_work_area()
 
-	def _update_work_area(self):
-		self.wx = self.visible_area.x + self.gap
-		self.wy = self.visible_area.y + self.gap
-		self.ww = self.visible_area.width - self.gap * 2
-		self.wh = self.visible_area.height - self.gap * 2
+	def update_work_area(self):
+		outer_gap = config.get_outer_gap()
+		self.wx = self.visible_area.x + outer_gap
+		self.wy = self.visible_area.y + outer_gap
+		self.ww = self.visible_area.width - outer_gap * 2
+		self.wh = self.visible_area.height - outer_gap * 2
+
+	def set_function(self, key: str):
+		self.function_key = key
+		persistor.persist_layout(self.to_json())
 
 	def increase_master_area(self, increment: float = None):
 		self.mfact += increment
 		self.mfact = max(0.1, self.mfact)
 		self.mfact = min(0.9, self.mfact)
+		persistor.persist_layout(self.to_json())
 
 	def increment_master(self, increment=None, upper_limit=None):
 		self.nmaster += increment
 		self.nmaster = max(0, self.nmaster)
 		self.nmaster = min(upper_limit - self.nservant, self.nmaster)
+		persistor.persist_layout(self.to_json())
 
 	def increment_servant(self, increment=None, upper_limit=None):
 		self.nservant += increment
 		self.nservant = max(0, self.nservant)
 		self.nservant = min(upper_limit - self.nmaster, self.nservant)
+		persistor.persist_layout(self.to_json())
 
 	def contains(self, window: Wnck.Window):
 		rect = self.visible_area
@@ -87,8 +85,14 @@ class Monitor:
 		self.nservant = json['nservant'] if 'nservant' in json else self.nservant
 		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
 		self.function_key = json['function'] if 'function' in json else self.function_key
-		self.border = json['border'] if 'border' in json else self.border
-		self.gap = json['gap'] if 'gap' in json else self.gap
+
+	def to_json(self):
+		return {
+			'nmaster': self.nmaster,
+			'nservant': self.nservant,
+			'mfact': self.mfact,
+			'function': self.function_key
+		}
 
 	def print(self):
 		print('monitor: {} {} {} {}'.format(self.wx, self.wy, self.ww, self.wh))
@@ -122,6 +126,7 @@ def get_active_stacked_window():
 
 class Layout:
 	window: Windows
+	# TODO: rename to workspace stack/primary_monitors
 	stacks: Dict[int, List[int]] = {}
 	primary_monitors: Dict[int, Monitor] = {}
 	read: Dict[int, Wnck.Window] = {}
@@ -207,9 +212,9 @@ class Layout:
 		monitor = self.get_active_primary_monitor()
 		return monitor.function_key
 
+	# TODO: where?
 	def set_function(self, function_key):
-		monitor = self.get_active_primary_monitor()
-		monitor.function_key = function_key
+		self.get_active_primary_monitor().set_function(function_key)
 		self.windows.read_default_screen()
 		self._read_default_display()
 		self.apply()
@@ -220,6 +225,7 @@ class Layout:
 	def _window_closed(self, screen: Wnck.Screen, window):
 		try:
 			if is_visible(window):
+				# TODO: no reading?
 				self.read_from(screen)
 				self.apply()
 		except DirtyState:
@@ -250,6 +256,7 @@ class Layout:
 					self.windows.read_default_screen(force_update=False)
 					self.windows.apply_decoration_config()
 					self.apply()
+					persistor.persist_layout(self.to_json())
 			except DirtyState:
 				pass  # It was just a try
 
@@ -261,11 +268,12 @@ class Layout:
 				old_index = stack.index(window.get_xid())
 				stack.insert(0, stack.pop(old_index))
 			self.apply()
+			persistor.persist_layout(self.to_json())
 
 	#
 	# COMMANDS
 	#
-	def change_function(self, c_in):
+	def change_function(self, c_in: CommandLine):
 		function_key = c_in.parameters[0]
 		promote_selected = False if len(c_in.parameters) < 2 else c_in.parameters[1]
 		active = get_active_stacked_window()
@@ -275,19 +283,21 @@ class Layout:
 			stack.insert(0, stack.pop(old_index))
 		self.set_function(function_key)
 
-	def set_border(self, c_in):
-		border = int(c_in.vim_command_parameter)
-		self.get_active_primary_monitor().set_border(border)
+	def set_outer_gap(self, c_in: CommandLine):
+		pixels = int(c_in.vim_command_parameter)
+		config.set_outer_gap(pixels)
+		self.get_active_primary_monitor().update_work_area()
 		self.windows.staging = True
 		self.apply()
 
-	def set_gap(self, c_in):
-		gap = int(c_in.vim_command_parameter)
-		self.get_active_primary_monitor().set_gap(gap)
+	def set_inner_gap(self, c_in: CommandLine):
+		pixels = int(c_in.vim_command_parameter)
+		config.set_inner_gap(pixels)
+		self.get_active_primary_monitor().update_work_area()
 		self.windows.staging = True
 		self.apply()
 
-	def swap_focused_with(self, c_in):
+	def swap_focused_with(self, c_in: CommandLine):
 		active = get_active_stacked_window()
 		if active:
 
@@ -304,14 +314,14 @@ class Layout:
 					self.windows.active.change_to(stack[old_index])
 				self.apply()
 
-	def move_focus(self, c_in):
+	def move_focus(self, c_in: CommandLine):
 		if get_active_stacked_window():
 			stack = self.get_active_stack()
 			direction = c_in.parameters[0]
 			new_index = self._incremented_index(direction)
 			self.windows.active.change_to(stack[new_index])
 
-	def move_to_master(self, c_in):
+	def move_to_master(self, c_in: CommandLine):
 		active = get_active_stacked_window()
 		if active:
 			stack = self.get_active_stack()
@@ -319,81 +329,40 @@ class Layout:
 			stack.insert(0, stack.pop(old_index))
 			self.apply()
 
-	def increase_master_area(self, c_in):
+	def increase_master_area(self, c_in: CommandLine):
 		self.get_active_primary_monitor().increase_master_area(increment=c_in.parameters[0])
 		self.apply()
 
-	def increment_master(self, c_in):
+	def increment_master(self, c_in: CommandLine):
 		self.get_active_primary_monitor().increment_master(
 			increment=c_in.parameters[0], upper_limit=len(self.get_active_stack()))
 		self.apply()
 
-	def increment_servant(self, c_in):
+	def increment_servant(self, c_in: CommandLine):
 		self.get_active_primary_monitor().increment_servant(
 			increment=c_in.parameters[0], upper_limit=len(self.get_active_stack()))
 		self.apply()
 
-	def move_stacked(self, c_in):
-		parameter = c_in.vim_command_parameter
-		monitor: Monitor = self.get_active_primary_monitor()
-		array = list(map(lambda x: int(x), parameter.split()))
-		visible_windows = self.get_active_windows_as_list()
-
-		set_geometry(
-			visible_windows[array[0]], x=array[1] + monitor.wx, y=array[2] + monitor.wy,
-			w=array[3] if len(array) > 3 else None,
-			h=array[4] if len(array) > 3 else None)
-
-		self.windows.staging = True
-
-	def wnck_move(self, c_in):
-		parameter = c_in.vim_command_parameter
-		monitor: Monitor = self.get_active_primary_monitor()
-		array = list(map(lambda x: int(x), parameter.split()))
-		visible_windows = self.get_active_windows_as_list()
-		window = visible_windows[array[0]]
-
-		window.set_geometry(
-			Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK,
-			array[1] + monitor.wx,
-			array[2] + monitor.wy,
-			array[3] if len(array) > 3 else window.get_geometry().widthp,
-			array[4] if len(array) > 3 else window.get_geometry().heightp)
-
-		self.windows.staging = True
-
-	def gdk_move(self, c_in):
-		parameter = c_in.vim_command_parameter
-		monitor: Monitor = self.get_active_primary_monitor()
-		array = list(map(lambda x: int(x), parameter.split()))
-		visible_windows = self.get_active_windows_as_list()
-		window = visible_windows[array[0]]
-		gdk_window = gdk_window_for(window)
-
-		gdk_window.move(
-			array[1] + monitor.wx,
-			array[2] + monitor.wy)
-
-		self.windows.staging = True
-
-	def move_gdk_stacked(self, c_in):
-		parameter = c_in.vim_command_parameter
-		monitor: Monitor = self.get_active_primary_monitor()
-		array = list(map(lambda x: int(x), parameter.split()))
-		visible_windows = self.get_active_windows_as_list()
-
-		set_geometry(
-			visible_windows[array[0]], x=array[1] + monitor.wx, y=array[2] + monitor.wy,
-			w=array[3] if len(array) > 3 else None,
-			h=array[4] if len(array) > 3 else None, gdk=True)
-
+	def geometry(self, c_in: CommandLine):
+		parameters = list(map(lambda word: int(word), c_in.vim_command_parameter.split()))
+		lib = parameters[0]
+		window = self.get_active_windows_as_list()[parameters[1]]
+		x = parameters[2]
+		y = parameters[3]
+		gdk_monitor = Gdk.Display.get_default().get_monitor_at_point(x, y)
+		if 'gdk' == lib:
+			gdk_window_for(window).move(x + gdk_monitor.get_workarea().x, y + gdk_monitor.get_workarea().y)
+		else:
+			window.set_geometry(
+				Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK,
+				x + gdk_monitor.get_workarea().x, y + gdk_monitor.get_workarea().y,
+				parameters[4] if len(parameters) > 4 else window.get_geometry().widthp,
+				parameters[5] if len(parameters) > 5 else window.get_geometry().heightp)
 		self.windows.staging = True
 
 	def apply(self):
-		persistor.persist_layout(self.to_json())
 		primary_monitor: Monitor = self.get_active_primary_monitor()
 		workspace_windows = self.get_active_windows_as_list()
-
 		monitor = primary_monitor
 		visible = workspace_windows
 		while monitor and visible:
@@ -408,6 +377,7 @@ class Layout:
 
 	def resume(self):
 		resume = ''
+		resume += '[gap] inner: {} outer: {}\n'.format(config.get_inner_gap(), config.get_outer_gap())
 		for workspace in Wnck.Screen.get_default().get_workspaces():
 			resume += 'Workspace {}\n'.format(workspace.get_number())
 			for i in range(Gdk.Display.get_default().get_n_monitors()):
@@ -420,9 +390,8 @@ class Layout:
 					FUNCTIONS_NAME_MAP[monitor.function_key] if monitor.function_key else None, m.is_primary())
 				resume += '\t\t[GDK]\t\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
 					rect.x, rect.y, rect.width, rect.height)
-				resume += '\t\t[PROCRIS]\tRectangle: {:5}, {:5}, {:5}, {:5}\tborder: {} gap: {}\n'.format(
-					monitor.wx, monitor.wy, monitor.ww, monitor.wh,
-					monitor.border, monitor.gap)
+				resume += '\t\t[PROCRIS]\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
+					monitor.wx, monitor.wy, monitor.ww, monitor.wh)
 
 				resume += '\t\t[Stack]\t\t('
 				for xid in filter(lambda _xid: monitor.contains(self.read[_xid]), self.stacks[workspace.get_number()]):
@@ -436,47 +405,53 @@ class Layout:
 		screen.force_update()
 		self.read_from(screen)
 		try:
-			for key in json['workspaces']:
-				index = int(key)
+			for workspace_index in range(len(json['workspaces'])):
+				workspace_json = json['workspaces'][workspace_index]
 
-				monitor = self.primary_monitors[index] = Monitor(primary=True)
-				monitor.from_json(json['workspaces'][key])
-
-				if 'stack' in json['workspaces'][key] and index in self.stacks:
-					stack = self.stacks[index]
+				if 'stack' in workspace_json and workspace_index in self.stacks:
+					stack = self.stacks[workspace_index]
 					copy = stack.copy()
 					stack.sort(
 						key=lambda xid:
-						json['workspaces'][key]['stack'][str(xid)]['index']
-						if str(xid) in json['workspaces'][key]['stack']
+						workspace_json['stack'][str(xid)]['index']
+						if str(xid) in workspace_json['stack']
 						else copy.index(xid))
+
+				monitor_index = 0
+				monitor: Monitor = self.primary_monitors[workspace_index]
+				while monitor:
+					if monitor_index < len(workspace_json['monitors']):
+						monitor.from_json(workspace_json['monitors'][monitor_index])
+					monitor_index += 1
+					monitor = monitor.next()
+
 		except (KeyError, TypeError):
+			print('Unable to the last execution state, using default ones.')
 			traceback.print_exc()
 			traceback.print_stack()
 
 	def to_json(self):
-		props = {'workspaces': {}}
+		props = {'workspaces': []}
 		for workspace_number in self.stacks.keys():
 			stack: List[int] = self.stacks[workspace_number]
-			monitor: Monitor = self.primary_monitors[workspace_number]
 			stack_json = {}
 			for xid in stack:
-				stack_json[str(xid)] = {
-					'name': self.read[xid].get_name(),
-					'index': stack.index(xid)
-				}
-			props['workspaces'][str(workspace_number)] = {
-				'nmaster': monitor.nmaster, 'nservants': monitor.nservant,
-				'mfact': monitor.mfact,
-				'border': monitor.border, 'gap': monitor.gap,
-				'function': monitor.function_key,
+				stack_json[str(xid)] = {'name': self.read[xid].get_name(), 'index': stack.index(xid)}
+
+			props['workspaces'].append({
 				'stack': stack_json,
-			}
+				'monitors': []
+			})
+
+			monitor: Monitor = self.primary_monitors[workspace_number]
+			while monitor:
+				props['workspaces'][workspace_number]['monitors'].append(monitor.to_json())
+				monitor = monitor.next()
 		return props
 
 
 def monocle(stack, monitor):
-	padding = monitor.get_window_padding()
+	padding = config.get_inner_gap()
 	for window in stack:
 		set_geometry(
 			window,
@@ -492,7 +467,7 @@ def tile(stack: List[Wnck.Window], m):
 	else:
 		mw = m.ww
 	my = ty = 0
-	padding = m.get_window_padding()
+	padding = config.get_inner_gap()
 
 	for i in range(len(stack)):
 		window = stack[i]
@@ -513,7 +488,7 @@ def centeredmaster(stack: List[Wnck.Window], m: Monitor):
 	mx = my = 0
 	oty = ety = 0
 	n = len(stack)
-	padding = m.get_window_padding()
+	padding = config.get_inner_gap()
 
 	if n > m.nmaster:
 		mw = int(m.ww * m.mfact) if m.nmaster else 0
@@ -551,7 +526,7 @@ def biasedstack(stack: List[Wnck.Window], monitor: Monitor):
 	mw = int(monitor.ww * monitor.mfact) if monitor.nmaster else 0
 	mx = tw = int((monitor.ww - mw) / 2)
 	my = 0
-	padding = monitor.get_window_padding()
+	padding = config.get_inner_gap()
 
 	for i in range(len(stack)):
 		window: Wnck.Window = stack[i]

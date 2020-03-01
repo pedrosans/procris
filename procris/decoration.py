@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi
-import procris.cache as persistor
+import procris.state as persistor
 from procris.wm import gdk_window_for
 
 gi.require_version('Wnck', '3.0')
@@ -36,7 +36,7 @@ DECORATION_MAP = {
 
 
 def remove(buffers: List[Wnck.Window]):
-	decoration_map = persistor.read_decorations()
+	decoration_map = persistor.get_decorations()
 
 	for w in buffers:
 
@@ -60,7 +60,7 @@ def remove(buffers: List[Wnck.Window]):
 
 
 def restore(buffers: List[Wnck.Window]):
-	original_decorations = persistor.read_decorations()
+	original_decorations = persistor.get_decorations()
 	for w in buffers:
 		if str(w.get_xid()) in original_decorations:
 			gdk_window_for(w).set_decorations(Gdk.WMDecoration(original_decorations[str(w.get_xid())]))
