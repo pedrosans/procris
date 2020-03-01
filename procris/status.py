@@ -36,7 +36,7 @@ class StatusIcon:
 		# Track reloading routine to stop any layout side effect when updating the UI
 		self._reloading = False
 		self.stop_function = stop_function
-		self.layout = layout
+		self.layout: procris.Layout = layout
 		self.menu = Gtk.Menu()
 
 		self.autostart_item = Gtk.CheckMenuItem(label="Autostart")

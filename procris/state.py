@@ -28,11 +28,11 @@ auto_start_dir = Base.save_config_path("autostart")
 auto_start_file = os.path.join(auto_start_dir, PROCRIS_DESKTOP)
 config_dir = Base.save_config_path(PROCRIS_PACKAGE)
 cache_dir = Base.save_cache_path(PROCRIS_PACKAGE)
-layout_file = cache_dir + '/layout.json'
+workspace_file = cache_dir + '/workspace.json'
 decorations_file = cache_dir + '/decoration.json'
 config_file = cache_dir + '/config.json'
 loaded_interface_config: Dict = None
-loaded_layout_config: Dict = None
+loaded_workspace_config: Dict = None
 loaded_decorations: Dict = None
 config_module: ModuleType = None
 
@@ -41,15 +41,15 @@ config_module: ModuleType = None
 # Wherever exists in between procris.stop() and procris.start()
 #
 def load():
-	global loaded_interface_config, loaded_layout_config, loaded_decorations, config_module
+	global loaded_interface_config, loaded_workspace_config, loaded_decorations, config_module
 
 	config_module = read_config_module()
 
 	interface_config = _read_json(config_file)
 	loaded_interface_config = interface_config if interface_config else config_module.DEFAULTS
 
-	layout_config = _read_json(layout_file)
-	loaded_layout_config = layout_config if layout_config else config_module.DEFAULTS
+	workspace_config = _read_json(workspace_file)
+	loaded_workspace_config = workspace_config if workspace_config else config_module.DEFAULTS
 
 	loaded_decorations = _read_json(decorations_file)
 
@@ -59,8 +59,8 @@ def reload():
 
 
 def clean():
-	if os.path.exists(layout_file):
-		os.remove(layout_file)
+	if os.path.exists(workspace_file):
+		os.remove(workspace_file)
 	if os.path.exists(config_file):
 		os.remove(config_file)
 
@@ -73,9 +73,9 @@ def persist_interface_config():
 		json.dump(loaded_interface_config, f, indent=True)
 
 
-def persist_layout(layout: Dict):
-	with open(layout_file, 'w') as f:
-		json.dump(layout, f, indent=True)
+def persist_workspace(workspace: Dict):
+	with open(workspace_file, 'w') as f:
+		json.dump(workspace, f, indent=True)
 
 
 def persist_decorations(decoration_map: Dict):
@@ -118,8 +118,8 @@ def get_config_module() -> ModuleType:
 	return config_module
 
 
-def get_layout_config() -> Dict:
-	return loaded_layout_config
+def get_workspace_config() -> Dict:
+	return loaded_workspace_config
 
 
 def get_decorations() -> Dict:

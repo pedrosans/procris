@@ -17,7 +17,7 @@ DEFAULTS = {
 	'width': 800,
 	'auto_hint': True,
 	'auto_select_first_hint': True,
-	'icon': 'default',
+	'icon': 'light',
 	'remove_decorations': False,
 	'window_manger_border': 0,
 	'inner_gap': 5,

@@ -40,25 +40,20 @@ from procris.remote import BusObject
 
 
 def load():
-	_configure_process()
 	applications.load()
 	terminal.load()
 	cache.load()
-	_configure(cache.get_config_module())
-	_install_window_handlers(Wnck.Screen.get_default())
+	_read_environment(Wnck.Screen.get_default(), cache.get_config_module())
+	_configure_process()
 
 
-def _configure(config: ModuleType):
-	layout.from_json(cache.get_layout_config())
+def _read_environment(screen: Wnck.Screen, config: ModuleType):
 	for name in config.NAMES:
 		names.add(name)
 	for key in config.KEYS:
 		listener.bind(key)
-
-
-def _install_window_handlers(screen: Wnck.Screen):
 	windows.read(screen)
-	layout.read_from(screen)
+	layout.read(screen, cache.get_workspace_config())
 	layout.bind_to(screen)
 
 
@@ -180,7 +175,7 @@ def _pre_processing():
 	screen = Wnck.Screen.get_default()
 
 	windows.read(screen)
-	layout.read_from(screen)
+	layout.read_screen(screen)
 
 	reading.make_transient()
 

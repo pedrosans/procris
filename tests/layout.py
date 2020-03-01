@@ -6,13 +6,18 @@ import procris.wm as wm
 wm.set_geometry = MagicMock()
 wm.set_geometry.return_value = False
 wm.calculate_geometry_offset = lambda x: [0, 0, 0, 0]
+
+import procris.state as state
+state.get_inner_gap = lambda: 0
+state.get_outer_gap = lambda: 0
+
 import procris.layout as layout
 
 
 class LayoutTestCase(unittest.TestCase):
 
 	def setUp(self):
-		self.monitor = layout.Monitor(nmaster=1, mfact = 0.5, border=0, gap=0)
+		self.monitor = layout.Monitor(nmaster=1, mfact=0.5)
 		self.monitor.ww = 800
 		self.monitor.wh = 550
 		self.monitor.wx = 0
