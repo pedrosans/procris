@@ -48,6 +48,7 @@ def parse_accelerator(accelerator_string):
 class KeyboardListener:
 
 	def __init__(self, callback=None, on_error=None):
+		self.keys = []
 		self.on_error = on_error
 		self.callback = callback
 		# XLib errors are received asynchronously, thus the need for a running state flag
@@ -82,7 +83,20 @@ class KeyboardListener:
 	#
 	# API
 	#
-	def bind(self, key):
+	def add(self, key):
+		self.keys.append(key)
+
+	def start(self):
+		for key in self.keys:
+			self._bind(key)
+		self.well_connection.sync()
+		self.recording_connection.sync()
+		if self.stopped:
+			return
+		self.well_thread.start()
+		self.record_thread.start()
+
+	def _bind(self, key):
 		if self.stopped:
 			return
 
@@ -111,14 +125,6 @@ class KeyboardListener:
 
 		if self.stopped:
 			print('Unable to bind: {}'.format(', '.join(key.accelerators)), file=sys.stderr)
-
-	def start(self):
-		self.well_connection.sync()
-		self.recording_connection.sync()
-		if self.stopped:
-			return
-		self.well_thread.start()
-		self.record_thread.start()
 
 	def stop(self):
 		self.stopped = True

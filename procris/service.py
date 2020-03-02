@@ -26,6 +26,7 @@ import procris.state as cache
 import procris.applications as applications
 import procris.messages as messages
 import procris.terminal as terminal
+import procris.remote as remote
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gtk, GLib
@@ -36,7 +37,6 @@ from procris.keyboard import KeyboardListener
 from procris.layout import Layout
 from procris.windows import Windows
 from procris.names import CommandLine
-from procris.remote import BusObject
 
 
 def load():
@@ -51,7 +51,7 @@ def _read_environment(screen: Wnck.Screen, config: ModuleType):
 	for name in config.NAMES:
 		names.add(name)
 	for key in config.KEYS:
-		listener.bind(key)
+		listener.add(key)
 	windows.read(screen)
 	layout.read(screen, cache.get_workspace_config())
 
@@ -68,6 +68,12 @@ def _configure_process():
 # Service lifecycle API
 #
 def start():
+
+	if remote.get_proxy():
+		print("procris is already running, pid: " + remote.get_proxy().get_running_instance_id())
+		quit()
+
+	remote.export(ipc_handler=message, stop=stop)
 	layout.connect_to(Wnck.Screen.get_default())
 	windows.apply_decoration_config()
 	layout.apply()
@@ -79,7 +85,7 @@ def start():
 
 def stop():
 	listener.stop()
-	bus_object.release()
+	remote.release()
 	layout.disconnect_from(Wnck.Screen.get_default())
 	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
 
@@ -223,5 +229,4 @@ windows: Windows = Windows()
 reading: Reading = Reading(windows)
 layout: Layout = Layout(windows)
 status_icon: StatusIcon = StatusIcon(layout, stop_function=stop)
-bus_object: BusObject = BusObject(ipc_handler=message, stop=stop)
 listener: KeyboardListener = KeyboardListener(callback=keyboard_listener, on_error=stop)

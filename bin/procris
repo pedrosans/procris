@@ -32,11 +32,20 @@ if args.action == 'start':
 	procris.service.load()
 	procris.service.start()
 elif args.action == 'stop':
-	from procris.remote import RemoteInterface
-	RemoteInterface().stop_running_instance()
+	import procris.remote as remote
+	proxy = remote.get_proxy()
+	if proxy:
+		proxy.stop_running_instance()
+		print("Remote instance were stopped")
+	else:
+		print("procris is not running")
 elif args.action == 'status':
-	from procris.remote import RemoteInterface
-	print(RemoteInterface().get_status())
+	import procris.remote as remote
+	proxy = remote.get_proxy()
+	if proxy:
+		print("Active, pid: " + proxy.get_running_instance_id())
+	else:
+		print("Inactive")
 elif args.c:
 	import procris.service
 	import procris.names as names

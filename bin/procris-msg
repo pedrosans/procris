@@ -17,11 +17,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import sys
-from procris.remote import RemoteInterface
+import procris.remote as remote
 
 message = ''
 for a in sys.argv[1:]:
 	message += ' ' + a
-RemoteInterface().send_message(message.strip())
+
+proxy = remote.get_proxy()
+proxy.send_message(message.strip())
 
 
