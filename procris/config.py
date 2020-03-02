@@ -87,9 +87,7 @@ NAMES = [
 	Name('reload', service.reload),
 	Name('decorate', windows.active.decorate, complete=decoration.complete),
 	Name('report', service.debug),
-	Name('stack', layout.move_stacked),
 	Name('quit', windows.active.minimize, alias='q'),
 	Name('only', windows.active.only, alias='on'),
-	Name('innergap', layout.set_inner_gap),
-	Name('outergap', layout.set_outer_gap),
+	Name('gap', layout.gap, complete=layout.complete_gap_options),
 ]

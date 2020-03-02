@@ -241,19 +241,18 @@ class Layout:
 		self.set_function(function_key)
 		self.persist()
 
-	def set_outer_gap(self, c_in: CommandLine):
-		pixels = int(c_in.vim_command_parameter)
-		state.set_outer_gap(pixels)
+	def gap(self, c_in: CommandLine):
+		parameters = c_in.vim_command_parameter.split()
+		where = parameters[0]
+		pixels = int(parameters[1])
+		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
 		self.get_active_primary_monitor().update_work_area()
 		self.windows.staging = True
 		self.apply()
 
-	def set_inner_gap(self, c_in: CommandLine):
-		pixels = int(c_in.vim_command_parameter)
-		state.set_inner_gap(pixels)
-		self.get_active_primary_monitor().update_work_area()
-		self.windows.staging = True
-		self.apply()
+	def complete_gap_options(self, c_in: CommandLine):
+		input = c_in.vim_command_parameter.lower()
+		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
 
 	def swap_focused_with(self, c_in: CommandLine):
 		active = get_active_managed_window()
