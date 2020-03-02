@@ -23,110 +23,26 @@ from procris.names import CommandLine
 from procris import scratchpads, state
 from procris.windows import Windows
 from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_window, is_on_primary_monitor, \
-	get_height, DirtyState, X_Y_W_H_GEOMETRY_MASK, gdk_window_for, Trap
-
-
-# https://valadoc.org/gdk-3.0/Gdk.Monitor.html
-class Monitor:
-
-	def __init__(self, primary: bool = False, nmaster: int = 1, mfact: float = 0.5, function_key: str = 'T'):
-		self.primary: bool = primary
-		self.function_key: str = function_key
-		self.nmaster: int = nmaster
-		self.nservant: int = 0
-		self.mfact: float = mfact
-		self.wx = self.wy = self.ww = self.wh = None
-		self.visible_area: Gdk.Rectangle = None
-		self.pointer: Monitor = None
-
-	def set_rectangle(self, rectangle: Gdk.Rectangle):
-		self.visible_area = rectangle
-		self.update_work_area()
-
-	def update_work_area(self):
-		outer_gap = state.get_outer_gap()
-		self.wx = self.visible_area.x + outer_gap
-		self.wy = self.visible_area.y + outer_gap
-		self.ww = self.visible_area.width - outer_gap * 2
-		self.wh = self.visible_area.height - outer_gap * 2
-
-	def set_function(self, key: str):
-		self.function_key = key
-
-	def increase_master_area(self, increment: float = None):
-		self.mfact += increment
-		self.mfact = max(0.1, self.mfact)
-		self.mfact = min(0.9, self.mfact)
-
-	def increment_master(self, increment=None, upper_limit=None):
-		self.nmaster += increment
-		self.nmaster = max(0, self.nmaster)
-		self.nmaster = min(upper_limit - self.nservant, self.nmaster)
-
-	def increment_servant(self, increment=None, upper_limit=None):
-		self.nservant += increment
-		self.nservant = max(0, self.nservant)
-		self.nservant = min(upper_limit - self.nmaster, self.nservant)
-
-	def contains(self, window: Wnck.Window):
-		rect = self.visible_area
-		xp, yp, widthp, heightp = window.get_geometry()
-		return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
-
-	def from_json(self, json):
-		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
-		self.nservant = json['nservant'] if 'nservant' in json else self.nservant
-		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
-		self.function_key = json['function'] if 'function' in json else self.function_key
-
-	def to_json(self):
-		return {
-			'nmaster': self.nmaster,
-			'nservant': self.nservant,
-			'mfact': self.mfact,
-			'function': self.function_key
-		}
-
-	def print(self):
-		print('monitor: {} {} {} {}'.format(self.wx, self.wy, self.ww, self.wh))
-
-	def next(self):
-		n_monitors = Gdk.Display.get_default().get_n_monitors()
-
-		if n_monitors > 2:
-			print('BETA VERSION WARN: no support for more than 2 monitors yet.')
-			# While it seams easy to implement, there is no thought on
-			# how the configuration would look like to assign a position for
-			# each monitor on the stack.
-			# For now, the Gdk flag does the job for since the second monitor
-			# plainly is the one not flagged as primary.
-
-		if n_monitors == 2 and self.primary:
-			if not self.pointer:
-				self.pointer = Monitor(nmaster=0, primary=False)
-			return self.pointer
-		else:
-			return None
+	get_height, DirtyState, X_Y_W_H_GEOMETRY_MASK, gdk_window_for, Trap, Monitor
 
 
 def is_managed(window):
 	return is_buffer(window) and window.get_name() not in scratchpads.names()
 
 
-def get_active_stacked_window():
+def get_active_managed_window():
 	return get_active_window(window_filter=is_managed)
 
 
 class Layout:
-	window: Windows
-	# TODO: rename to workspace stack/primary_monitors
+
 	stacks: Dict[int, List[int]] = {}
 	primary_monitors: Dict[int, Monitor] = {}
 	window_by_xid: Dict[int, Wnck.Window] = {}
+	transient_callbacks: List[int] = {}
 
-	def __init__(self, windows):
-		self.transient_callbacks = {}
-		self.windows = windows
+	def __init__(self, windows: Windows):
+		self.windows: Windows = windows
 
 	def bind_to(self, screen: Wnck.Screen):
 		self._install_present_window_handlers(screen)
@@ -305,7 +221,7 @@ class Layout:
 	def change_function(self, c_in: CommandLine):
 		function_key = c_in.parameters[0]
 		promote_selected = False if len(c_in.parameters) < 2 else c_in.parameters[1]
-		active = get_active_stacked_window()
+		active = get_active_managed_window()
 		if promote_selected and active:
 			stack = self.get_active_stack()
 			old_index = stack.index(active.get_xid())
@@ -328,7 +244,7 @@ class Layout:
 		self.apply()
 
 	def swap_focused_with(self, c_in: CommandLine):
-		active = get_active_stacked_window()
+		active = get_active_managed_window()
 		if active:
 
 			direction = c_in.parameters[0]
@@ -346,14 +262,14 @@ class Layout:
 				self.persist()
 
 	def move_focus(self, c_in: CommandLine):
-		if get_active_stacked_window():
+		if get_active_managed_window():
 			stack = self.get_active_stack()
 			direction = c_in.parameters[0]
 			new_index = self._incremented_index(direction)
 			self.windows.active.change_to(stack[new_index])
 
 	def move_to_master(self, c_in: CommandLine):
-		active = get_active_stacked_window()
+		active = get_active_managed_window()
 		if active:
 			stack = self.get_active_stack()
 			old_index = stack.index(active.get_xid())
@@ -415,7 +331,7 @@ class Layout:
 
 	def _incremented_index(self, increment):
 		stack = self.get_active_stack()
-		active = get_active_stacked_window()
+		active = get_active_managed_window()
 		old_index = stack.index(active.get_xid())
 		new_index = old_index + increment
 		return min(max(new_index, 0), len(stack) - 1)
@@ -446,6 +362,9 @@ class Layout:
 		return resume
 
 
+#
+# LAYOUTS
+#
 def monocle(stack, monitor):
 	padding = state.get_inner_gap()
 	for window in stack:
