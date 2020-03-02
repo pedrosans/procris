@@ -39,22 +39,31 @@ class Layout:
 	stacks: Dict[int, List[int]] = {}
 	primary_monitors: Dict[int, Monitor] = {}
 	window_by_xid: Dict[int, Wnck.Window] = {}
-	transient_callbacks: List[int] = {}
+	handlers_by_xid: Dict[int, int] = {}
+	screen_handlers: List[int] = []
 
 	def __init__(self, windows: Windows):
 		self.windows: Windows = windows
 
-	def bind_to(self, screen: Wnck.Screen):
+	def connect_to(self, screen: Wnck.Screen):
 		self._install_present_window_handlers(screen)
-		screen.connect("window-opened", self._window_opened)
-		screen.connect("window-closed", self._window_closed)
+		opened_handler_id = screen.connect("window-opened", self._window_opened)
+		closed_handler_id = screen.connect("window-closed", self._window_closed)
+		self.screen_handlers.extend([opened_handler_id, closed_handler_id])
 
 	def _install_present_window_handlers(self, screen: Wnck.Screen):
-		# TODO: uninstall when closed
 		for window in screen.get_windows():
-			if window.get_xid() not in self.transient_callbacks and is_managed(window):
+			if window.get_xid() not in self.handlers_by_xid and is_managed(window):
 				handler_id = window.connect("state-changed", self._state_changed)
-				self.transient_callbacks[window.get_xid()] = handler_id
+				self.handlers_by_xid[window.get_xid()] = handler_id
+
+	def disconnect_from(self, screen: Wnck.Screen):
+		self.read_screen(screen)
+		for xid in self.handlers_by_xid.keys():
+			if xid in self.window_by_xid:
+				self.window_by_xid[xid].disconnect(self.handlers_by_xid[xid])
+		for handler_id in self.screen_handlers:
+			screen.disconnect(handler_id)
 
 	def get_active_stack(self) -> List[int]:
 		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
@@ -170,6 +179,9 @@ class Layout:
 	#
 	def _window_closed(self, screen: Wnck.Screen, window):
 		try:
+			if window.get_xid() in self.handlers_by_xid:
+				window.disconnect(self.handlers_by_xid[window.get_xid()])
+				del self.handlers_by_xid[window.get_xid()]
 			if is_visible(window) and is_managed(window):
 				self.read_screen(screen)
 				self.apply()

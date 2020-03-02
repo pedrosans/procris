@@ -54,7 +54,6 @@ def _read_environment(screen: Wnck.Screen, config: ModuleType):
 		listener.bind(key)
 	windows.read(screen)
 	layout.read(screen, cache.get_workspace_config())
-	layout.bind_to(screen)
 
 
 def _configure_process():
@@ -69,6 +68,7 @@ def _configure_process():
 # Service lifecycle API
 #
 def start():
+	layout.connect_to(Wnck.Screen.get_default())
 	windows.apply_decoration_config()
 	layout.apply()
 	listener.start()
@@ -78,9 +78,10 @@ def start():
 
 
 def stop():
-	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
 	listener.stop()
 	bus_object.release()
+	layout.disconnect_from(Wnck.Screen.get_default())
+	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
 
 
 #
