@@ -383,7 +383,7 @@ class Layout:
 				monitor: Monitor = primary_monitor if m.is_primary() else primary_monitor.next()
 
 				resume += '\tMonitor\t\t\tLayout: {}\tPrimary: {}\n'.format(
-					FUNCTIONS_NAME_MAP[monitor.function_key] if monitor.function_key else None, m.is_primary())
+					FUNCTIONS_MAP[monitor.function_key].__name__ if monitor.function_key else None, m.is_primary())
 				resume += '\t\t[GDK]\t\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
 					rect.x, rect.y, rect.width, rect.height)
 				resume += '\t\t[PROCRIS]\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
@@ -599,14 +599,17 @@ def spiral(stack: List[Wnck.Window], monitor: Monitor):
 
 
 def biasedstack(stack: List[Wnck.Window], monitor: Monitor):
-	oty = 0
 	n = len(stack)
+	if n == 1:
+		resize(stack[0], l=0.15, t=0.1, w=0.7, h=0.86)
+		return
+	oty = 0
 	mw = int(monitor.ww * monitor.mfact) if monitor.nmaster else 0
 	mx = tw = int((monitor.ww - mw) / 2)
 	my = 0
 	padding = state.get_inner_gap()
 
-	for i in range(len(stack)):
+	for i in range(n):
 		window: Wnck.Window = stack[i]
 		if i < monitor.nmaster:
 			# nmaster clients are stacked vertically, in the center of the screen
@@ -633,5 +636,8 @@ def biasedstack(stack: List[Wnck.Window], monitor: Monitor):
 				oty += ((get_height(window) + padding * 2) if synchronized else h)
 
 
-FUNCTIONS_MAP = {'M': monocle, 'T': tile, 'C': centeredmaster, 'B': centeredfloatingmaster, '@': spiral, '\\': dwindle}
-FUNCTIONS_NAME_MAP = {'M': 'monocle', 'T': 'tile', 'C': 'centeredmaster', 'B': 'biasedstack', '@': 'spiral', '\\': 'dwindle'}
+FUNCTIONS_MAP = {
+	'M': monocle, 'T': tile,
+	'C': centeredmaster, '>': centeredfloatingmaster, 'B': biasedstack,
+	'@': spiral, '\\': dwindle
+}

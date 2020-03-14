@@ -77,7 +77,7 @@ class StatusIcon:
 		layout_menu_item.set_submenu(self.layout_submenu)
 
 		for function_key in procris.layout.FUNCTIONS_MAP.keys():
-			name = procris.layout.FUNCTIONS_NAME_MAP[function_key]
+			name = procris.layout.FUNCTIONS_MAP[function_key].__name__
 			menu_item = Gtk.RadioMenuItem(
 				label=name, group=self.layout_submenu.get_children()[0] if self.layout_submenu.get_children() else None)
 			menu_item.function_key = function_key
