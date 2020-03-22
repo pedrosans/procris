@@ -32,7 +32,6 @@ def create_icon_image(window: Wnck.Window, size):
 	return icon
 
 
-# TODO show 'no name' active buffer if no active window at the buffers LIST
 class ReadingWindow(Gtk.Window):
 
 	def __init__(self, controller, windows):
@@ -121,6 +120,8 @@ class ReadingWindow(Gtk.Window):
 
 	def list_navigation_windows(self):
 		for c in self.completions_line.get_children(): c.destroy()
+		if not self.windows.line:
+			self.completions_line.add_status_text('"[No Window]"', False)
 		for window in self.windows.line:
 			name = window.get_name()
 			name = ' ' + ((name[:8] + '..') if len(name) > 10 else name)
