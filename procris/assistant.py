@@ -54,18 +54,18 @@ class Completion:
 		if self.index == -1:
 			return self.original_input.text
 		else:
-			prompt = self.original_input.text
+			original_command = self.original_input.text
 			completion = self.options[self.index]
-			for i in range(len(prompt)):
+			for i in range(len(original_command)):
 				for j in range(len(completion)):
-					if completion[j] != prompt[i + j]:
+					if completion[j] != original_command[i + j]:
 						break
-					if j + 1 == len(completion) or i + j + 1 == len(prompt):
-						return prompt[:i] + completion
-			if prompt[-1].isspace() or (prompt.strip() == '!'):
-				return prompt + completion
+					if j + 1 == len(completion) or i + j + 1 == len(original_command):
+						return original_command[:i] + completion
+			if not original_command or original_command[-1].isspace() or original_command.strip() == '!':
+				return original_command + completion
 			else:
-				return re.sub(r'[^\s]+$', completion, prompt)
+				return re.sub(r'[^\s]+$', completion, original_command)
 
 	def cycle(self, direction):
 		if len(self.options) == 1:
