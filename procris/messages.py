@@ -44,9 +44,13 @@ def add(message: Message):
 	prompt_placeholder = ENTER_TO_CONTINUE
 
 
-def clean():
+def clean_prompt():
 	global prompt_placeholder
 	prompt_placeholder = None
+
+
+def clean():
+	clean_prompt()
 	del memory[:]
 
 

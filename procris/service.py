@@ -188,6 +188,8 @@ def post_processing():
 		reading.end()
 		messages.clean()
 
+	messages.clean_prompt()
+
 	# reload to show the current layout icon
 	status_icon.reload()
 
