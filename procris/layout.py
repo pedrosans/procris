@@ -28,7 +28,8 @@ from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_w
 # https://valadoc.org/gdk-3.0/Gdk.Monitor.html
 class Monitor:
 
-	def __init__(self, nmaster: int = 1, gap: int = 0, border: int = 0, function_key: str = 'T'):
+	def __init__(self, primary: bool = False, nmaster: int = 1, gap: int = 0, border: int = 0, function_key: str = 'T'):
+		self.primary: bool = primary
 		self.function_key: str = function_key
 		self.nmaster: int = nmaster
 		self.nservant: int = 0
@@ -36,9 +37,11 @@ class Monitor:
 		self.gap = gap
 		self.border = border
 		self.wx = self.wy = self.ww = self.wh = None
+		self.visible_area: Gdk.Rectangle = None
 		self.pointer: Monitor = None
 
 	def set_rectangle(self, rectangle: Gdk.Rectangle):
+		self.visible_area = rectangle
 		self.wx = rectangle.x + self.gap
 		self.wy = rectangle.y + self.gap
 		self.ww = rectangle.width - self.gap * 2
@@ -59,6 +62,11 @@ class Monitor:
 		self.nservant = max(0, self.nservant)
 		self.nservant = min(upper_limit - self.nmaster, self.nservant)
 
+	def contains(self, window: Wnck.Window):
+		rect = self.visible_area
+		xp, yp, widthp, heightp = window.get_geometry()
+		return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
+
 	def from_json(self, json):
 		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
 		self.nservant = json['nservant'] if 'nservant' in json else self.nservant
@@ -75,10 +83,15 @@ class Monitor:
 
 		if n_monitors > 2:
 			print('BETA VERSION WARN: no support for more than 2 monitors yet.')
+			# While it seams easy to implement, there is no thought on
+			# how the configuration would look like to assign a position for
+			# each monitor on the stack.
+			# For now, the Gdk flag does the job for since the second monitor
+			# plainly is the one not flagged as primary.
 
-		if n_monitors == 2:
+		if n_monitors == 2 and self.primary:
 			if not self.pointer:
-				self.pointer = Monitor(nmaster=0)
+				self.pointer = Monitor(nmaster=0, primary=False)
 			return self.pointer
 		else:
 			return None
@@ -95,7 +108,7 @@ def get_active_stacked_window():
 class Layout:
 	window: Windows
 	stacks: Dict[int, List[int]] = {}
-	monitors: Dict[int, Monitor] = {}
+	primary_monitors: Dict[int, Monitor] = {}
 	read: Dict[int, Wnck.Window] = {}
 
 	def __init__(self, windows):
@@ -121,7 +134,7 @@ class Layout:
 
 	def get_active_primary_monitor(self) -> Monitor:
 		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
-		return self.monitors[active_workspace.get_number()]
+		return self.primary_monitors[active_workspace.get_number()]
 
 	def _install_present_window_handlers(self):
 		for window in Wnck.Screen.get_default().get_windows():
@@ -167,8 +180,16 @@ class Layout:
 				resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
 			else:
 				stack = self.get_active_stack()
-				old_index = stack.index(window.get_xid())
-				stack.insert(0, stack.pop(old_index))
+				monitor = self.get_active_primary_monitor()
+				start_index = 0
+				while monitor:
+					end_index = len(stack) - monitor.nservant
+					if monitor.contains(window):
+						old_index = stack.index(window.get_xid())
+						stack.insert(start_index, stack.pop(old_index))
+					monitor = monitor.next()
+					start_index = end_index
+
 			self.windows.read_screen(force_update=False)
 			self.windows.apply_decoration_config()
 			self.apply()
@@ -289,10 +310,10 @@ class Layout:
 		for workspace in Wnck.Screen.get_default().get_workspaces():
 
 			if workspace.get_number() not in self.stacks:
-				self.monitors[workspace.get_number()] = Monitor()
+				self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
 				self.stacks[workspace.get_number()] = []
 
-			primary_monitor: Monitor = self.monitors[workspace.get_number()]
+			primary_monitor: Monitor = self.primary_monitors[workspace.get_number()]
 			stack: List[int] = self.stacks[workspace.get_number()]
 			stack.extend(map(lambda w: w.get_xid(), filter(
 					lambda w: w.get_xid() not in stack and is_visible(w, workspace) and is_managed(w),
@@ -326,6 +347,7 @@ class Layout:
 					i, m.is_primary(), rect.x, rect.y, rect.width, rect.height)
 
 				stack = self.stacks[workspace.get_number()]
+				resume += '\t\tLayout: {}\n'.format(self.primary_monitors[workspace.get_number()].function_key)
 				resume += '\t\tStack: ['
 				for xid in stack:
 					w = self.read[xid]
@@ -343,7 +365,7 @@ class Layout:
 			for key in json['workspaces']:
 				index = int(key)
 
-				monitor = self.monitors[index] = Monitor()
+				monitor = self.primary_monitors[index] = Monitor(primary=True)
 				monitor.from_json(json['workspaces'][key])
 
 				if 'stack' in json['workspaces'][key] and index in self.stacks:
@@ -362,7 +384,7 @@ class Layout:
 		props = {'workspaces': {}}
 		for workspace_number in self.stacks.keys():
 			stack: List[int] = self.stacks[workspace_number]
-			monitor: Monitor = self.monitors[workspace_number]
+			monitor: Monitor = self.primary_monitors[workspace_number]
 			stack_json = {}
 			for xid in stack:
 				stack_json[str(xid)] = {
