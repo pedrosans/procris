@@ -15,6 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os
+from typing import Callable
+
 import gi
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
@@ -69,6 +71,14 @@ def is_visible(window: Wnck.Window, workspace: Wnck.Workspace = None) -> bool:
 			and not window.is_minimized()
 			and window.is_in_viewport(workspace)
 			and window.is_visible_on_workspace(workspace))
+
+
+def get_active_window(workspace: Wnck.Workspace = None, window_filter: Callable = None):
+	workspace = workspace if workspace else Wnck.Screen.get_default().get_active_workspace()
+	for stacked in reversed(Wnck.Screen.get_default().get_windows_stacked()):
+		if is_visible(stacked, workspace):
+			return stacked if (not window_filter or window_filter(stacked)) else None
+	return None
 
 
 def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, h=0):

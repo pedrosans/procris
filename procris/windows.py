@@ -25,7 +25,8 @@ gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Callable
 from procris.names import PromptInput
-from procris.wm import gdk_window_for, monitor_work_area_for, decoration_size_for, set_geometry, resize, is_visible
+from procris.wm import gdk_window_for, monitor_work_area_for, decoration_size_for, set_geometry, resize, is_visible, \
+	get_active_window
 from procris.decoration import DECORATION_MAP
 
 
@@ -90,11 +91,8 @@ class Windows:
 		self.column = sorted(list(self.visible), key=sort_column)
 
 	def update_active(self):
-		self.active.xid = None
-		for stacked in reversed(Wnck.Screen.get_default().get_windows_stacked()):
-			if stacked in self.visible:
-				self.active.xid = stacked.get_xid()
-				break
+		active_window = get_active_window()
+		self.active.xid = active_window.get_xid() if active_window else None
 
 	#
 	# API

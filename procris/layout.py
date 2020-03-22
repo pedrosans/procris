@@ -23,7 +23,7 @@ from procris import scratchpads, wm
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from procris.windows import Windows
-from procris.wm import set_geometry, is_visible, resize, is_buffer
+from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_window
 
 
 class Monitor:
@@ -71,6 +71,10 @@ def is_managed(window):
 	return is_buffer(window) and window.get_name() not in scratchpads.names()
 
 
+def get_active_stacked_window():
+	return get_active_window(window_filter=is_managed)
+
+
 # TODO: the the window is maximized, the layout function fails
 class Layout:
 	window: Windows
@@ -115,7 +119,8 @@ class Layout:
 
 	def _incremented_index(self, increment):
 		stack = self.get_active_stack()
-		old_index = stack.index(self.windows.active.xid)
+		active = get_active_stacked_window()
+		old_index = stack.index(active.get_xid())
 		new_index = old_index + increment
 		return min(max(new_index, 0), len(stack) - 1)
 
@@ -146,7 +151,6 @@ class Layout:
 
 	def _window_opened(self, screen: Wnck.Screen, window):
 		if is_visible(window, screen.get_active_workspace()):
-			self.windows.read_screen(force_update=False)
 			self.read_display()
 			if window.get_name() in scratchpads.names():
 				scratchpad = scratchpads.get(window.get_name())
@@ -162,7 +166,6 @@ class Layout:
 	def _state_changed(self, window, changed_mask, new_state):
 		if changed_mask & Wnck.WindowState.MINIMIZED and window.get_name() not in scratchpads.names():
 			stack = self.get_active_stack()
-			self.windows.read_screen(force_update=False)
 			self.read_display()
 			if is_visible(window):
 				old_index = stack.index(window.get_xid())
@@ -172,23 +175,6 @@ class Layout:
 	#
 	# COMMANDS
 	#
-	def swap_focused_with(self, c_in):
-		if self.windows.active.xid:
-			stack = self.get_active_stack()
-			direction = c_in.parameters[0]
-			old_index = stack.index(self.windows.active.xid)
-			new_index = self._incremented_index(direction)
-			if new_index != old_index:
-				stack.insert(new_index, stack.pop(old_index))
-				self.apply()
-
-	def move_focus(self, c_in):
-		if self.windows.active.xid:
-			stack = self.get_active_stack()
-			direction = c_in.parameters[0]
-			new_index = self._incremented_index(direction)
-			self.windows.active.change_to(stack[new_index])
-
 	def change_function(self, c_in):
 		function_key = c_in.parameters[0]
 		self.set_function(function_key)
@@ -203,10 +189,29 @@ class Layout:
 		self.windows.staging = True
 		self.apply()
 
-	def move_to_master(self, c_in):
-		if self.windows.active.xid:
+	def swap_focused_with(self, c_in):
+		active = get_active_stacked_window()
+		if active:
 			stack = self.get_active_stack()
-			old_index = stack.index(self.windows.active.xid)
+			direction = c_in.parameters[0]
+			old_index = stack.index(active.get_xid())
+			new_index = self._incremented_index(direction)
+			if new_index != old_index:
+				stack.insert(new_index, stack.pop(old_index))
+				self.apply()
+
+	def move_focus(self, c_in):
+		if get_active_stacked_window():
+			stack = self.get_active_stack()
+			direction = c_in.parameters[0]
+			new_index = self._incremented_index(direction)
+			self.windows.active.change_to(stack[new_index])
+
+	def move_to_master(self, c_in):
+		active = get_active_stacked_window()
+		if active:
+			stack = self.get_active_stack()
+			old_index = stack.index(active.get_xid())
 			stack.insert(0, stack.pop(old_index))
 			self.apply()
 
