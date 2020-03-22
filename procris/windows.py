@@ -223,16 +223,18 @@ class Windows:
 		resume = ''
 		for wn in self.buffers:
 			gdk_w = gdk_window_for(wn)
-			x, y, w, h = wn.get_geometry()
-			cx, cy, cw, ch = wn.get_client_window_geometry()
 			is_decorated, decorations, decoration_width, decoration_height = decoration_size_for(wn)
 			compensate = is_decorated and not decorations and decoration_width >= 0 and decoration_height >= 0
 
 			resume += '\n'
 			resume += '[{:8}] - {}\n'.format(wn.get_xid(), wn.get_name())
 
-			resume += '\t[GEOMETRY] x: {:4d} h: {:3d} w: {:7.2f} h: {:7.2f} [WM] x: {:4d} h: {:3d} w: {:7.2f} h: {:7.2f} \n'.format(
-				x, y, w, h, cx, cy, cw, ch)
+			x, y, w, h = wn.get_geometry()
+			resume += '\t[WNCK   ] x: {:4d} y: {:3d} w: {:7.2f} h: {:7.2f}\n'.format(x, y, w, h)
+			cx, cy, cw, ch = wn.get_client_window_geometry()
+			resume += '\t[WNCK WN] x: {:4d} y: {:3d} w: {:7.2f} h: {:7.2f} \n'.format(cx, cy, cw, ch)
+			gx, gy, gw, gh = gdk_w.get_geometry()
+			resume += '\t[GDK    ] x: {:4d} y: {:3d} w: {:7.2f} h: {:7.2f} \n'.format(gx, gy, gw, gh)
 
 			resume += '\tcompensate: {:5}\t\tdecoration_width: {:3d}\t\tdecoration_height: {:3d}\n'.format(
 				str(compensate), decoration_width, decoration_height)
