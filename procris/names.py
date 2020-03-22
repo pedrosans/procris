@@ -59,9 +59,12 @@ class PromptInput:
 		self.vim_command_spacer = parameters_match.group(1)
 		self.vim_command_parameter = parameters_match.group(2)
 
+		if self.vim_command_parameter:
+			self.vim_command_parameter = self.vim_command_parameter.strip()
+
 		if self.vim_command == '!' and self.vim_command_parameter:
 			grouped_terminal_command = re.match(r'^(\w+)(\s*)(.*)', self.vim_command_parameter)
-			self.terminal_command = grouped_terminal_command.group(1)  # TODO: AttributeError: 'NoneType' object has no attribute 'group'
+			self.terminal_command = grouped_terminal_command.group(1)
 			self.terminal_command_spacer = grouped_terminal_command.group(2)
 			self.terminal_command_parameter = grouped_terminal_command.group(3)
 

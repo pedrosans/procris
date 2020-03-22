@@ -164,9 +164,17 @@ class Windows:
 				return messages.Message('No matching buffer for ' + window_title, 'error')
 
 	def delete(self, c_in):
-		if re.match(r'^\s*(bdelete|bd)\s*([0-9]+\s*)+$', c_in.text):
+
+		if not c_in.vim_command_parameter:
+			if self.active.xid:
+				self.remove(self.active.get_wnck_window(), c_in.time)
+				self.staging = True
+				return
+			return messages.Message('There is no active window', 'error')
+
+		if re.match(r'^([0-9]+\s*)+$', c_in.vim_command_parameter):
 			to_delete = []
-			for number in re.findall(r'\d+', c_in.text):
+			for number in re.findall(r'\d+', c_in.vim_command_parameter):
 				index = int(number) - 1
 				if index < len(self.buffers):
 					to_delete.append(self.buffers[index])
@@ -175,19 +183,14 @@ class Windows:
 			for window in to_delete:
 				self.remove(window, c_in.time)
 			self.staging = True if to_delete else False
-		elif re.match(r'^\s*(bdelete|bd)\s+\w+\s*$', c_in.text):
-			window_title = c_in.vim_command_parameter
-			w = self.find_by_name(window_title)
-			if w:
-				self.remove(w, c_in.time)
-				self.staging = True
-			else:
-				return messages.Message('No matching buffer for ' + window_title, 'error')
-		elif self.active.xid:
-			self.remove(self.active.get_wnck_window(), c_in.time)
+			return
+
+		w = self.find_by_name(c_in.vim_command_parameter)
+		if w:
+			self.remove(w, c_in.time)
 			self.staging = True
 		else:
-			return messages.Message('There is no active window', 'error')
+			return messages.Message('No matching buffer for ' + c_in.vim_command_parameter, 'error')
 
 	#
 	# COMMAND OPERATIONS
