@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, io
 import procris.messages as messages
 import procris.persistent_config as configurations
+import procris.names as names
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
@@ -88,10 +89,10 @@ class ReadingWindow(Gtk.Window):
 	# Command input API
 	#
 	def get_command(self):
-		return self.colon_prompt.get_text()[1:]
+		return self.colon_prompt.get_text()[len(names.PROMPT):]
 
 	def set_command(self, cmd):
-		self.colon_prompt.set_text(':' + cmd)
+		self.colon_prompt.set_text(names.PROMPT + cmd)
 		self.colon_prompt.set_position(len(self.colon_prompt.get_text()))
 
 	#
@@ -111,7 +112,7 @@ class ReadingWindow(Gtk.Window):
 
 		self.show_messages()
 
-		self._render_command_line()
+		self._render_colon_prompt()
 
 		if not messages.has_standard_output() and not self.controller.in_command_mode():
 			self.list_navigation_windows()
@@ -137,10 +138,12 @@ class ReadingWindow(Gtk.Window):
 			line = Gtk.HBox(homogeneous=False)
 			self.messages_box.pack_start(line, expand=False, fill=True, padding=0)
 
-			if message.get_icon(self.char_size):
+			icon = message.get_icon(self.char_size)
+			if icon:
+				line.pack_start(Gtk.Label(message.indentation), expand=False, fill=False, padding=0)
 				line.pack_start(message.get_icon(self.char_size), expand=False, fill=True, padding=0)
 
-			label = Gtk.Label(message.get_content(self.columns))
+			label = Gtk.Label(message.get_content(self.columns - len(message.indentation) - (3 if icon else 0)))
 			label.set_valign(Gtk.Align.END)
 			label.set_max_width_chars(self.columns)
 			label.get_layout().set_ellipsize(Pango.EllipsizeMode.END)
@@ -149,11 +152,11 @@ class ReadingWindow(Gtk.Window):
 				label.get_style_context().add_class('error-message')
 			line.pack_start(label, expand=False, fill=False, padding=0)
 
-	def _render_command_line(self):
+	def _render_colon_prompt(self):
 		if self.controller.in_command_mode():
 			self.colon_prompt.set_can_focus(True)
 			self.colon_prompt.grab_focus()
-			self.colon_prompt.set_text(':')
+			self.colon_prompt.set_text(names.PROMPT)
 			self.colon_prompt.set_position(-1)
 		else:
 			self.colon_prompt.set_text(messages.prompt_placeholder if messages.prompt_placeholder else '')
@@ -296,6 +299,7 @@ class BufferName(messages.Message):
 
 	def __init__(self, window: Wnck.Window, windows: Windows):
 		super().__init__(None, None)
+		self.indentation = '   '
 		self.window = window
 		self.index = 1 + windows.buffers.index(self.window)
 		self.flags = ''
@@ -309,8 +313,7 @@ class BufferName(messages.Message):
 		return create_icon_image(self.window, size)
 
 	def get_content(self, size):
-		buffer_columns = min(100, size - 3)
-		description_columns = buffer_columns - 19
+		description_columns = min(100, size) - 19
 		window_name = self.window.get_name().ljust(description_columns)[:description_columns]
 		name = '{:>2} {:2} {} {:12}'.format(
 			self.index, self.flags, window_name, self.window.get_workspace().get_name().lower())

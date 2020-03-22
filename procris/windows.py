@@ -23,7 +23,7 @@ from procris import decoration
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Callable
-from procris.names import CommandLine
+from procris.names import CommandLine, PROMPT
 from procris.wm import gdk_window_for, monitor_work_area_for, decoration_size_for, set_geometry, resize, is_visible, \
 	get_active_window
 from procris.decoration import DECORATION_MAP
@@ -141,6 +141,7 @@ class Windows:
 	# COMMANDS
 	#
 	def list(self, c_in):
+		messages.add(messages.Message(PROMPT + c_in.text, 'info'))
 		from procris.view import BufferName
 		for window in self.buffers:
 			messages.add(BufferName(window, self))
@@ -350,7 +351,6 @@ class Focus:
 		self.windows.staging = True
 
 	def cycle(self, c_in):
-		# TODO: update after case insensitive bindings
 		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
 		i = self.windows.line.index(self.active.get_wnck_window())
 		next_window = self.windows.line[(i + direction) % len(self.windows.line)]

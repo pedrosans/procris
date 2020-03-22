@@ -23,6 +23,7 @@ LIST = []
 NAME_MAP = {}
 ALIAS_MAP = {}
 MULTIPLE_COMMANDS_PATTERN = re.compile(r'.*[^\\]\|.*')
+PROMPT = ':'
 
 
 class CommandLine:

@@ -21,6 +21,7 @@ class Message:
 	def __init__(self, content, level):
 		self.content = content
 		self.level = level
+		self.indentation = ''
 
 	def get_content(self, size_in_chars):
 		return self.content
