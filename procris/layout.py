@@ -59,6 +59,10 @@ class Monitor:
 
 
 # TODO: the the window is maximized, the layout function fails
+def is_managed(window, workspace):
+	return is_visible(window, workspace) and window.get_name() not in scratchpads.names()
+
+
 class Layout:
 	window: Windows
 	stacks: Dict[int, List[int]] = {}
@@ -70,6 +74,7 @@ class Layout:
 		self.gap = 0
 		self.border = 4
 		self.windows = windows
+		self.read = {}
 
 	def start(self):
 		self.read_display()
@@ -212,7 +217,7 @@ class Layout:
 		if not self.function_key or not stack:
 			return
 
-		visible_windows = list(map(lambda xid: self.windows.visible_map[xid], stack))
+		visible_windows = list(map(lambda xid: self.read[xid], stack))
 		separation = self.gap + self.border
 		servant = self.servant_monitor()
 		split_point = len(visible_windows) - (self.get_active_monitor().nservent if servant else 0)
@@ -231,6 +236,10 @@ class Layout:
 				pass  # we did our best to keep WNCK objects fresh, but it can happens and did got dirty
 
 	def read_display(self):
+		self.read.clear()
+		for window in Wnck.Screen.get_default().get_windows():
+			self.read[window.get_xid()] = window
+
 		for workspace in Wnck.Screen.get_default().get_workspaces():
 
 			if workspace.get_number() not in self.stacks:
@@ -241,15 +250,11 @@ class Layout:
 			monitor.set_rectangle(Gdk.Display.get_default().get_primary_monitor().get_workarea(), gap=self.gap)
 
 			stack: List[int] = self.stacks[workspace.get_number()]
-			stack.extend(map(
-					lambda w: w.get_xid(),
-					filter(
-						lambda w: w.get_xid() not in stack and is_visible(w, workspace) and w.get_name() not in scratchpads.names(),
-						reversed(Wnck.Screen.get_default().get_windows_stacked()))))
+			stack.extend(map(lambda w: w.get_xid(), filter(
+					lambda w: w.get_xid() not in stack and is_managed(w, workspace),
+					reversed(Wnck.Screen.get_default().get_windows_stacked()))))
 
-			for to_remove in filter(
-					lambda xid: xid not in self.windows.visible_map or not self.windows.visible_map[xid].is_in_viewport(workspace),
-					stack):
+			for to_remove in filter(lambda xid: xid not in self.read or not is_managed(self.read[xid], workspace), stack):
 				stack.remove(to_remove)
 
 	def from_json(self, json):
@@ -280,7 +285,7 @@ class Layout:
 			stack_state = {}
 			for xid in stack:
 				stack_state[str(xid)] = {
-					'name': self.windows.visible_map[xid].get_name(),
+					'name': self.read[xid].get_name(),
 					'stack_index': stack.index(xid)
 				}
 			state['monitors'][str(workspace_number)] = {

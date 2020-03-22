@@ -62,33 +62,28 @@ class Windows:
 
 	def __init__(self):
 		self.active = Active(windows=self)
-		Wnck.set_client_type(Wnck.ClientType.PAGER)
-		self.staging = False
 		self.visible: List[Wnck.Window] = []
-		self.visible_map = {}
-		self.buffers = []
-		self.line = self.column = None
+		self.buffers: List[Wnck.Window] = []
+		self.line: List[Wnck.Window] = None
+		self.column: List[Wnck.Window] = None
+		self.staging = False
 
 	def read_screen(self, force_update=True):
 		del self.buffers[:]
 		del self.visible[:]
-		self.visible_map.clear()
 		self.active.clean()
 
 		if force_update:
 			Wnck.Screen.get_default().force_update()  # make sure we query X server
 
 		for wnck_window in Wnck.Screen.get_default().get_windows():
-			if wnck_window.get_pid() == os.getpid():
-				continue
-			if wnck_window.is_skip_tasklist():
+			if wnck_window.get_pid() == os.getpid() or wnck_window.is_skip_tasklist():
 				continue
 
 			self.buffers.append(wnck_window)
 
-			if not wnck_window.is_minimized() and wnck_window.get_name() not in scratchpads.names():
+			if wnck_window.is_in_viewport(Wnck.Screen.get_default().get_active_workspace()) and not wnck_window.is_minimized():
 				self.visible.append(wnck_window)
-				self.visible_map[wnck_window.get_xid()] = wnck_window
 
 		self.update_active()
 		self.line = sorted(list(self.visible), key=sort_line)
@@ -97,7 +92,7 @@ class Windows:
 	def update_active(self):
 		self.active.xid = None
 		for stacked in reversed(Wnck.Screen.get_default().get_windows_stacked()):
-			if stacked in self.visible and is_visible(stacked):
+			if is_visible(stacked, Wnck.Screen.get_default().get_active_workspace()):
 				self.active.xid = stacked.get_xid()
 				break
 

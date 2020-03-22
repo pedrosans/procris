@@ -28,8 +28,9 @@ import procris.messages as messages
 import procris.terminal as terminal
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
+gi.require_version('Wnck', '3.0')
+from gi.repository import Wnck, Gtk, GLib
 from procris.reading import Reading
-from gi.repository import Gtk, GLib
 from procris.status import StatusIcon
 from procris.keyboard import KeyboardListener
 from procris.layout import Layout
@@ -96,6 +97,7 @@ def load_mappings():
 # Service lifecycle API
 #
 def start():
+	Wnck.set_client_type(Wnck.ClientType.PAGER)
 	windows.read_screen()
 	layout.start()
 	windows.apply_decoration_config()
