@@ -1,3 +1,4 @@
+import Xlib
 import gi, threading, sys
 from Xlib import X
 from Xlib.ext import record
@@ -176,13 +177,15 @@ class KeyboardListener:
 			if event.type == X.KeyPress:
 				self.handle_keypress(event)
 
-	def handle_keypress(self, event):
+	# http://python-xlib.sourceforge.net/doc/html/python-xlib_13.html
+	def handle_keypress(self, event: Xlib.protocol.event.KeyPress):
 		_wasmapped, keyval, egroup, level, consumed = Gdk.Keymap.get_default().translate_keyboard_state(
 			event.detail, Gdk.ModifierType(event.state), 0)
 
 		code = event.detail
-		event.keyval = keyval  # TODO: explain
 		mask = normalize_state(event.state)
+		event.keyval = keyval
+		event.keymod = Gdk.ModifierType(mask)  # TODO: explain
 		key_name = Gdk.keyval_name(event.keyval)
 
 		if key_name and key_name.isdigit() and self.contextual_accelerators['level'] == 1:

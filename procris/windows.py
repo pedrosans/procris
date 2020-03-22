@@ -92,7 +92,7 @@ class Windows:
 	def update_active(self):
 		self.active.xid = None
 		for stacked in reversed(Wnck.Screen.get_default().get_windows_stacked()):
-			if is_visible(stacked, Wnck.Screen.get_default().get_active_workspace()):
+			if stacked in self.visible:
 				self.active.xid = stacked.get_xid()
 				break
 
@@ -103,16 +103,21 @@ class Windows:
 		"""
 		Commits any staged change in the active window
 		"""
-		if self.staging and self.active.xid:
+		if self.staging and self.active.xid and self.active.get_wnck_window():
 			self.active.get_wnck_window().activate_transient(event_time)
-			self.staging = False
+		self.staging = False
 
 	def remove(self, window, time):
 		window.close(time)
 		if window in self.visible:
-			self.visible.remove(window)
+			self.remove_from_visible(window)
 		self.buffers.remove(window)
 		self.update_active()
+
+	def remove_from_visible(self, window: Wnck.Window):
+		self.visible.remove(window)
+		self.line.remove(window)
+		self.column.remove(window)
 
 	def apply_decoration_config(self):
 		if configurations.is_remove_decorations():
@@ -258,13 +263,14 @@ class Active:
 		for w in self.windows.visible:
 			if self.xid != w.get_xid():
 				w.minimize()
+				self.windows.remove_from_visible(w)
 		self.windows.staging = True
 
 	def minimize(self, c_in):
 		if self.xid:
 			active_window = self.get_wnck_window()
 			active_window.minimize()
-			self.windows.visible.remove(active_window)
+			self.windows.remove_from_visible(active_window)
 			self.windows.update_active()
 			self.windows.staging = True
 

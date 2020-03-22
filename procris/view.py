@@ -40,7 +40,7 @@ class ReadingWindow(Gtk.Window):
 		self.columns = 100
 
 		self.controller = controller
-		self.windows = windows
+		self.windows: Windows = windows
 		self.show_app_name = False
 
 		self.set_keep_above(True)

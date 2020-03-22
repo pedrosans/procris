@@ -134,8 +134,8 @@ class Layout:
 		if is_visible(window):
 			self.apply()
 
-	def _window_opened(self, screen, window):
-		if is_visible(window):
+	def _window_opened(self, screen: Wnck.Screen, window):
+		if is_visible(window, screen.get_active_workspace()):
 			self.windows.read_screen(force_update=False)
 			self.read_display()
 			if window.get_name() in scratchpads.names():

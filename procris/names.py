@@ -26,10 +26,11 @@ MULTIPLE_COMMANDS_PATTERN = re.compile(r'.*[^\\]\|.*')
 
 class PromptInput:
 
-	def __init__(self, time=None, text=None, keyval=None, parameters=None):
+	def __init__(self, time=None, text=None, parameters=None, keyval=None, keymod=None):
 		self.time = time
 		self.text = text
 		self.keyval = keyval
+		self.keymod = keymod
 		self.parameters = parameters
 		self.colon_spacer = ''
 		self.vim_command = ''

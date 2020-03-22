@@ -26,10 +26,11 @@ import procris.configurations as configurations
 import procris.applications as applications
 import procris.messages as messages
 import procris.terminal as terminal
+import Xlib
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck, Gtk, GLib
+from gi.repository import Wnck, Gtk, GLib, Gdk
 from procris.reading import Reading
 from procris.status import StatusIcon
 from procris.keyboard import KeyboardListener
@@ -109,7 +110,7 @@ def start():
 
 
 def read_command_key(c_in):
-	reading.begin(c_in.time)
+	messages.prompt_placeholder = Gtk.accelerator_name(c_in.keyval, c_in.keymod)
 
 
 def debug(c_in):
@@ -135,13 +136,13 @@ def stop():
 
 def keyboard_listener(key, x_key_event, multiplier=1):
 	GLib.idle_add(
-		_inside_main_loop, key, x_key_event, multiplier,
+		_inside_main_loop, key, multiplier, x_key_event,
 		priority=GLib.PRIORITY_HIGH)
 
 
-def _inside_main_loop(key, x_key_event, multiplier):
+def _inside_main_loop(key, multiplier, x_key_event: Xlib.protocol.event.KeyPress):
 	command_input = PromptInput(
-		time=x_key_event.time, keyval=x_key_event.keyval, parameters=key.parameters)
+		time=x_key_event.time, parameters=key.parameters, keyval=x_key_event.keyval, keymod=x_key_event.keymod)
 
 	execute(key.function, command_input, multiplier)
 
@@ -158,7 +159,7 @@ def execute(function, command_input, multiplier=1):
 			if return_message:
 				messages.add(return_message)
 
-		if messages.is_empty():
+		if messages.has_message():
 			reading.begin(command_input.time)
 
 		if windows.staging:

@@ -50,7 +50,7 @@ def clean():
 	del memory[:]
 
 
-def is_empty():
+def has_message():
 	return memory or prompt_placeholder
 
 
