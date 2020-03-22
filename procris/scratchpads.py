@@ -64,16 +64,14 @@ def names():
 
 def toggle(c_in):
 	name = c_in.parameters[0]
-	windows = Wnck.Screen.get_default().get_windows()
-	matching: Wnck.Window = list(filter(lambda x: x.get_name() == name, windows.buffers))
+	matching: Wnck.Window = list(filter(lambda x: x.get_name() == name, Wnck.Screen.get_default().get_windows()))
 	if matching:
 		if len(matching) > 1:
 			return 'scratchpad name matches more than one window title'
-		if is_visible(matching[0]):
+		if is_visible(matching[0], workspace=Wnck.Screen.get_default().get_active_workspace()):
 			matching[0].minimize()
 		else:
-			windows.active.xid = matching[0].get_xid()
-		windows.staging = True
+			matching[0].activate_transient(c_in.time)
 	else:
 		scratchpad = memory[name]
 		scratchpad.launch()
