@@ -51,7 +51,7 @@ def decoration_size_for(window: Wnck.Window):
 	return is_decorated, decorations, decoration_width, decoration_height
 
 
-def unsnap(window: Wnck.Window):
+def unmaximize(window: Wnck.Window):
 	if window.is_maximized():
 		window.unmaximize()
 	if window.is_maximized_horizontally():
@@ -86,7 +86,6 @@ def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, 
 	:param l: distance from left edge
 	:param t: distance from top edge
 	"""
-	unsnap(window)
 
 	if not rectangle:
 		rectangle = monitor_work_area_for(window)
@@ -100,6 +99,9 @@ def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, 
 
 
 def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None):
+
+	unmaximize(window)
+
 	if not w and not h:
 		geometry = window.get_geometry()
 		w = geometry.widthp

@@ -75,7 +75,6 @@ def get_active_stacked_window():
 	return get_active_window(window_filter=is_managed)
 
 
-# TODO: the the window is maximized, the layout function fails
 class Layout:
 	window: Windows
 	stacks: Dict[int, List[int]] = {}
