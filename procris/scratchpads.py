@@ -16,6 +16,9 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import gi, procris.service
+
+from procris.wm import is_visible
+
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Callable
@@ -67,7 +70,7 @@ def toggle(c_in):
 	if matching:
 		if len(matching) > 1:
 			return 'scratchpad name matches more than one window title'
-		if windows.is_visible(matching[0]):
+		if is_visible(matching[0]):
 			matching[0].minimize()
 		else:
 			windows.active.xid = matching[0].get_xid()

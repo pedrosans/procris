@@ -25,7 +25,7 @@ gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Callable
 from procris.names import PromptInput
-from procris.wm import gdk_window_for, monitor_work_area_for, decoration_size_for, set_geometry, resize
+from procris.wm import gdk_window_for, monitor_work_area_for, decoration_size_for, set_geometry, resize, is_visible
 from procris.decoration import DECORATION_MAP
 
 
@@ -70,14 +70,6 @@ class Windows:
 		self.screen = None
 		self.line = self.column = None
 
-	def is_visible(self, window):
-		if window.get_pid() == os.getpid():
-			return False
-		if window.is_skip_tasklist():
-			return False
-		active_workspace = self.screen.get_active_workspace()
-		return window.is_in_viewport(active_workspace) and not window.is_minimized()
-
 	def read_screen(self, force_update=True):
 		del self.buffers[:]
 		del self.visible[:]
@@ -113,7 +105,7 @@ class Windows:
 	def update_active(self):
 		self.active.xid = None
 		for stacked in reversed(self.screen.get_windows_stacked()):
-			if stacked in self.visible and self.is_visible(stacked):
+			if stacked in self.visible and is_visible(stacked):
 				self.active.xid = stacked.get_xid()
 				break
 

@@ -21,7 +21,7 @@ from procris import scratchpads, wm
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GLib, Gdk
 from procris.windows import Windows
-from procris.wm import monitor_work_area_for, set_geometry
+from procris.wm import monitor_work_area_for, set_geometry, is_visible
 
 
 class Monitor:
@@ -227,12 +227,12 @@ class Layout:
 	def _window_closed(self, screen, window):
 		if window.get_xid() in self.stack:
 			self.stack.remove(window.get_xid())
-		if self.windows.is_visible(window):
+		if is_visible(window):
 			self.windows.read_screen(force_update=False)
 			self.apply()
 
 	def _window_opened(self, screen, window):
-		if self.windows.is_visible(window):
+		if is_visible(window):
 			if window.get_name() in scratchpads.names():
 				scratchpad = scratchpads.get(window.get_name())
 				wm.resize(window, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
@@ -244,7 +244,7 @@ class Layout:
 
 	def _state_changed(self, window, changed_mask, new_state):
 		if changed_mask & Wnck.WindowState.MINIMIZED and window.get_name() not in scratchpads.names():
-			if self.windows.is_visible(window):
+			if is_visible(window):
 				self.stack.insert(0, window.get_xid())
 			else:
 				self.stack.remove(window.get_xid())

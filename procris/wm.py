@@ -14,6 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+import os
 import gi
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
@@ -52,6 +53,15 @@ def unsnap(window: Wnck.Window):
 		window.unmaximize_horizontally()
 	if window.is_maximized_vertically():
 		window.unmaximize_vertically()
+
+
+def is_visible(window: Wnck.Window):
+	if window.get_pid() == os.getpid():
+		return False
+	if window.is_skip_tasklist():
+		return False
+	active_workspace = Wnck.Screen.get_default().get_active_workspace()
+	return window.is_in_viewport(active_workspace) and not window.is_minimized()
 
 
 def resize(window: Wnck.Window, l=0, t=0, w=0, h=0):
