@@ -14,6 +14,8 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
+from typing import List
+
 import gi, os
 import procris.persistor as persistor
 from procris import scratchpads, wm
@@ -59,6 +61,7 @@ class Monitor:
 # TODO: the the window is maximized, the layout function fails
 class Layout:
 	window: Windows
+	stack: List[int] = None
 
 	def __init__(self, windows):
 		self.function_key = None
@@ -68,10 +71,7 @@ class Layout:
 		self.windows = windows
 		self.monitor = Monitor()
 		self.windows.read_screen()
-		self.stack = filter(
-			lambda x: x in self.windows.visible,
-			reversed(Wnck.Screen.get_default().get_windows_stacked()))
-		self.stack = list(map(lambda x: x.get_xid(), self.stack))
+		self.read_display()
 
 		try:
 			self.from_json(persistor.read_layout())
@@ -97,23 +97,17 @@ class Layout:
 
 	def to_json(self):
 		stack_state = {}
-		state = {
-			'stack_state': stack_state,
-			'nmaster': self.monitor.nmaster, 'mfact': self.monitor.mfact,
-			'function': self.function_key}
 		for w in self.windows.buffers:
 			w_id = w.get_xid()
-			key = str(w_id)
-			if key not in stack_state:
-				stack_state[key] = {}
-			stack_state[key]['name'] = w.get_name()
-			stack_state[key]['stack_index'] = self.stack.index(w_id) if w_id in self.stack else -1
-
-		for client_key in list(stack_state.keys()):
-			if client_key not in map(lambda x: str(x.get_xid()), self.windows.buffers):
-				del stack_state[client_key]
-
-		return state
+			stack_state[str(w_id)] = {
+				'name': w.get_name(),
+				'stack_index': self.stack.index(w_id) if w_id in self.stack else -1
+			}
+		return {
+			'stack_state': stack_state,
+			'nmaster': self.monitor.nmaster, 'mfact': self.monitor.mfact,
+			'function': self.function_key
+		}
 
 	#
 	# INTERNAL INTERFACE
@@ -135,37 +129,41 @@ class Layout:
 	def set_function(self, function_key):
 		self.function_key = function_key
 		self.windows.read_screen()
+		self.read_display()
 		self.apply()
 
 	#
 	# CALLBACKS
 	#
 	def _window_closed(self, screen, window):
+		self.windows.read_screen(force_update=False)
+		self.read_display()
 		if window.get_xid() in self.stack:
 			self.stack.remove(window.get_xid())
 		if is_visible(window):
-			self.windows.read_screen(force_update=False)
 			self.apply()
 
 	def _window_opened(self, screen, window):
 		if is_visible(window):
+			self.windows.read_screen(force_update=False)
+			self.read_display()
 			if window.get_name() in scratchpads.names():
 				scratchpad = scratchpads.get(window.get_name())
 				primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
 				resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
 			else:
 				self.stack.insert(0, window.get_xid())
-			self.windows.read_screen(force_update=False)
 			self.windows.apply_decoration_config()
 			self.apply()
 
 	def _state_changed(self, window, changed_mask, new_state):
 		if changed_mask & Wnck.WindowState.MINIMIZED and window.get_name() not in scratchpads.names():
+			self.windows.read_screen(force_update=False)
+			self.read_display()
 			if is_visible(window):
 				self.stack.insert(0, window.get_xid())
 			else:
 				self.stack.remove(window.get_xid())
-			self.windows.read_screen(force_update=False)
 			self.apply()
 
 	#
@@ -222,22 +220,13 @@ class Layout:
 		persistor.persist_layout(self.to_json())
 		self._install_present_window_handlers()
 
-		if not self.function_key:
+		if not self.function_key or not self.stack:
 			return
 
-		visible_windows = list(filter(
-			lambda x: x is not None,
-			map(lambda xid: self.windows.visible_map[xid] if xid in self.windows.visible_map else None, self.stack)))
-
-		if not visible_windows:
-			return
-
-		display = Gdk.Display.get_default()
+		visible_windows = list(map(lambda xid: self.windows.visible_map[xid], self.stack))
 		separation = self.gap + self.border
 		servant = self.servant_monitor()
 		split_point = len(visible_windows) - (self.monitor.nservent if servant else 0)
-
-		self.monitor.set_rectangle(display.get_primary_monitor().get_workarea(), gap=self.gap)
 
 		arrange = FUNCTIONS_MAP[self.function_key](visible_windows[:split_point], self.monitor)
 		arrange += FUNCTIONS_MAP[self.function_key](visible_windows[split_point:], servant)
@@ -250,6 +239,18 @@ class Layout:
 					w, x=a[0] + separation, y=a[1] + separation, w=a[2] - separation * 2, h=a[3] - separation * 2)
 			except wm.DirtyState:
 				pass  # we did our best to keep WNCK objects fresh, but it can happens and did got dirty
+
+	def read_display(self):
+
+		if self.stack is None:
+			ordered_visible = filter(
+				lambda x: x in self.windows.visible,
+				reversed(Wnck.Screen.get_default().get_windows_stacked()))
+			self.stack = list(map(lambda x: x.get_xid(), ordered_visible))
+
+		self.stack = list(filter(lambda xid: xid in self.windows.visible_map, self.stack))
+		self.stack += list(filter(lambda xid: xid not in self.stack, self.windows.visible_map.keys()))
+		self.monitor.set_rectangle(Gdk.Display.get_default().get_primary_monitor().get_workarea(), gap=self.gap)
 
 	def servant_monitor(self):
 		for i in range(Gdk.Display.get_default().get_n_monitors()):

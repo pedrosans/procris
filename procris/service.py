@@ -176,6 +176,7 @@ def pre_processing():
 
 	reading.make_transient()
 	windows.read_screen()
+	layout.read_display()
 
 
 def post_processing():
