@@ -15,13 +15,12 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import gi, procris.service
 
-from procris.wm import is_visible
-
+import gi
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Callable
+from procris.wm import is_visible
 
 
 class Scratchpad:
@@ -65,7 +64,7 @@ def names():
 
 def toggle(c_in):
 	name = c_in.parameters[0]
-	windows = procris.service.windows
+	windows = Wnck.Screen.get_default().get_windows()
 	matching: Wnck.Window = list(filter(lambda x: x.get_name() == name, windows.buffers))
 	if matching:
 		if len(matching) > 1:

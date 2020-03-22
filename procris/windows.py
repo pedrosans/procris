@@ -78,24 +78,20 @@ class Windows:
 		if force_update:
 			Wnck.Screen.get_default().force_update()  # make sure we query X server
 
-		active_workspace = Wnck.Screen.get_default().get_active_workspace()
 		for wnck_window in Wnck.Screen.get_default().get_windows():
 			if wnck_window.get_pid() == os.getpid():
 				continue
 			if wnck_window.is_skip_tasklist():
 				continue
-			in_active_workspace = wnck_window.is_in_viewport(active_workspace)
-			if in_active_workspace or configurations.is_list_workspaces():
-				self.buffers.append(wnck_window)
-			if (
-					in_active_workspace
-					and not wnck_window.is_minimized()
-					and wnck_window.get_name() not in scratchpads.names()):
+
+			self.buffers.append(wnck_window)
+
+			if not wnck_window.is_minimized() and wnck_window.get_name() not in scratchpads.names():
 				self.visible.append(wnck_window)
 				self.visible_map[wnck_window.get_xid()] = wnck_window
 
 		self.update_active()
-		self.line   = sorted(list(self.visible), key=sort_line  )
+		self.line = sorted(list(self.visible), key=sort_line)
 		self.column = sorted(list(self.visible), key=sort_column)
 
 	def update_active(self):

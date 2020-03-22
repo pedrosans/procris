@@ -14,7 +14,7 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-from typing import List
+from typing import List, Dict
 
 import gi, os
 import procris.persistor as persistor
@@ -61,7 +61,8 @@ class Monitor:
 # TODO: the the window is maximized, the layout function fails
 class Layout:
 	window: Windows
-	stack: List[int] = None
+	stacks: Dict[int, List[int]] = {}
+	monitors: Dict[int, Monitor] = {}
 
 	def __init__(self, windows):
 		self.function_key = None
@@ -69,49 +70,32 @@ class Layout:
 		self.gap = 0
 		self.border = 4
 		self.windows = windows
-		self.monitor = Monitor()
+
+		# TODO: remove
 		self.windows.read_screen()
 		self.read_display()
-
-		try:
-			self.from_json(persistor.read_layout())
-		except KeyError as e:
-			print('can not load last state, there is a unknown key in the json')
-
 		self._install_present_window_handlers()
 		Wnck.Screen.get_default().connect("window-opened", self._window_opened)
 		Wnck.Screen.get_default().connect("window-closed", self._window_closed)
 
-	def from_json(self, json):
-		if not json:
-			return
-		self.monitor.nmaster = json['nmaster']
-		self.monitor.mfact = json['mfact']
-		self.function_key = json['function']
-		copy = self.stack.copy()
-		self.stack.sort(
-			key=lambda xid:
-			json['stack_state'][str(xid)]['stack_index']
-			if str(xid) in json['stack_state']
-			else copy.index(xid))
-
-	def to_json(self):
-		stack_state = {}
-		for w in self.windows.buffers:
-			w_id = w.get_xid()
-			stack_state[str(w_id)] = {
-				'name': w.get_name(),
-				'stack_index': self.stack.index(w_id) if w_id in self.stack else -1
-			}
-		return {
-			'stack_state': stack_state,
-			'nmaster': self.monitor.nmaster, 'mfact': self.monitor.mfact,
-			'function': self.function_key
-		}
-
 	#
 	# INTERNAL INTERFACE
 	#
+	def get_active_stack(self) -> List[int]:
+		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
+		return self.stacks[active_workspace.get_number()]
+
+	def get_active_monitor(self) -> Monitor:
+		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
+		return self.monitors[active_workspace.get_number()]
+
+	def servant_monitor(self):
+		for i in range(Gdk.Display.get_default().get_n_monitors()):
+			m = Gdk.Display.get_default().get_monitor(i)
+			if not m.is_primary():
+				return Monitor(nmaster=0, rectangle=m.get_workarea(), gap=self.gap)
+		return None
+
 	def _install_present_window_handlers(self):
 		for window in self.windows.buffers:
 			if window.get_xid() not in self.window_monitor_map:
@@ -119,9 +103,10 @@ class Layout:
 				self.window_monitor_map[window.get_xid()] = handler_id
 
 	def _incremented_index(self, increment):
-		old_index = self.stack.index(self.windows.active.xid)
+		stack = self.get_active_stack()
+		old_index = stack.index(self.windows.active.xid)
 		new_index = old_index + increment
-		return min(max(new_index, 0), len(self.stack) - 1)
+		return min(max(new_index, 0), len(stack) - 1)
 
 	#
 	# PUBLIC INTERFACE
@@ -136,10 +121,11 @@ class Layout:
 	# CALLBACKS
 	#
 	def _window_closed(self, screen, window):
+		stack = self.get_active_stack()
 		self.windows.read_screen(force_update=False)
 		self.read_display()
-		if window.get_xid() in self.stack:
-			self.stack.remove(window.get_xid())
+		if window.get_xid() in stack:
+			stack.remove(window.get_xid())
 		if is_visible(window):
 			self.apply()
 
@@ -152,18 +138,20 @@ class Layout:
 				primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
 				resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
 			else:
-				self.stack.insert(0, window.get_xid())
+				stack = self.get_active_stack()
+				old_index = stack.index(window.get_xid())
+				stack.insert(0, stack.pop(old_index))
 			self.windows.apply_decoration_config()
 			self.apply()
 
 	def _state_changed(self, window, changed_mask, new_state):
 		if changed_mask & Wnck.WindowState.MINIMIZED and window.get_name() not in scratchpads.names():
+			stack = self.get_active_stack()
 			self.windows.read_screen(force_update=False)
 			self.read_display()
 			if is_visible(window):
-				self.stack.insert(0, window.get_xid())
-			else:
-				self.stack.remove(window.get_xid())
+				old_index = stack.index(window.get_xid())
+				stack.insert(0, stack.pop(old_index))
 			self.apply()
 
 	#
@@ -171,18 +159,20 @@ class Layout:
 	#
 	def swap_focused_with(self, c_in):
 		if self.windows.active.xid:
+			stack = self.get_active_stack()
 			direction = c_in.parameters[0]
-			old_index = self.stack.index(self.windows.active.xid)
+			old_index = stack.index(self.windows.active.xid)
 			new_index = self._incremented_index(direction)
 			if new_index != old_index:
-				self.stack.insert(new_index, self.stack.pop(old_index))
+				stack.insert(new_index, stack.pop(old_index))
 				self.apply()
 
 	def move_focus(self, c_in):
 		if self.windows.active.xid:
+			stack = self.get_active_stack()
 			direction = c_in.parameters[0]
 			new_index = self._incremented_index(direction)
-			self.windows.active.change_to(self.stack[new_index])
+			self.windows.active.change_to(stack[new_index])
 
 	def change_function(self, c_in):
 		function_key = c_in.parameters[0]
@@ -190,46 +180,46 @@ class Layout:
 
 	def move_to_master(self, c_in):
 		if self.windows.active.xid:
-			old_index = self.stack.index(self.windows.active.xid)
-			self.stack.insert(0, self.stack.pop(old_index))
+			stack = self.get_active_stack()
+			old_index = stack.index(self.windows.active.xid)
+			stack.insert(0, stack.pop(old_index))
 			self.apply()
 
 	def increase_master_area(self, c_in):
-		self.monitor.increase_master_area(increment=c_in.parameters[0])
+		self.get_active_monitor().increase_master_area(increment=c_in.parameters[0])
 		self.apply()
 
 	def increment_master(self, c_in):
-		self.monitor.increment_master(
-			increment=c_in.parameters[0], upper_limit=len(self.stack))
+		self.get_active_monitor().increment_master(
+			increment=c_in.parameters[0], upper_limit=len(self.get_active_stack()))
 		self.apply()
 
 	def increment_servant(self, c_in):
-		self.monitor.increment_servant(
-			increment=c_in.parameters[0], upper_limit=len(self.stack))
+		self.get_active_monitor().increment_servant(
+			increment=c_in.parameters[0], upper_limit=len(self.get_active_stack()))
 		self.apply()
 
 	def move_stacked(self, c_in):
 		parameter = c_in.vim_command_parameter
 		array = list(map(lambda x: int(x), parameter.split()))
-		w_stack = list(filter(
-			lambda x: x is not None,
-			map(lambda xid: self.windows.visible_map[xid] if xid in self.windows.visible_map else None, self.stack)))
-		set_geometry(w_stack[array[0]], array[1], array[2], array[3], array[4])
+		# set_geometry(w_stack[array[0]], array[1], array[2], array[3], array[4])
 
 	def apply(self):
 		persistor.persist_layout(self.to_json())
 		self._install_present_window_handlers()
+		stack = self.get_active_stack()
 
-		if not self.function_key or not self.stack:
+		if not self.function_key or not stack:
 			return
 
-		visible_windows = list(map(lambda xid: self.windows.visible_map[xid], self.stack))
+		visible_windows = list(map(lambda xid: self.windows.visible_map[xid], stack))
 		separation = self.gap + self.border
 		servant = self.servant_monitor()
-		split_point = len(visible_windows) - (self.monitor.nservent if servant else 0)
+		split_point = len(visible_windows) - (self.get_active_monitor().nservent if servant else 0)
 
-		arrange = FUNCTIONS_MAP[self.function_key](visible_windows[:split_point], self.monitor)
-		arrange += FUNCTIONS_MAP[self.function_key](visible_windows[split_point:], servant)
+		arrange = FUNCTIONS_MAP[self.function_key](visible_windows[:split_point], self.get_active_monitor())
+		if servant:
+			arrange += FUNCTIONS_MAP[self.function_key](visible_windows[split_point:], servant)
 
 		for i in range(len(arrange)):
 			a = arrange[i]
@@ -241,23 +231,64 @@ class Layout:
 				pass  # we did our best to keep WNCK objects fresh, but it can happens and did got dirty
 
 	def read_display(self):
+		for workspace in Wnck.Screen.get_default().get_workspaces():
 
-		if self.stack is None:
-			ordered_visible = filter(
-				lambda x: x in self.windows.visible,
-				reversed(Wnck.Screen.get_default().get_windows_stacked()))
-			self.stack = list(map(lambda x: x.get_xid(), ordered_visible))
+			if workspace.get_number() not in self.stacks:
+				self.monitors[workspace.get_number()] = Monitor()
+				self.stacks[workspace.get_number()] = []
 
-		self.stack = list(filter(lambda xid: xid in self.windows.visible_map, self.stack))
-		self.stack += list(filter(lambda xid: xid not in self.stack, self.windows.visible_map.keys()))
-		self.monitor.set_rectangle(Gdk.Display.get_default().get_primary_monitor().get_workarea(), gap=self.gap)
+			monitor: Monitor = self.monitors[workspace.get_number()]
+			monitor.set_rectangle(Gdk.Display.get_default().get_primary_monitor().get_workarea(), gap=self.gap)
 
-	def servant_monitor(self):
-		for i in range(Gdk.Display.get_default().get_n_monitors()):
-			m = Gdk.Display.get_default().get_monitor(i)
-			if not m.is_primary():
-				return Monitor(nmaster=0, rectangle=m.get_workarea(), gap=self.gap)
-		return None
+			stack: List[int] = self.stacks[workspace.get_number()]
+			stack.extend(map(
+					lambda w: w.get_xid(),
+					filter(
+						lambda w: w.get_xid() not in stack and is_visible(w, workspace) and w.get_name() not in scratchpads.names(),
+						reversed(Wnck.Screen.get_default().get_windows_stacked()))))
+
+			for to_remove in filter(
+					lambda xid: xid not in self.windows.visible_map or not self.windows.visible_map[xid].is_in_viewport(workspace),
+					stack):
+				stack.remove(to_remove)
+
+	def from_json(self, json):
+		# try:
+		# 	self.from_json(persistor.read_layout())
+		# except KeyError as e:
+		# 	print('can not load last state, there is a unknown key in the json')
+		if not json:
+			return
+		for workspace_number in json['monitors'].keys():
+			monitor = self.monitors[int(workspace_number)] = Monitor()
+			stack = self.stacks[int(workspace_number)] = []
+			monitor.nmaster = json['nmaster']
+			monitor.mfact = json['mfact']
+			self.function_key = json['function']
+			copy = stack.copy()
+			self.stack.sort(
+				key=lambda xid:
+				json['stack_state'][str(xid)]['stack_index']
+				if str(xid) in json['stack_state']
+				else copy.index(xid))
+
+	def to_json(self):
+		state = {'monitors': {}}
+		for workspace_number in self.stacks.keys():
+			monitor: Monitor = self.monitors[workspace_number]
+			stack: List[int] = self.stacks[workspace_number]
+			stack_state = {}
+			for xid in stack:
+				stack_state[str(xid)] = {
+					'name': self.windows.visible_map[xid].get_name(),
+					'stack_index': stack.index(xid)
+				}
+			state['monitors'][str(workspace_number)] = {
+				'nmaster': monitor.nmaster, 'mfact': monitor.mfact,
+				'function': self.function_key,
+				'stack': stack_state,
+			}
+		return state
 
 
 def monocle(stack, monitor):

@@ -31,24 +31,28 @@ LOCATION_MAP = {}
 
 
 def launch(c_in: PromptInput):
-	app_name = c_in.vim_command_parameter
+	launch_name(name=c_in.vim_command_parameter, timestamp=c_in.time)
 
-	if app_name not in NAME_MAP.keys():
-		return Message('No matching application for ' + app_name, 'error')
 
-	if not app_name or not app_name.strip() or app_name not in NAME_MAP.keys():
+# https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11AppLaunchContext.html
+# https://lazka.github.io/pgi-docs/Gio-2.0/classes/DesktopAppInfo.html
+def launch_name(name: str = None, timestamp: int = None, desktop: int = 0):
+	if name not in NAME_MAP.keys():
+		return Message('No matching application for ' + name, 'error')
+
+	if not name or not name.strip() or name not in NAME_MAP.keys():
 		return Message('Missing application name', 'error')
 
 	try:
-		launcher = Gio.DesktopAppInfo.new_from_filename(LOCATION_MAP[app_name])
+		launcher = Gio.DesktopAppInfo.new_from_filename(LOCATION_MAP[name])
 		display: Gdk.Display = Gdk.Display.get_default()
-		context: GdkX11.X11AppLanchContext = display.get_app_launch_context()
-		context.set_timestamp(c_in.time)
-		context.set_desktop(0)
+		context: GdkX11.X11AppLaunchContext = display.get_app_launch_context()
+		context.set_timestamp(timestamp)
+		context.set_desktop(desktop)
 		context.set_screen(display.get_default_screen())
 		launcher.launch_uris(None, context)
 	except GLib.GError as exc:
-		return Message('Error launching ' + app_name, 'error')
+		return Message('Error launching ' + name, 'error')
 
 
 def load():
