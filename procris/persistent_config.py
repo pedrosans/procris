@@ -19,7 +19,6 @@ from xdg import BaseDirectory as base
 from xdg import DesktopEntry as desktop
 from configparser import ConfigParser
 from typing import Dict
-import configparser
 import os
 import json
 
@@ -29,7 +28,7 @@ PROCRIS_PACKAGE = 'procris'
 autostart_dir = base.save_config_path("autostart")
 autostart_file = os.path.join(autostart_dir, PROCRIS_DESKTOP)
 config_dir = base.save_config_path(PROCRIS_PACKAGE)
-config_file = os.path.join(config_dir, "procris.cfg")
+config_file = os.path.join(config_dir, "config.ser")
 cache_dir = base.save_cache_path(PROCRIS_PACKAGE)
 layout_file = cache_dir + '/layout.json'
 decorations_file = cache_dir + '/decoration.json'
@@ -78,7 +77,7 @@ def get_css_file_path():
 
 
 def get_custom_mappings_module_path():
-	return os.path.join(config_dir, "mappings.py")
+	return os.path.join(config_dir, "config.py")
 
 
 #

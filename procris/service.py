@@ -47,7 +47,7 @@ listener: KeyboardListener = None
 windows: Windows = None
 layout: Layout = None
 status_icon: StatusIcon = None
-mappings = bus_object = None
+config = bus_object = None
 
 
 def load():
@@ -70,31 +70,31 @@ def load():
 
 
 def load_mappings():
-	global mappings
+	global config
 	imported = False
 	try:
 		import importlib.util
 		spec = importlib.util.spec_from_file_location("module.name", configurations.get_custom_mappings_module_path())
-		mappings = importlib.util.module_from_spec(spec)
-		spec.loader.exec_module(mappings)
+		config = importlib.util.module_from_spec(spec)
+		spec.loader.exec_module(config)
 		imported = True
 	except FileNotFoundError as e:
 		print(
-			'info: it is possible to customize procris bindings by in {}'.format(
+			'info: not possible to load custom config at: {}'.format(
 				configurations.get_custom_mappings_module_path()))
 
 	if not imported:
-		import procris.mappings as default_mappings
-		mappings = default_mappings
+		import procris.config as default_config
+		config = default_config
 
-	for name in mappings.names:
+	for name in config.names:
 		names.add(name)
 
-	for key in mappings.keys:
+	for key in config.keys:
 		listener.bind(key)
 
-	configurations.set_defaults(mappings.default_interface)
-	layout.from_json(configurations.read_layout(default=mappings.default_layout))
+	configurations.set_defaults(config.default_interface)
+	layout.from_json(configurations.read_layout(default=config.default_layout))
 
 
 #

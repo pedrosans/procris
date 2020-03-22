@@ -271,7 +271,7 @@ means both an application and a window. So the bellow commands will:
 
 A custom mappings module can be provided by placing its definition in `~/.config/procris/mappings.py`.
 In the case of a custom module, it will be loaded instead of the default one. The default one at
-[procris/mappings.py](procris/mappings.py) is meant to be a starting point.
+[procris/mappings.py](procris/config.py) is meant to be a starting point.
 
 #### Interface
 
