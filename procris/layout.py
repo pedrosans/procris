@@ -287,6 +287,36 @@ class Layout:
 
 		self.windows.staging = True
 
+	def wnck_move(self, c_in):
+		parameter = c_in.vim_command_parameter
+		monitor: Monitor = self.get_active_primary_monitor()
+		array = list(map(lambda x: int(x), parameter.split()))
+		visible_windows = self.get_active_windows_as_list()
+		window = visible_windows[array[0]]
+
+		window.set_geometry(
+			Wnck.WindowGravity.STATIC, wm.X_Y_W_H_GEOMETRY_MASK,
+			array[1] + monitor.wx,
+			array[2] + monitor.wy,
+			array[3] if len(array) > 3 else window.get_geometry().widthp,
+			array[4] if len(array) > 3 else window.get_geometry().heightp)
+
+		self.windows.staging = True
+
+	def gdk_move(self, c_in):
+		parameter = c_in.vim_command_parameter
+		monitor: Monitor = self.get_active_primary_monitor()
+		array = list(map(lambda x: int(x), parameter.split()))
+		visible_windows = self.get_active_windows_as_list()
+		window = visible_windows[array[0]]
+		gdk_window = wm.gdk_window_for(window)
+
+		gdk_window.move(
+			array[1] + monitor.wx,
+			array[2] + monitor.wy)
+
+		self.windows.staging = True
+
 	def apply(self):
 		self._install_present_window_handlers()
 		persistor.persist_layout(self.to_json())
