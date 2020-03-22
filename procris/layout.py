@@ -99,6 +99,9 @@ class Layout:
 		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
 		return self.stacks[active_workspace.get_number()]
 
+	def get_active_windows_as_list(self) -> List[Wnck.Window]:
+		return list(map(lambda xid: self.read[xid], self.get_active_stack()))
+
 	def get_active_monitor(self) -> Monitor:
 		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
 		return self.monitors[active_workspace.get_number()]
@@ -230,31 +233,25 @@ class Layout:
 
 	def move_stacked(self, c_in):
 		parameter = c_in.vim_command_parameter
+		monitor: Monitor = self.get_active_monitor()
 		array = list(map(lambda x: int(x), parameter.split()))
-		# set_geometry(w_stack[array[0]], array[1], array[2], array[3], array[4])
+		visible_windows = self.get_active_windows_as_list()
 
-		# parameter = c_in.vim_command_parameter
-		# parameter_a = parameter.split()
-		# to_x = int(parameter_a[0])
-		# to_y = int(parameter_a[1])
-		# work_area = monitor_work_area_for(self.get_wnck_window())
-		# x = to_x + work_area.x
-		# y = to_y + work_area.y
-		# set_geometry(self.get_wnck_window(), x=x, y=y)
-		# self.windows.staging = True
+		set_geometry(visible_windows[array[0]], x=array[1] + monitor.x, y=array[2] + monitor.y, w=array[3], h=array[4])
+
+		self.windows.staging = True
 
 	def apply(self):
 		self._install_present_window_handlers()
 		persistor.persist_layout(self.to_json())
-		stack: List[int] = self.get_active_stack()
 		monitor: Monitor = self.get_active_monitor()
+		visible_windows = self.get_active_windows_as_list()
 
-		if not monitor.function_key or not stack:
+		if not monitor.function_key or not visible_windows:
 			return
 
 		monitor.set_rectangle(Gdk.Display.get_default().get_primary_monitor().get_workarea())
 		separation = monitor.gap + monitor.border
-		visible_windows = list(map(lambda xid: self.read[xid], stack))
 		servant = self.servant_monitor()
 		split_point = len(visible_windows) - (self.get_active_monitor().nservent if servant else 0)
 
