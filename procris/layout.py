@@ -343,18 +343,21 @@ class Layout:
 			for i in range(Gdk.Display.get_default().get_n_monitors()):
 				m = Gdk.Display.get_default().get_monitor(i)
 				rect = m.get_workarea()
-				resume += '\tMonitor {}\tPrimary: {}\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
-					i, m.is_primary(), rect.x, rect.y, rect.width, rect.height)
+				primary_monitor = self.primary_monitors[workspace.get_number()]
+				monitor: Monitor = primary_monitor if m.is_primary() else primary_monitor.next()
 
-				stack = self.stacks[workspace.get_number()]
-				resume += '\t\tLayout: {}\n'.format(self.primary_monitors[workspace.get_number()].function_key)
-				resume += '\t\tStack: ['
-				for xid in stack:
-					w = self.read[xid]
-					xp, yp, widthp, heightp = w.get_geometry()
-					if rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height):
-						resume += '{:10} '.format(xid)
-				resume += ']\n'
+				resume += '\tMonitor\t\t\tLayout: {}\tPrimary: {}\n'.format(
+					FUNCTIONS_NAME_MAP[monitor.function_key], m.is_primary())
+				resume += '\t\t[GDK]\t\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
+					rect.x, rect.y, rect.width, rect.height)
+				resume += '\t\t[PROCRIS]\tRectangle: {:5}, {:5}, {:5}, {:5}\tborder: {} gap: {}\n'.format(
+					monitor.wx, monitor.wy, monitor.ww, monitor.wh,
+					monitor.border, monitor.gap)
+
+				resume += '\t\t[Stack]\t\t('
+				for xid in filter(lambda _xid: monitor.contains(self.read[_xid]), self.stacks[workspace.get_number()]):
+					resume += '{:10} '.format(xid)
+				resume += ')\n'
 
 		return resume
 

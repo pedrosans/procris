@@ -231,13 +231,13 @@ class Windows:
 			resume += '\n'
 			resume += '[{:8}] - {}\n'.format(wn.get_xid(), wn.get_name())
 
-			resume += '\tx: {:5d} h: {:3d} w: {:7.2f} h: {:7.2f} | client window x: {:5d} h: {:5d} w: {:7.2f} h: {:7.2f} \n'.format(
+			resume += '\t[GEOMETRY] x: {:4d} h: {:3d} w: {:7.2f} h: {:7.2f} [WM] x: {:4d} h: {:3d} w: {:7.2f} h: {:7.2f} \n'.format(
 				x, y, w, h, cx, cy, cw, ch)
 
 			resume += '\tcompensate: {:5}\t\tdecoration_width: {:3d}\t\tdecoration_height: {:3d}\n'.format(
 				str(compensate), decoration_width, decoration_height)
 
-			resume += '\ttype: {:8}\t\t\tdecorated: {:5}\t\t\tflags: {}\n'.format(
+			resume += '\ttype: {:8}\t\t\tdecorated: {:5}\t\tflags: {}\n'.format(
 				gdk_w.get_type_hint().value_name.replace('GDK_WINDOW_TYPE_HINT_', '')[:8],
 				str(is_decorated), list(map(lambda n: n.replace('GDK_DECOR_', ''), decorations.value_names)))
 
