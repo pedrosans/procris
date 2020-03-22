@@ -19,6 +19,7 @@ import xdg.DesktopEntry
 import xdg.Exceptions
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gdk, GLib, Gio, GdkX11
+from datetime import datetime
 from procris.messages import Message
 from procris.names import PromptInput
 
@@ -37,6 +38,9 @@ def launch(c_in: PromptInput):
 # https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11AppLaunchContext.html
 # https://lazka.github.io/pgi-docs/Gio-2.0/classes/DesktopAppInfo.html
 def launch_name(name: str = None, timestamp: int = None, desktop: int = -1):
+	if not timestamp:
+		timestamp = datetime.now().microsecond
+
 	if name not in NAME_MAP.keys():
 		return Message('No matching application for ' + name, 'error')
 

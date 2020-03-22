@@ -67,6 +67,7 @@ class Windows:
 		self.line: List[Wnck.Window] = None
 		self.column: List[Wnck.Window] = None
 		self.staging = False
+		self.count = 0
 
 	def read_screen(self, force_update=True):
 		del self.buffers[:]
@@ -90,7 +91,7 @@ class Windows:
 		self.column = sorted(self.visible, key=sort_column)
 
 	def update_active(self):
-		active_window = get_active_window()
+		active_window = get_active_window(window_filter=lambda x: x in self.visible)
 		self.active.xid = active_window.get_xid() if active_window else None
 
 	#
