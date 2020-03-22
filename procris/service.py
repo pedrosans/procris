@@ -135,21 +135,38 @@ def stop():
 
 
 def keyboard_listener(key, x_key_event, multiplier=1):
-	GLib.idle_add(
-		_inside_main_loop, key, multiplier, x_key_event,
-		priority=GLib.PRIORITY_HIGH)
-
-
-def _inside_main_loop(key, multiplier, x_key_event: Xlib.protocol.event.KeyPress):
 	command_input = PromptInput(
 		time=x_key_event.time, parameters=key.parameters, keyval=x_key_event.keyval, keymod=x_key_event.keymod)
 
-	execute(key.function, command_input, multiplier)
-
-	return False
+	_execute_inside_main_loop(key.function, command_input, multiplier)
 
 
-def execute(function, command_input, multiplier=1):
+def message(ipc_message):
+	from datetime import datetime
+	execute(cmd=ipc_message, timestamp=datetime.now().microsecond)
+
+
+def execute(cmd: str = None, timestamp: int = None):
+	if names.has_multiple_names(cmd):
+		raise names.InvalidName('TODO: iterate multiple commands')
+
+	c_in = PromptInput(text=cmd, time=timestamp).parse()
+	name = names.match(c_in)
+
+	if not name:
+		raise names.InvalidName('Not an editor command: ' + cmd)
+
+	_execute_inside_main_loop(name.function, c_in)
+
+	return True
+
+
+def _execute_inside_main_loop(function, command_input, multiplier=1):
+
+	GLib.idle_add(_execute, function, command_input, multiplier,  priority=GLib.PRIORITY_HIGH)
+
+
+def _execute(function, command_input, multiplier=1):
 	try:
 
 		pre_processing()
@@ -174,6 +191,8 @@ def execute(function, command_input, multiplier=1):
 		messages.add_error(msg)
 		reading.begin(command_input.time)
 
+	return False
+
 
 def pre_processing():
 
@@ -192,14 +211,6 @@ def post_processing():
 
 	# reload to show the current layout icon
 	status_icon.reload()
-
-
-def message(ipc_message):
-	windows.read_screen()
-	c_in = PromptInput(time=None, text=ipc_message).parse()
-	name = names.match(c_in)
-	name.function(c_in)
-	messages.print_to_console()
 
 
 def configure_process():

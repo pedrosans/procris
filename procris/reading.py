@@ -185,16 +185,10 @@ class Reading:
 
 		self.prompt_history.append(cmd)
 
-		if names.has_multiple_names(cmd):
-			raise Exception('TODO: iterate multiple commands')
-
-		c_in = PromptInput(time=gtk_time, text=cmd).parse()
-		name = names.match(c_in)
-
-		if name:
-			procris.service.execute(name.function, c_in)
-		else:
-			messages.add_error('Not an editor command: ' + cmd)
+		try:
+			procris.service.execute(cmd, gtk_time)
+		except names.InvalidName as e:
+			messages.add_error(e.message)
 			self.begin(gtk_time)
 
 	#

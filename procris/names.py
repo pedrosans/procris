@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
 from typing import Callable
+from datetime import datetime
 
 LIST = []
 NAME_MAP = {}
@@ -27,7 +28,7 @@ MULTIPLE_COMMANDS_PATTERN = re.compile(r'.*[^\\]\|.*')
 class PromptInput:
 
 	def __init__(self, time=None, text=None, parameters=None, keyval=None, keymod=None):
-		self.time = time
+		self.time = time if time else datetime.now().microsecond
 		self.text = text
 		self.keyval = keyval
 		self.keymod = keymod
@@ -152,3 +153,10 @@ class PromptHistory:
 	def append(self, cmd):
 		if cmd not in self.history:
 			self.history.append(cmd)
+
+
+class InvalidName(Exception):
+
+	def __init__(self, message):
+		self.message = message
+

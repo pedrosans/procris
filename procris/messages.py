@@ -68,5 +68,12 @@ def get():
 
 def print_to_console():
 	for m in memory:
-		print(m.content)
+		print(m.get_content())
+
+
+def to_string():
+	output = ''
+	for m in memory:
+		output += '\n' + m.get_content(100)
+	return output
 
