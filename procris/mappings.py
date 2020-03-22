@@ -11,8 +11,34 @@ reading = procris.service.reading
 scratchpads = procris.scratchpads
 decoration = procris.decoration
 
-layout.gap = 0
-layout.border = 0
+default_interface = {
+	'position': 'bottom',
+	'width': '800',
+	'auto_hint': 'true',
+	'auto_select_first_hint': 'true',
+	'icon': 'default',
+	'remove_decorations': 'false'
+}
+
+default_layout = {
+	'workspaces': {
+		'0': {
+			'nmaster': 1,
+			'mfact': 0.5,
+			'function': 'B',
+			'gap': 2,
+			'border': 0
+		},
+		'1': {
+			'nmaster': 1,
+			'mfact': 0.5,
+			'function': 'T',
+			'gap': 0,
+			'border': 0
+		},
+	}
+}
+
 prefix_key = '<Ctrl>q'
 
 keys = [
@@ -20,20 +46,20 @@ keys = [
 	# tile window managers bindings
 	Key(['<Ctrl>Return'], layout.move_to_master),
 	Key(['<Ctrl>KP_Enter'], layout.move_to_master),
-	Key(['<Ctrl>i'], layout.increment_master, [1]),
-	Key(['<Ctrl>d'], layout.increment_master, [-1]),
-	Key(['<Ctrl>j'], layout.move_focus, [1]),
-	Key(['<Ctrl>k'], layout.move_focus, [-1]),
-	Key(['<Ctrl>l'], layout.increase_master_area, [0.05]),
-	Key(['<Ctrl>h'], layout.increase_master_area, [-0.05]),
-	Key(['<Ctrl>u'], layout.change_function, ['C']),
-	Key(['<Ctrl>t'], layout.change_function, ['T']),
-	Key(['<Ctrl>m'], layout.change_function, ['M']),
-	Key(['<Ctrl>f'], layout.change_function, [None]),
+	Key(['<Ctrl>i'], layout.increment_master, 1),
+	Key(['<Ctrl>d'], layout.increment_master, -1),
+	Key(['<Ctrl>j'], layout.move_focus, 1),
+	Key(['<Ctrl>k'], layout.move_focus, -1),
+	Key(['<Ctrl>l'], layout.increase_master_area, 0.05),
+	Key(['<Ctrl>h'], layout.increase_master_area, -0.05),
+	Key(['<Ctrl>u'], layout.change_function, 'C'),
+	Key(['<Ctrl>t'], layout.change_function, 'T'),
+	Key(['<Ctrl>m'], layout.change_function, 'M'),
+	Key(['<Ctrl>f'], layout.change_function, None),
 
 	# xmonad bindings https://xmonad.org/manpage.html
-	Key(['<Ctrl><Shift>j'], layout.swap_focused_with, [1]),
-	Key(['<Ctrl><Shift>k'], layout.swap_focused_with, [-1]),
+	Key(['<Ctrl><Shift>j'], layout.swap_focused_with, 1),
+	Key(['<Ctrl><Shift>k'], layout.swap_focused_with, -1),
 
 	# procris reading binding
 	Key([prefix_key], service.read_command_key),
@@ -73,8 +99,9 @@ names = [
 	Name('reload', service.reload),
 	Name('decorate', windows.active.decorate, complete=decoration.complete),
 	Name('report', service.debug),
-	Name('move', windows.active.move),
 	Name('stack', layout.move_stacked),
 	Name('quit', windows.active.minimize, alias='q'),
 	Name('only', windows.active.only, alias='on'),
+	Name('gap', layout.set_gap),
+	Name('border', layout.set_border),
 ]

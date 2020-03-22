@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi
-import procris.persistor as persistor
+import procris.persistent_config as persistor
 from procris.wm import gdk_window_for
 
 gi.require_version('Wnck', '3.0')

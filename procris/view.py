@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, io
 import procris.messages as messages
-import procris.configurations as configurations
+import procris.persistent_config as configurations
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck

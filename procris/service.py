@@ -22,7 +22,7 @@ x11.XInitThreads()
 import os, gi, signal, setproctitle, traceback
 import procris
 import procris.names as names
-import procris.configurations as configurations
+import procris.persistent_config as configurations
 import procris.applications as applications
 import procris.messages as messages
 import procris.terminal as terminal
@@ -59,7 +59,7 @@ def load():
 
 	windows = Windows()
 	reading = Reading(windows=windows)
-	layout = Layout(reading.windows, )
+	layout = Layout(reading.windows)
 	status_icon = StatusIcon(layout, stop_function=stop)
 	listener = KeyboardListener(callback=keyboard_listener, on_error=stop)
 
@@ -92,6 +92,9 @@ def load_mappings():
 
 	for key in mappings.keys:
 		listener.bind(key)
+
+	configurations.set_defaults(mappings.default_interface)
+	layout.from_json(configurations.read_layout(default=mappings.default_layout))
 
 
 #

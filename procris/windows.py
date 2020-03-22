@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import gi, os, re
 import procris.messages as messages
-import procris.configurations as configurations
+import procris.persistent_config as configurations
 import procris.scratchpads as scratchpads
 from procris import decoration
 

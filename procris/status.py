@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import gi
-import procris.configurations as configurations
+import procris.persistent_config as configurations
 import procris.layout
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
@@ -46,7 +46,6 @@ class StatusIcon:
 		self.menu.append(self.autostart_item)
 
 		self.decorations_item = Gtk.CheckMenuItem(label="Remove decorations")
-		self.decorations_item.set_active(configurations.is_remove_decorations())
 		self.decorations_item.connect("toggled", self._change_decorations)
 		self.decorations_item.show()
 		self.menu.append(self.decorations_item)
@@ -98,6 +97,7 @@ class StatusIcon:
 		self.menu.append(quit_item)
 
 	def activate(self):
+		self.decorations_item.set_active(configurations.is_remove_decorations())
 		self.ind = AppIndicator3.Indicator.new("procris", ICONNAME, AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
 		self.ind.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 		self.ind.set_menu(self.menu)

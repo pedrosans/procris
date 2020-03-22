@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from typing import List, Dict
 
 import gi, os
-import procris.persistor as persistor
+import procris.persistent_config as persistor
 from procris import scratchpads, wm
 
 gi.require_version('Wnck', '3.0')
