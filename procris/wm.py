@@ -31,16 +31,7 @@ def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
 	try:
 		return GdkX11.X11Window.foreign_new_for_display(display, xid)
 	except TypeError as e:
-		print('\t**********************')
-		print('\tLooking for: {} - {}'.format(window.get_xid(), window.get_name()))
-		print('\tOn screen:')
-		for listed in Wnck.Screen.get_default().get_windows():
-			print('\t\t {} - {}'.format(listed.get_xid(), listed.get_name()))
-		print('\t**********************')
-		traceback.print_exc()
-		traceback.print_stack()
-		print('\t**********************')
-		raise DirtyState()
+		raise DirtyState(window=window) from e
 
 
 def monitor_work_area_for(window: Wnck.Window) -> Gdk.Rectangle:
@@ -52,9 +43,12 @@ def monitor_work_area_for(window: Wnck.Window) -> Gdk.Rectangle:
 
 def decoration_size_for(window: Wnck.Window):
 	gdk_w = gdk_window_for(window)
-	is_decorated, decorations = gdk_w.get_decorations()
-	x, y, w, h = window.get_geometry()
-	cx, cy, cw, ch = window.get_client_window_geometry()
+
+	with Trap():
+		is_decorated, decorations = gdk_w.get_decorations()
+		x, y, w, h = window.get_geometry()
+		cx, cy, cw, ch = window.get_client_window_geometry()
+
 	decoration_width = cx - x - border_compensation
 	decoration_height = cy - y - border_compensation
 
@@ -140,4 +134,34 @@ def calculate_geometry_offset(window: Wnck.Window):
 
 
 class DirtyState(Exception):
-	pass
+
+	def __init__(self, message: str = None, window: Wnck.Window = None):
+		self.window = window
+		self.message = message
+
+	def print(self):
+		if self.window:
+			print('\tLooking for: {} - {}'.format(self.window.get_xid(), self.window.get_name()))
+		print('\tOn screen:')
+		for listed in Wnck.Screen.get_default().get_windows():
+			print('\t\t {} - {}'.format(listed.get_xid(), listed.get_name()))
+		traceback.print_exc()
+		traceback.print_stack()
+
+
+class Trap:
+
+	# https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Display.html
+	display: GdkX11.X11Display = None
+
+	def __init__(self):
+		self.display = GdkX11.X11Display.get_default()
+
+	def __enter__(self):
+		self.display.error_trap_push()
+		return self
+
+	def __exit__(self, type, exception, traceback):
+		error: int = self.display.error_trap_pop()
+		if error:
+			raise DirtyState(message='Error code {}'.format(error)) from exception
