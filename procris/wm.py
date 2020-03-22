@@ -58,14 +58,17 @@ def unsnap(window: Wnck.Window):
 		window.unmaximize_vertically()
 
 
-def is_visible(window: Wnck.Window, workspace: Wnck.Workspace = None):
-	if window.get_pid() == os.getpid():
-		return False
-	if window.is_skip_tasklist():
-		return False
-	if workspace and not window.is_in_viewport(workspace):
-		return False
-	return not window.is_minimized()
+def is_buffer(window: Wnck.Window) -> bool:
+	return window.get_pid() != os.getpid() and not window.is_skip_tasklist()
+
+
+def is_visible(window: Wnck.Window, workspace: Wnck.Workspace = None) -> bool:
+	workspace = workspace if workspace else Wnck.Screen.get_default().get_active_workspace()
+	return (
+			is_buffer(window)
+			and not window.is_minimized()
+			and window.is_in_viewport(workspace)
+			and window.is_visible_on_workspace(workspace))
 
 
 def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, h=0):

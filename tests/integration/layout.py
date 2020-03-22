@@ -39,9 +39,8 @@ class LayoutIntegrationTestCase(unittest.TestCase):
 		for w in Wnck.Screen.get_default().get_windows():
 			if w.get_name() in ['Calculator', 'Logs']:
 				w.close(datetime.now().microsecond)
-		print('REPORT:')
-		for w in Wnck.Screen.get_default().get_windows():
-			print('{} {}'.format(w.get_xid(), w.get_name()))
+		# for w in Wnck.Screen.get_default().get_windows():
+		# 	print('{} {}'.format(w.get_xid(), w.get_name()))
 
 	def test_read_window_in_workspace(self):
 		self.assertIn(

@@ -27,8 +27,10 @@ def persist_layout(layout: Dict):
 		json.dump(layout, f, indent=True)
 
 
-def read_layout():
-	return _read_json(layout_file)
+def read_layout(default: Dict = None):
+	# if True: return default
+	config = _read_json(layout_file)
+	return config if config else default
 
 
 def persist_decorations(decoration_map: Dict):

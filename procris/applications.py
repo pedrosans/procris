@@ -36,7 +36,7 @@ def launch(c_in: PromptInput):
 
 # https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11AppLaunchContext.html
 # https://lazka.github.io/pgi-docs/Gio-2.0/classes/DesktopAppInfo.html
-def launch_name(name: str = None, timestamp: int = None, desktop: int = 0):
+def launch_name(name: str = None, timestamp: int = None, desktop: int = -1):
 	if name not in NAME_MAP.keys():
 		return Message('No matching application for ' + name, 'error')
 

@@ -313,17 +313,6 @@ class Active:
 		gdk_window.set_decorations(opt)
 		self.windows.staging = True
 
-	def move(self, c_in):
-		parameter = c_in.vim_command_parameter
-		parameter_a = parameter.split()
-		to_x = int(parameter_a[0])
-		to_y = int(parameter_a[1])
-		work_area = monitor_work_area_for(self.get_wnck_window())
-		x = to_x + work_area.x
-		y = to_y + work_area.y
-		set_geometry(self.get_wnck_window(), x=x, y=y)
-		self.windows.staging = True
-
 
 class Focus:
 
