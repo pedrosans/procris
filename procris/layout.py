@@ -26,11 +26,13 @@ from procris.wm import set_geometry, is_visible, resize
 
 class Monitor:
 
-	def __init__(self):
-		self.nmaster: int = 1
+	def __init__(self, nmaster: int = 1, rectangle: Gdk.Rectangle = None, gap: int = 0):
+		self.nmaster: int = nmaster
 		self.nservent: int = 0
 		self.mfact: float = 0.5
 		self.wx = self.wy = self.ww = self.wh = None
+		if rectangle:
+			self.set_rectangle(rectangle=rectangle, gap=gap)
 
 	def set_rectangle(self, rectangle: Gdk.Rectangle, gap=0):
 		self.wx = rectangle.x + gap
@@ -230,19 +232,15 @@ class Layout:
 		if not visible_windows:
 			return
 
+		display = Gdk.Display.get_default()
 		separation = self.gap + self.border
-		split_point = None
-		arrange = []
-		self.monitor.set_rectangle(
-			Gdk.Display.get_default().get_primary_monitor().get_workarea(), gap=self.gap)
+		servant = self.servant_monitor()
+		split_point = len(visible_windows) - (self.monitor.nservent if servant else 0)
 
-		if Gdk.Display.get_default().get_n_monitors() > 1 and self.monitor.nservent > 0:
-			split_point = len(visible_windows) - self.monitor.nservent
-			arrange += FUNCTIONS_MAP[self.function_key](
-				visible_windows[split_point:], self.servant_monitor())
+		self.monitor.set_rectangle(display.get_primary_monitor().get_workarea(), gap=self.gap)
 
-		arrange += FUNCTIONS_MAP[self.function_key](
-			visible_windows[:split_point] if split_point else visible_windows, self.monitor)
+		arrange = FUNCTIONS_MAP[self.function_key](visible_windows[:split_point], self.monitor)
+		arrange += FUNCTIONS_MAP[self.function_key](visible_windows[split_point:], servant)
 
 		for i in range(len(arrange)):
 			a = arrange[i]
@@ -251,20 +249,14 @@ class Layout:
 				set_geometry(
 					w, x=a[0] + separation, y=a[1] + separation, w=a[2] - separation * 2, h=a[3] - separation * 2)
 			except wm.DirtyState:
-				pass  # we did our best to keep WNCK objects fresh, but it can happen and it's ok to just skip
+				pass  # we did our best to keep WNCK objects fresh, but it can happens and did got dirty
 
 	def servant_monitor(self):
-		servent_monitor = Monitor()
-		servent_monitor.nmaster = 0
-		secondary_monitor = None
 		for i in range(Gdk.Display.get_default().get_n_monitors()):
 			m = Gdk.Display.get_default().get_monitor(i)
 			if not m.is_primary():
-				secondary_monitor = m
-				break
-		servent_monitor.set_rectangle(
-			secondary_monitor.get_workarea(), gap=self.gap)
-		return servent_monitor
+				return Monitor(nmaster=0, rectangle=m.get_workarea(), gap=self.gap)
+		return None
 
 
 def monocle(stack, monitor):
