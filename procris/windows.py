@@ -262,7 +262,7 @@ class Active:
 	def clean(self):
 		self.xid = None
 
-	def change_to(self, xid):
+	def change_to(self, xid: int):
 		if self.xid != xid:
 			self.xid = xid
 			self.windows.staging = True

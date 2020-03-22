@@ -208,6 +208,12 @@ class Layout:
 	#
 	def change_function(self, c_in):
 		function_key = c_in.parameters[0]
+		promote_selected = False if len(c_in.parameters) < 2 else c_in.parameters[1]
+		active = get_active_stacked_window()
+		if promote_selected and active:
+			stack = self.get_active_stack()
+			old_index = stack.index(active.get_xid())
+			stack.insert(0, stack.pop(old_index))
 		self.set_function(function_key)
 
 	def set_border(self, c_in):
@@ -225,12 +231,18 @@ class Layout:
 	def swap_focused_with(self, c_in):
 		active = get_active_stacked_window()
 		if active:
-			stack = self.get_active_stack()
+
 			direction = c_in.parameters[0]
+			retain_focus = True if len(c_in.parameters) < 2 else c_in.parameters[1]
+
+			stack = self.get_active_stack()
 			old_index = stack.index(active.get_xid())
 			new_index = self._incremented_index(direction)
+
 			if new_index != old_index:
 				stack.insert(new_index, stack.pop(old_index))
+				if not retain_focus:
+					self.windows.active.change_to(stack[old_index])
 				self.apply()
 
 	def move_focus(self, c_in):
