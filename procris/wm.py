@@ -22,16 +22,16 @@ from gi.repository import Wnck, GdkX11, Gdk
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH | Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
 
 
-def gdk_window_for(window: Wnck.Window) -> Gdk.Window:
+def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
 	display = GdkX11.X11Display.get_default()
 	xid = window.get_xid()
 	return GdkX11.X11Window.foreign_new_for_display(display, xid)
 
 
 def monitor_work_area_for(window: Wnck.Window) -> Gdk.Rectangle:
-	gdk_window = gdk_window_for(window)
-	gdk_display = gdk_window.get_display()
-	gdk_monitor = gdk_display.get_monitor_at_window(gdk_window)
+	gdk_window: GdkX11.X11Window = gdk_window_for(window)
+	gdk_display: GdkX11.X11Display = gdk_window.get_display()
+	gdk_monitor: GdkX11.X11Monitor = gdk_display.get_monitor_at_window(gdk_window)
 	return gdk_monitor.get_workarea()
 
 
@@ -64,18 +64,20 @@ def is_visible(window: Wnck.Window):
 	return window.is_in_viewport(active_workspace) and not window.is_minimized()
 
 
-def resize(window: Wnck.Window, l=0, t=0, w=0, h=0):
+def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, h=0):
 	"""
 	:param l: distance from left edge
 	:param t: distance from top edge
 	"""
 	unsnap(window)
-	work_area = monitor_work_area_for(window)
 
-	new_x = int(work_area.width * l) + work_area.x
-	new_y = int(work_area.height * t) + work_area.y
-	new_width = int(work_area.width * w)
-	new_height = int(work_area.height * h)
+	if not rectangle:
+		rectangle = monitor_work_area_for(window)
+
+	new_x = int(rectangle.width * l) + rectangle.x
+	new_y = int(rectangle.height * t) + rectangle.y
+	new_width = int(rectangle.width * w)
+	new_height = int(rectangle.height * h)
 
 	set_geometry(window, x=new_x, y=new_y, w=new_width, h=new_height)
 

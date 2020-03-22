@@ -19,126 +19,39 @@ import procris.persistor as persistor
 from procris import scratchpads, wm
 
 gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck, GLib, Gdk
+from gi.repository import Wnck, Gdk
 from procris.windows import Windows
-from procris.wm import monitor_work_area_for, set_geometry, is_visible
+from procris.wm import set_geometry, is_visible
 
 
 class Monitor:
 
 	def __init__(self):
-		self.nmaster = 1
-		self.mfact = 0.5
+		self.nmaster: int = 1
+		self.nservent: int = 0
+		self.mfact: float = 0.5
 		self.wx = self.wy = self.ww = self.wh = None
 
-	def set_workarea(self, x, y, width, height):
-		self.wx = x
-		self.wy = y
-		self.ww = width
-		self.wh = height
+	def set_rectangle(self, rectangle: Gdk.Rectangle, gap=0):
+		self.wx = rectangle.x + gap
+		self.wy = rectangle.y + gap
+		self.ww = rectangle.width - gap * 2
+		self.wh = rectangle.height - gap * 2
 
+	def increase_master_area(self, increment: float = None):
+		self.mfact += increment
+		self.mfact = max(0.1, self.mfact)
+		self.mfact = min(0.9, self.mfact)
 
-def monocle(stack, monitor):
-	layout = []
-	for c in stack:
-		layout.append([monitor.wx, monitor.wy, monitor.ww, monitor.wh])
-	return layout
+	def increment_master(self, increment=None, upper_limit=None):
+		self.nmaster += increment
+		self.nmaster = max(0, self.nmaster)
+		self.nmaster = min(upper_limit - self.nservent, self.nmaster)
 
-
-def tile(stack, monitor):
-	layout = []
-
-	if not stack:
-		return None
-	n = len(stack)
-
-	if n > monitor.nmaster:
-		mw = monitor.ww * monitor.mfact if monitor.nmaster else 0
-	else:
-		mw = monitor.ww
-	my = ty = 0
-	for i in range(len(stack)):
-		if i < monitor.nmaster:
-			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i);
-			layout.append([monitor.wx, monitor.wy + my, mw, h])
-			my += layout[-1][3]
-		else:
-			h = (monitor.wh - ty) / (n - i);
-			layout.append([monitor.wx + mw, monitor.wy + ty, monitor.ww - mw, h])
-			ty += layout[-1][3]
-
-	return layout
-
-
-def centeredmaster(stack, monitor):
-	if not stack:
-		return None
-
-	layout = []
-	tw = mw = monitor.ww
-	mx = my = 0
-	oty = ety = 0
-	n = len(stack)
-
-	if n > monitor.nmaster:
-		mw = int(monitor.ww * monitor.mfact) if monitor.nmaster else 0
-		tw = monitor.ww - mw
-
-		if n - monitor.nmaster > 1:
-			mx = int((monitor.ww - mw) / 2)
-			tw = int((monitor.ww - mw) / 2)
-
-	for i in range(len(stack)):
-		c = stack[i]
-		if i < monitor.nmaster:
-			# nmaster clients are stacked vertically, in the center of the screen
-			h = int((monitor.wh - my) / (min(n, monitor.nmaster) - i))
-			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
-			my += h
-		else:
-			# stack clients are stacked vertically
-			if (i - monitor.nmaster) % 2:
-				h = int((monitor.wh - ety) / int((1 + n - i) / 2))
-				layout.append([monitor.wx, monitor.wy + ety, tw, h])
-				ety += h
-			else:
-				h = int((monitor.wh - oty) / int((1 + n - i) / 2))
-				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
-				oty += h
-
-	return layout
-
-
-def biasedstack(stack, monitor):
-	layout = []
-	oty = 0
-	n = len(stack)
-
-	mw = int(monitor.ww * monitor.mfact) if monitor.nmaster else 0
-	mx = tw = int((monitor.ww - mw) / 2)
-	my = 0
-
-	for i in range(len(stack)):
-		c = stack[i]
-		if i < monitor.nmaster:
-			# nmaster clients are stacked vertically, in the center of the screen
-			h = int((monitor.wh - my) / (min(n, monitor.nmaster) - i))
-			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
-			my += h
-		else:
-			# stack clients are stacked vertically
-			if (i - monitor.nmaster) == 0:
-				layout.append([monitor.wx, monitor.wy, tw, monitor.wh])
-			else:
-				h = int((monitor.wh - oty) / (n - i))
-				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
-				oty += h
-
-	return layout
-
-
-FUNCTIONS_MAP = {'M': monocle, 'T': tile, 'C': centeredmaster, 'B': biasedstack}
-FUNCTIONS_NAME_MAP = {'M': 'monocle', 'T': 'tile', 'C': 'centeredmaster', 'B': 'biasedstack'}
+	def increment_servant(self, increment=None, upper_limit=None):
+		self.nservent += increment
+		self.nservent = max(0, self.nservent)
+		self.nservent = min(upper_limit - self.nmaster, self.nservent)
 
 
 # TODO: the the window is maximized, the layout function fails
@@ -281,17 +194,17 @@ class Layout:
 			self.apply()
 
 	def increase_master_area(self, c_in):
-		increment = c_in.parameters[0]
-		self.monitor.mfact += increment
-		self.monitor.mfact = max(0.1, self.monitor.mfact)
-		self.monitor.mfact = min(0.9, self.monitor.mfact)
+		self.monitor.increase_master_area(increment=c_in.parameters[0])
 		self.apply()
 
 	def increment_master(self, c_in):
-		increment = c_in.parameters[0]
-		self.monitor.nmaster += increment
-		self.monitor.nmaster = max(0, self.monitor.nmaster)
-		self.monitor.nmaster = min(len(self.stack), self.monitor.nmaster)
+		self.monitor.increment_master(
+			increment=c_in.parameters[0], upper_limit=len(self.stack))
+		self.apply()
+
+	def increment_servant(self, c_in):
+		self.monitor.increment_servant(
+			increment=c_in.parameters[0], upper_limit=len(self.stack))
 		self.apply()
 
 	def move_stacked(self, c_in):
@@ -309,25 +222,145 @@ class Layout:
 		if not self.function_key:
 			return
 
-		w_stack = list(filter(
+		visible_windows = list(filter(
 			lambda x: x is not None,
 			map(lambda xid: self.windows.visible_map[xid] if xid in self.windows.visible_map else None, self.stack)))
 
-		if not w_stack:
+		if not visible_windows:
 			return
 
-		wa = monitor_work_area_for(w_stack[0])
-
-		self.monitor.set_workarea(
-			x=wa.x + self.gap, y=wa.y + self.gap, width=wa.width - self.gap * 2, height=wa.height - self.gap * 2)
-
-		arrange = FUNCTIONS_MAP[self.function_key](w_stack, self.monitor)
 		separation = self.gap + self.border
+		split_point = None
+		arrange = []
+		self.monitor.set_rectangle(
+			Gdk.Display.get_default().get_primary_monitor().get_workarea(), gap=self.gap)
 
-		# map(lambda x: [x[0] + separation, x[1] + separation, x[2] - separation * 2, x[3] - separation * 2], arrange)
+		if Gdk.Display.get_default().get_n_monitors() > 1 and self.monitor.nservent > 0:
+			split_point = len(visible_windows) - self.monitor.nservent
+			arrange += FUNCTIONS_MAP[self.function_key](
+				visible_windows[split_point:], self.servant_monitor())
+
+		arrange += FUNCTIONS_MAP[self.function_key](
+			visible_windows[:split_point] if split_point else visible_windows, self.monitor)
 
 		for i in range(len(arrange)):
 			a = arrange[i]
-			w = w_stack[i]
+			w = visible_windows[i]
 			set_geometry(
 				w, x=a[0] + separation, y=a[1] + separation, w=a[2] - separation * 2, h=a[3] - separation * 2)
+
+	def servant_monitor(self):
+		servent_monitor = Monitor()
+		servent_monitor.nmaster = 0
+		secondary_monitor = None
+		for i in range(Gdk.Display.get_default().get_n_monitors()):
+			m = Gdk.Display.get_default().get_monitor(i)
+			if not m.is_primary():
+				secondary_monitor = m
+				break
+		servent_monitor.set_rectangle(
+			secondary_monitor.get_workarea(), gap=self.gap)
+		return servent_monitor
+
+
+def monocle(stack, monitor):
+	layout = []
+	for c in stack:
+		layout.append([monitor.wx, monitor.wy, monitor.ww, monitor.wh])
+	return layout
+
+
+def tile(stack, monitor):
+	layout = []
+
+	if not stack:
+		return None
+	n = len(stack)
+
+	if n > monitor.nmaster:
+		mw = monitor.ww * monitor.mfact if monitor.nmaster else 0
+	else:
+		mw = monitor.ww
+	my = ty = 0
+	for i in range(len(stack)):
+		if i < monitor.nmaster:
+			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i);
+			layout.append([monitor.wx, monitor.wy + my, mw, h])
+			my += layout[-1][3]
+		else:
+			h = (monitor.wh - ty) / (n - i);
+			layout.append([monitor.wx + mw, monitor.wy + ty, monitor.ww - mw, h])
+			ty += layout[-1][3]
+
+	return layout
+
+
+def centeredmaster(stack, monitor):
+	if not stack:
+		return None
+
+	layout = []
+	tw = mw = monitor.ww
+	mx = my = 0
+	oty = ety = 0
+	n = len(stack)
+
+	if n > monitor.nmaster:
+		mw = int(monitor.ww * monitor.mfact) if monitor.nmaster else 0
+		tw = monitor.ww - mw
+
+		if n - monitor.nmaster > 1:
+			mx = int((monitor.ww - mw) / 2)
+			tw = int((monitor.ww - mw) / 2)
+
+	for i in range(len(stack)):
+		c = stack[i]
+		if i < monitor.nmaster:
+			# nmaster clients are stacked vertically, in the center of the screen
+			h = int((monitor.wh - my) / (min(n, monitor.nmaster) - i))
+			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
+			my += h
+		else:
+			# stack clients are stacked vertically
+			if (i - monitor.nmaster) % 2:
+				h = int((monitor.wh - ety) / int((1 + n - i) / 2))
+				layout.append([monitor.wx, monitor.wy + ety, tw, h])
+				ety += h
+			else:
+				h = int((monitor.wh - oty) / int((1 + n - i) / 2))
+				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
+				oty += h
+
+	return layout
+
+
+def biasedstack(stack, monitor):
+	layout = []
+	oty = 0
+	n = len(stack)
+
+	mw = int(monitor.ww * monitor.mfact) if monitor.nmaster else 0
+	mx = tw = int((monitor.ww - mw) / 2)
+	my = 0
+
+	for i in range(len(stack)):
+		c = stack[i]
+		if i < monitor.nmaster:
+			# nmaster clients are stacked vertically, in the center of the screen
+			h = int((monitor.wh - my) / (min(n, monitor.nmaster) - i))
+			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
+			my += h
+		else:
+			# stack clients are stacked vertically
+			if (i - monitor.nmaster) == 0:
+				layout.append([monitor.wx, monitor.wy, tw, monitor.wh])
+			else:
+				h = int((monitor.wh - oty) / (n - i))
+				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
+				oty += h
+
+	return layout
+
+
+FUNCTIONS_MAP = {'M': monocle, 'T': tile, 'C': centeredmaster, 'B': biasedstack}
+FUNCTIONS_NAME_MAP = {'M': 'monocle', 'T': 'tile', 'C': 'centeredmaster', 'B': 'biasedstack'}
