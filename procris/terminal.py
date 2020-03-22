@@ -77,19 +77,19 @@ def has_perfect_match(name):
 
 def complete(c_in: PromptInput):
 	if c_in.terminal_command_spacer:
-		return query_command_parameters(c_in)
+		return query_command_parameters(c_in.vim_command_parameter)
 	else:
 		return query_command_names(c_in.terminal_command)
 
 
-def query_command_parameters(c_in):
-	cmd = COMPLETIONS_FUNCTION + 'get_completions \'' + c_in.vim_command_parameter + '\''
+def query_command_parameters(command):
+	cmd = COMPLETIONS_FUNCTION + 'get_completions \'' + command + '\''
 	proc = subprocess.Popen(cmd, executable='bash', shell=True, stdin=PIPE, stdout=PIPE)
 	completions = proc.communicate()[0].decode('utf-8')
 	completions = map(lambda x: x.strip(), completions.splitlines())
-	# TODO: filter out matching completion
-	if not c_in.text[-1].isspace():
-		completions = filter(lambda x: x.startswith(c_in.text.split()[-1]), completions)
+	if not command[-1].isspace():
+		completions = filter(lambda x: x.startswith(command.split()[-1]), completions)
+		completions = filter(lambda x: x != command.split()[-1], completions)
 	return sorted(list(set(completions)))
 
 
