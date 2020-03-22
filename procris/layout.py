@@ -317,6 +317,19 @@ class Layout:
 
 		self.windows.staging = True
 
+	def move_gdk_stacked(self, c_in):
+		parameter = c_in.vim_command_parameter
+		monitor: Monitor = self.get_active_primary_monitor()
+		array = list(map(lambda x: int(x), parameter.split()))
+		visible_windows = self.get_active_windows_as_list()
+
+		set_geometry(
+			visible_windows[array[0]], x=array[1] + monitor.wx, y=array[2] + monitor.wy,
+			w=array[3] if len(array) > 3 else None,
+			h=array[4] if len(array) > 3 else None, gdk=True)
+
+		self.windows.staging = True
+
 	def apply(self):
 		self._install_present_window_handlers()
 		persistor.persist_layout(self.to_json())
