@@ -67,7 +67,6 @@ class Windows:
 		self.visible: List[Wnck.Window] = []
 		self.visible_map = {}
 		self.buffers = []
-		self.screen = None
 		self.line = self.column = None
 
 	def read_screen(self, force_update=True):
@@ -76,14 +75,11 @@ class Windows:
 		self.visible_map.clear()
 		self.active.clean()
 
-		if not self.screen:
-			self.screen = Wnck.Screen.get_default()
-
 		if force_update:
-			self.screen.force_update()  # make sure we query X server
+			Wnck.Screen.get_default().force_update()  # make sure we query X server
 
-		active_workspace = self.screen.get_active_workspace()
-		for wnck_window in self.screen.get_windows():
+		active_workspace = Wnck.Screen.get_default().get_active_workspace()
+		for wnck_window in Wnck.Screen.get_default().get_windows():
 			if wnck_window.get_pid() == os.getpid():
 				continue
 			if wnck_window.is_skip_tasklist():
@@ -104,7 +100,7 @@ class Windows:
 
 	def update_active(self):
 		self.active.xid = None
-		for stacked in reversed(self.screen.get_windows_stacked()):
+		for stacked in reversed(Wnck.Screen.get_default().get_windows_stacked()):
 			if stacked in self.visible and is_visible(stacked):
 				self.active.xid = stacked.get_xid()
 				break
@@ -206,7 +202,7 @@ class Windows:
 		top = self.active.get_wnck_window()
 		below = None
 		after_top = False
-		for w in reversed(self.screen.get_windows_stacked()):
+		for w in reversed(Wnck.Screen.get_default().get_windows_stacked()):
 			if w in self.visible and after_top:
 				below = w
 				break
@@ -353,7 +349,7 @@ class Focus:
 		self.move(1, VERTICAL)
 
 	def move_to_previous(self, c_in):
-		stack = list(filter(lambda x: x in self.windows.visible, self.windows.screen.get_windows_stacked()))
+		stack = list(filter(lambda x: x in self.windows.visible, Wnck.Screen.get_default().get_windows_stacked()))
 		i = stack.index(self.active.get_wnck_window())
 		self.active.xid = stack[i - 1].get_xid()
 		self.windows.staging = True

@@ -154,7 +154,8 @@ class Layout:
 		self.monitor = Monitor()
 		self.windows.read_screen()
 		self.stack = filter(
-			lambda x: x in self.windows.visible, reversed(self.windows.screen.get_windows_stacked()))
+			lambda x: x in self.windows.visible,
+			reversed(Wnck.Screen.get_default().get_windows_stacked()))
 		self.stack = list(map(lambda x: x.get_xid(), self.stack))
 
 		try:
@@ -163,8 +164,8 @@ class Layout:
 			print('can not load last state, there is a unknown key in the json')
 
 		self._install_present_window_handlers()
-		self.windows.screen.connect("window-opened", self._window_opened)
-		self.windows.screen.connect("window-closed", self._window_closed)
+		Wnck.Screen.get_default().connect("window-opened", self._window_opened)
+		Wnck.Screen.get_default().connect("window-closed", self._window_closed)
 
 	def from_json(self, json):
 		if not json:
