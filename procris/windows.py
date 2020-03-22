@@ -18,7 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, os, re
 import procris.messages as messages
 import procris.persistent_config as configurations
-import procris.scratchpads as scratchpads
 from procris import decoration
 
 gi.require_version('Wnck', '3.0')
@@ -87,8 +86,8 @@ class Windows:
 				self.visible.append(wnck_window)
 
 		self.update_active()
-		self.line = sorted(list(self.visible), key=sort_line)
-		self.column = sorted(list(self.visible), key=sort_column)
+		self.line = sorted(self.visible, key=sort_line)
+		self.column = sorted(self.visible, key=sort_column)
 
 	def update_active(self):
 		active_window = get_active_window()
@@ -119,9 +118,9 @@ class Windows:
 
 	def apply_decoration_config(self):
 		if configurations.is_remove_decorations():
-			decoration.remove_decorations(self.buffers)
+			decoration.remove(self.buffers)
 		else:
-			decoration.restore_decorations(self.buffers)
+			decoration.restore(self.buffers)
 
 	#
 	# Query API

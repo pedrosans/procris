@@ -35,7 +35,7 @@ DECORATION_MAP = {
 	'NONE': 0}
 
 
-def remove_decorations(buffers: List[Wnck.Window]):
+def remove(buffers: List[Wnck.Window]):
 	decoration_map = persistor.read_decorations()
 
 	for w in buffers:
@@ -59,7 +59,7 @@ def remove_decorations(buffers: List[Wnck.Window]):
 	persistor.persist_decorations(decoration_map)
 
 
-def restore_decorations(buffers: List[Wnck.Window]):
+def restore(buffers: List[Wnck.Window]):
 	original_decorations = persistor.read_decorations()
 	for w in buffers:
 		if str(w.get_xid()) in original_decorations:
