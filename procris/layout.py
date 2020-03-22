@@ -37,7 +37,7 @@ class Monitor:
 			function_key: str = 'T'):
 		self.function_key: str = function_key
 		self.nmaster: int = nmaster
-		self.nservent: int = 0
+		self.nservant: int = 0
 		self.mfact: float = 0.5
 		self.gap = gap
 		self.border = border
@@ -59,12 +59,20 @@ class Monitor:
 	def increment_master(self, increment=None, upper_limit=None):
 		self.nmaster += increment
 		self.nmaster = max(0, self.nmaster)
-		self.nmaster = min(upper_limit - self.nservent, self.nmaster)
+		self.nmaster = min(upper_limit - self.nservant, self.nmaster)
 
 	def increment_servant(self, increment=None, upper_limit=None):
-		self.nservent += increment
-		self.nservent = max(0, self.nservent)
-		self.nservent = min(upper_limit - self.nmaster, self.nservent)
+		self.nservant += increment
+		self.nservant = max(0, self.nservant)
+		self.nservant = min(upper_limit - self.nmaster, self.nservant)
+
+	def from_json(self, json):
+		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
+		self.nservant = json['nservant'] if 'nservant' in json else self.nservant
+		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
+		self.function_key = json['function'] if 'function' in json else self.function_key
+		self.border = json['border'] if 'border' in json else self.border
+		self.gap = json['gap'] if 'gap' in json else self.gap
 
 	def print(self):
 		print('monitor: {} {} {} {}'.format(self.wx, self.wy, self.ww, self.wh))
@@ -113,7 +121,10 @@ class Layout:
 		for i in range(Gdk.Display.get_default().get_n_monitors()):
 			m = Gdk.Display.get_default().get_monitor(i)
 			if not m.is_primary():
-				return Monitor(nmaster=0, rectangle=m.get_workarea())
+				if 1 not in self.monitors:
+					self.monitors[1] = Monitor(nmaster=0)
+				self.monitors[1].set_rectangle(m.get_workarea())
+				return self.monitors[1]
 		return None
 
 	def _install_present_window_handlers(self):
@@ -255,22 +266,20 @@ class Layout:
 			return
 
 		monitor.set_rectangle(Gdk.Display.get_default().get_primary_monitor().get_workarea())
-		# monitor.print()
 		separation = monitor.gap + monitor.border
 		servant = self.servant_monitor()
-		split_point = len(visible_windows) - (self.get_active_monitor().nservent if servant else 0)
+		split_point = len(visible_windows) - (self.get_active_monitor().nservant if servant else 0)
 
 		arrange = FUNCTIONS_MAP[monitor.function_key](visible_windows[:split_point], monitor)
-		if servant:
+		if servant and split_point < len(visible_windows):
 			arrange += FUNCTIONS_MAP[monitor.function_key](visible_windows[split_point:], servant)
 
 		for i in range(len(arrange)):
-			a = arrange[i]
-			# print(a)
-			w = visible_windows[i]
 			try:
 				set_geometry(
-					w, x=a[0] + separation, y=a[1] + separation, w=a[2] - separation * 2, h=a[3] - separation * 2)
+					visible_windows[i],
+					x=arrange[i][0] + separation, y=arrange[i][1] + separation,
+					w=arrange[i][2] - separation * 2, h=arrange[i][3] - separation * 2)
 			except wm.DirtyState:
 				pass  # we did our best to keep WNCK objects fresh, but it can happens and did got dirty
 
@@ -296,6 +305,7 @@ class Layout:
 				stack.remove(to_remove)
 
 	def from_json(self, json):
+		import traceback
 		Wnck.Screen.get_default().force_update()
 		self.read_display()
 		try:
@@ -303,11 +313,7 @@ class Layout:
 				index = int(key)
 
 				monitor = self.monitors[index] = Monitor()
-				monitor.nmaster = json['workspaces'][key]['nmaster']
-				monitor.mfact = json['workspaces'][key]['mfact']
-				monitor.function_key = json['workspaces'][key]['function']
-				monitor.border = json['workspaces'][key]['border']
-				monitor.gap = json['workspaces'][key]['gap']
+				monitor.from_json(json['workspaces'][key])
 
 				if 'stack' in json['workspaces'][key] and index in self.stacks:
 					stack = self.stacks[index]
@@ -318,7 +324,8 @@ class Layout:
 						if str(xid) in json['workspaces'][key]['stack']
 						else copy.index(xid))
 		except (KeyError, TypeError):
-			print('Not possible to restore the last config, possible due an old layout format.')
+			traceback.print_exc()
+			traceback.print_stack()
 
 	def to_json(self):
 		props = {'workspaces': {}}
@@ -332,7 +339,8 @@ class Layout:
 					'index': stack.index(xid)
 				}
 			props['workspaces'][str(workspace_number)] = {
-				'nmaster': monitor.nmaster, 'mfact': monitor.mfact,
+				'nmaster': monitor.nmaster, 'nservants': monitor.nservant,
+				'mfact': monitor.mfact,
 				'border': monitor.border, 'gap': monitor.gap,
 				'function': monitor.function_key,
 				'stack': stack_json,

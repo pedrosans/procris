@@ -15,11 +15,11 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os
-from typing import Callable
-
 import gi
+import traceback
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
+from typing import Callable
 
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH | Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
 border_compensation = 1
@@ -30,7 +30,16 @@ def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
 	xid = window.get_xid()
 	try:
 		return GdkX11.X11Window.foreign_new_for_display(display, xid)
-	except TypeError:
+	except TypeError as e:
+		print('\t**********************')
+		print('\tLooking for: {} - {}'.format(window.get_xid(), window.get_name()))
+		print('\tOn screen:')
+		for listed in Wnck.Screen.get_default().get_windows():
+			print('\t\t {} - {}'.format(listed.get_xid(), listed.get_name()))
+		print('\t**********************')
+		traceback.print_exc()
+		traceback.print_stack()
+		print('\t**********************')
 		raise DirtyState()
 
 
