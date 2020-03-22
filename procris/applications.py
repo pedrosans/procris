@@ -21,7 +21,7 @@ gi.require_version('Gdk', '3.0')
 from gi.repository import Gdk, GLib, Gio, GdkX11
 from datetime import datetime
 from procris.messages import Message
-from procris.names import PromptInput
+from procris.names import CommandLine
 
 APPS_GLOB = [
 		"/usr/share/applications/*.desktop",
@@ -31,7 +31,7 @@ NAME_MAP = {}
 LOCATION_MAP = {}
 
 
-def launch(c_in: PromptInput):
+def launch(c_in: CommandLine):
 	launch_name(name=c_in.vim_command_parameter, timestamp=c_in.time)
 
 
@@ -80,7 +80,7 @@ def reload():
 	load()
 
 
-def complete(c_in: PromptInput):
+def complete(c_in: CommandLine):
 	name_filter = c_in.vim_command_parameter
 	lower = name_filter.lower()
 	matches = filter(lambda x: lower in x.lower(), NAME_MAP.keys())

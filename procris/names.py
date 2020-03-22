@@ -25,7 +25,7 @@ ALIAS_MAP = {}
 MULTIPLE_COMMANDS_PATTERN = re.compile(r'.*[^\\]\|.*')
 
 
-class PromptInput:
+class CommandLine:
 
 	def __init__(self, time=None, text=None, parameters=None, keyval=None, keymod=None):
 		self.time = time if time else datetime.now().microsecond
@@ -89,7 +89,7 @@ def add(name):
 	ALIAS_MAP[name.alias] = name
 
 
-def completions_for(c_in: PromptInput):
+def completions_for(c_in: CommandLine):
 	user_input = c_in.vim_command
 	filtered = filter(lambda n: n.startswith(user_input) if user_input else True, NAME_MAP.keys())
 	filtered = filter(lambda n: n != user_input, filtered)
