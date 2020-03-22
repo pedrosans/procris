@@ -17,9 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os, glob, gi, sys
 import xdg.DesktopEntry
 import xdg.Exceptions
-gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
-from gi.repository import Gtk, Gdk, GLib, Gio
+from gi.repository import Gdk, GLib, Gio, GdkX11
 from procris.messages import Message
 from procris.names import PromptInput
 
@@ -31,7 +30,7 @@ NAME_MAP = {}
 LOCATION_MAP = {}
 
 
-def launch(c_in):
+def launch(c_in: PromptInput):
 	app_name = c_in.vim_command_parameter
 
 	if app_name not in NAME_MAP.keys():
@@ -42,7 +41,12 @@ def launch(c_in):
 
 	try:
 		launcher = Gio.DesktopAppInfo.new_from_filename(LOCATION_MAP[app_name])
-		launcher.launch_uris()
+		display: Gdk.Display = Gdk.Display.get_default()
+		context: GdkX11.X11AppLanchContext = display.get_app_launch_context()
+		context.set_timestamp(c_in.time)
+		context.set_desktop(0)
+		context.set_screen(display.get_default_screen())
+		launcher.launch_uris(None, context)
 	except GLib.GError as exc:
 		return Message('Error launching ' + app_name, 'error')
 
