@@ -13,11 +13,11 @@ decoration = procris.decoration
 
 default_interface = {
 	'position': 'bottom',
-	'width': '800',
-	'auto_hint': 'true',
-	'auto_select_first_hint': 'true',
+	'width': 800,
+	'auto_hint': True,
+	'auto_select_first_hint': True,
 	'icon': 'default',
-	'remove_decorations': 'false'
+	'remove_decorations': False
 }
 
 default_layout = {

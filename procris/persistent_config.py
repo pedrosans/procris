@@ -52,6 +52,7 @@ def _read_json(file):
 
 
 def set_default(section, property_name, property_value):
+	property_value = str(property_value).lower()
 	if not parser.has_section(section):
 		parser.add_section(section)
 	if not parser.has_option(section, property_name):
