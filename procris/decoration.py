@@ -15,7 +15,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi
-import procris.configurations as configurations
 import procris.persistor as persistor
 from procris.wm import gdk_window_for
 
@@ -67,7 +66,7 @@ def restore_decorations(buffers: List[Wnck.Window]):
 			gdk_window_for(w).set_decorations(Gdk.WMDecoration(original_decorations[str(w.get_xid())]))
 
 
-def complete_decoration_name(c_in: PromptInput):
+def complete(c_in: PromptInput):
 	option_name = c_in.vim_command_parameter
 	return list(filter(lambda x: x.lower().startswith(option_name.lower().strip()), DECORATION_MAP.keys()))
 

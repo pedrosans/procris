@@ -1,12 +1,15 @@
 from procris.keyboard import Key
 from procris.names import Name
-import procris.applications as applications
-import procris.terminal as terminal
-import procris.service as service
-import procris.decoration as decoration
-windows = service.windows
-reading = service.reading
-layout = service.layout
+import procris
+
+service = procris.service
+applications = procris.applications
+windows = procris.service.windows
+layout = procris.service.layout
+terminal = procris.terminal
+reading = procris.service.reading
+scratchpads = procris.scratchpads
+decoration = procris.decoration
 
 layout.gap = 0
 layout.border = 0
@@ -60,18 +63,18 @@ keys = [
 	Key([prefix_key, 'p'], windows.active.focus.move_to_previous),
 ]
 names = [
-	Name('edit', 'e', applications.launch, applications.complete),
-	Name('!', None, terminal.bang, terminal.complete),
-	Name('buffers', 'ls', windows.list),
-	Name('bdelete', 'bd', windows.delete),
-	Name('buffer', 'b', windows.activate, windows.complete_window_name),
-	Name('centralize', 'ce', windows.active.centralize),
-	Name('maximize', 'ma', windows.active.maximize),
-	Name('reload', None, service.reload),
-	Name('decorate', None, windows.active.decorate, decoration.complete_decoration_name),
-	Name('report', None, service.debug),
-	Name('move', None, windows.active.move),
-	Name('stack', None, layout.move_stacked),
-	Name('quit', 'q', windows.active.minimize),
-	Name('only', 'on', windows.active.only),
+	Name('edit', applications.launch, alias='e', complete=applications.complete),
+	Name('!', terminal.bang, complete=terminal.complete),
+	Name('buffers', windows.list, alias='ls'),
+	Name('bdelete', windows.delete, alias='bd'),
+	Name('buffer', windows.activate, alias='b', complete=windows.complete),
+	Name('centralize', windows.active.centralize, alias='ce'),
+	Name('maximize', windows.active.maximize, alias='ma'),
+	Name('reload', service.reload),
+	Name('decorate', windows.active.decorate, complete=decoration.complete),
+	Name('report', service.debug),
+	Name('move', windows.active.move),
+	Name('stack', layout.move_stacked),
+	Name('quit', windows.active.minimize, alias='q'),
+	Name('only', windows.active.only, alias='on'),
 ]

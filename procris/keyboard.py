@@ -210,4 +210,4 @@ class Key:
 	def __init__(self, accelerators, function, *parameters):
 		self.accelerators = accelerators
 		self.function = function
-		self.parameters = parameters[0] if parameters else None
+		self.parameters = parameters

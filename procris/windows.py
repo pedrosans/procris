@@ -134,7 +134,7 @@ class Windows:
 	def find_by_name(self, name):
 		return next((w for w in self.buffers if name.lower().strip() in w.get_name().lower()), None)
 
-	def complete_window_name(self, c_in: PromptInput):
+	def complete(self, c_in: PromptInput):
 		if not c_in.vim_command_spacer:
 			return None
 		name = c_in.vim_command_parameter

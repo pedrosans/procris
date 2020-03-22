@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import re
+from typing import Callable
 
 LIST = []
 NAME_MAP = {}
@@ -109,11 +110,11 @@ def match(command_input):
 
 class Name:
 
-	def __init__(self, name, alias, function, *parameters):
+	def __init__(self, name, function, alias=None, complete: Callable = None):
 		self.name = name
 		self.alias = alias
 		self.function = function
-		self.complete = parameters[0] if parameters else None
+		self.complete = complete
 
 
 class PromptHistory:
