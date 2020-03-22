@@ -154,9 +154,8 @@ class Layout:
 	# CALLBACKS
 	#
 	def _window_closed(self, screen, window):
-		# TODO: read only if visible
-		self.read_display()
 		if is_visible(window):
+			self.read_display()
 			self.apply()
 
 	def _window_opened(self, screen: Wnck.Screen, window):
