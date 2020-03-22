@@ -16,12 +16,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os, json
 import procris.configurations as configurations
+from typing import Dict
 
 layout_file = configurations.get_cache_dir() + '/layout.json'
 decorations_file = configurations.get_cache_dir() + '/decoration.json'
 
 
-def write_layout(layout):
+def persist_layout(layout: Dict):
 	with open(layout_file, 'w') as f:
 		json.dump(layout, f, indent=True)
 
@@ -30,7 +31,7 @@ def read_layout():
 	return _read_json(layout_file)
 
 
-def write_decorations(decoration_map):
+def persist_decorations(decoration_map: Dict):
 	with open(decorations_file, 'w') as f:
 		json.dump(decoration_map, f, indent=True)
 

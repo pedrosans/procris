@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi
 import procris.configurations as configurations
-import procris.state as state
+import procris.persistor as persistor
 from procris.wm import gdk_window_for
 
 gi.require_version('Wnck', '3.0')
@@ -37,7 +37,7 @@ DECORATION_MAP = {
 
 
 def remove_decorations(buffers: List[Wnck.Window]):
-	decoration_map = state.read_decorations()
+	decoration_map = persistor.read_decorations()
 
 	for w in buffers:
 
@@ -57,11 +57,11 @@ def remove_decorations(buffers: List[Wnck.Window]):
 		if key not in map(lambda x: str(x.get_xid()), buffers):
 			del decoration_map[key]
 
-	state.write_decorations(decoration_map)
+	persistor.persist_decorations(decoration_map)
 
 
 def restore_decorations(buffers: List[Wnck.Window]):
-	original_decorations = state.read_decorations()
+	original_decorations = persistor.read_decorations()
 	for w in buffers:
 		if str(w.get_xid()) in original_decorations:
 			gdk_window_for(w).set_decorations(Gdk.WMDecoration(original_decorations[str(w.get_xid())]))

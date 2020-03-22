@@ -15,7 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, os
-import procris.state as state
+import procris.persistor as persistor
 from procris import scratchpads, wm
 
 gi.require_version('Wnck', '3.0')
@@ -158,7 +158,7 @@ class Layout:
 		self.stack = list(map(lambda x: x.get_xid(), self.stack))
 
 		try:
-			self.from_json(state.read_layout())
+			self.from_json(persistor.read_layout())
 		except KeyError as e:
 			print('can not load last state, there is a unknown key in the json')
 
@@ -302,7 +302,7 @@ class Layout:
 		set_geometry(w_stack[array[0]], array[1], array[2], array[3], array[4])
 
 	def apply(self):
-		state.write_layout(self.to_json())
+		persistor.persist_layout(self.to_json())
 		self._install_present_window_handlers()
 
 		if not self.function_key:
