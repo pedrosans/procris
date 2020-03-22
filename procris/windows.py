@@ -114,7 +114,8 @@ class Windows:
 
 	def remove(self, window, time):
 		window.close(time)
-		self.visible.remove(window)
+		if window in self.visible:
+			self.visible.remove(window)
 		self.buffers.remove(window)
 		self.update_active()
 

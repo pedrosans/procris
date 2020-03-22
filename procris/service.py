@@ -96,8 +96,8 @@ def load_mappings():
 # Service lifecycle API
 #
 def start():
-
-	layout.apply()
+	windows.read_screen()
+	layout.start()
 	windows.apply_decoration_config()
 	listener.start()
 	status_icon.activate()

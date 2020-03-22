@@ -71,10 +71,10 @@ class Layout:
 		self.border = 4
 		self.windows = windows
 
-		# TODO: remove
-		self.windows.read_screen()
+	def start(self):
 		self.read_display()
-		self._install_present_window_handlers()
+		self.apply()
+
 		Wnck.Screen.get_default().connect("window-opened", self._window_opened)
 		Wnck.Screen.get_default().connect("window-closed", self._window_closed)
 
