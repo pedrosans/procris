@@ -25,15 +25,10 @@ from procris.windows import Windows
 from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_window, is_on_primary_monitor
 
 
+# https://valadoc.org/gdk-3.0/Gdk.Monitor.html
 class Monitor:
 
-	def __init__(
-			self,
-			nmaster: int = 1,
-			gap: int = 0,
-			border: int = 0,
-			rectangle: Gdk.Rectangle = None,
-			function_key: str = 'T'):
+	def __init__(self, nmaster: int = 1, gap: int = 0, border: int = 0, function_key: str = 'T'):
 		self.function_key: str = function_key
 		self.nmaster: int = nmaster
 		self.nservant: int = 0
@@ -41,8 +36,7 @@ class Monitor:
 		self.gap = gap
 		self.border = border
 		self.wx = self.wy = self.ww = self.wh = None
-		if rectangle:
-			self.set_rectangle(rectangle=rectangle)
+		self.pointer: Monitor = None
 
 	def set_rectangle(self, rectangle: Gdk.Rectangle):
 		self.wx = rectangle.x + self.gap
@@ -75,6 +69,19 @@ class Monitor:
 
 	def print(self):
 		print('monitor: {} {} {} {}'.format(self.wx, self.wy, self.ww, self.wh))
+
+	def next(self):
+		n_monitors = Gdk.Display.get_default().get_n_monitors()
+
+		if n_monitors > 2:
+			print('BETA VERSION WARN: no support for more than 2 monitors yet.')
+
+		if n_monitors == 2:
+			if not self.pointer:
+				self.pointer = Monitor(nmaster=0)
+			return self.pointer
+		else:
+			return None
 
 
 def is_managed(window):
@@ -112,20 +119,9 @@ class Layout:
 	def get_active_windows_as_list(self) -> List[Wnck.Window]:
 		return list(map(lambda xid: self.read[xid], self.get_active_stack()))
 
-	# TODO: rename to screen, which has n Monitors
-	def get_active_monitor(self) -> Monitor:
+	def get_active_primary_monitor(self) -> Monitor:
 		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
 		return self.monitors[active_workspace.get_number()]
-
-	def servant_monitor(self):
-		for i in range(Gdk.Display.get_default().get_n_monitors()):
-			m = Gdk.Display.get_default().get_monitor(i)
-			if not m.is_primary():
-				if 1 not in self.monitors:
-					self.monitors[1] = Monitor(nmaster=0)
-				self.monitors[1].set_rectangle(m.get_workarea())
-				return self.monitors[1]
-		return None
 
 	def _install_present_window_handlers(self):
 		for window in Wnck.Screen.get_default().get_windows():
@@ -144,11 +140,11 @@ class Layout:
 	# PUBLIC INTERFACE
 	#
 	def get_function_key(self):
-		monitor = self.get_active_monitor()
+		monitor = self.get_active_primary_monitor()
 		return monitor.function_key
 
 	def set_function(self, function_key):
-		monitor = self.get_active_monitor()
+		monitor = self.get_active_primary_monitor()
 		monitor.function_key = function_key
 		self.windows.read_screen()
 		self.read_display()
@@ -158,6 +154,7 @@ class Layout:
 	# CALLBACKS
 	#
 	def _window_closed(self, screen, window):
+		# TODO: read only if visible
 		self.read_display()
 		if is_visible(window):
 			self.apply()
@@ -194,12 +191,14 @@ class Layout:
 		self.set_function(function_key)
 
 	def set_border(self, c_in):
-		self.get_active_monitor().border = int(c_in.vim_command_parameter)
+		self.get_active_primary_monitor().border = int(c_in.vim_command_parameter)
+		self.read_display()
 		self.windows.staging = True
 		self.apply()
 
 	def set_gap(self, c_in):
-		self.get_active_monitor().gap = int(c_in.vim_command_parameter)
+		self.get_active_primary_monitor().gap = int(c_in.vim_command_parameter)
+		self.read_display()
 		self.windows.staging = True
 		self.apply()
 
@@ -230,22 +229,22 @@ class Layout:
 			self.apply()
 
 	def increase_master_area(self, c_in):
-		self.get_active_monitor().increase_master_area(increment=c_in.parameters[0])
+		self.get_active_primary_monitor().increase_master_area(increment=c_in.parameters[0])
 		self.apply()
 
 	def increment_master(self, c_in):
-		self.get_active_monitor().increment_master(
+		self.get_active_primary_monitor().increment_master(
 			increment=c_in.parameters[0], upper_limit=len(self.get_active_stack()))
 		self.apply()
 
 	def increment_servant(self, c_in):
-		self.get_active_monitor().increment_servant(
+		self.get_active_primary_monitor().increment_servant(
 			increment=c_in.parameters[0], upper_limit=len(self.get_active_stack()))
 		self.apply()
 
 	def move_stacked(self, c_in):
 		parameter = c_in.vim_command_parameter
-		monitor: Monitor = self.get_active_monitor()
+		monitor: Monitor = self.get_active_primary_monitor()
 		array = list(map(lambda x: int(x), parameter.split()))
 		visible_windows = self.get_active_windows_as_list()
 
@@ -259,25 +258,25 @@ class Layout:
 	def apply(self):
 		self._install_present_window_handlers()
 		persistor.persist_layout(self.to_json())
-		monitor: Monitor = self.get_active_monitor()
-		visible_windows = self.get_active_windows_as_list()
+		primary_monitor: Monitor = self.get_active_primary_monitor()
+		workspace_windows = self.get_active_windows_as_list()
 
-		if not monitor.function_key or not visible_windows:
-			return
+		separation = primary_monitor.gap + primary_monitor.border
+		arrange = []
+		monitor = primary_monitor
+		visible = workspace_windows
+		while monitor and visible:
+			# primary_monitor.set_rectangle(Gdk.Display.get_default().get_primary_monitor().get_workarea())
+			split_point = len(visible) - monitor.nservant
+			arrange += FUNCTIONS_MAP[monitor.function_key](visible[:split_point], monitor)
 
-		monitor.set_rectangle(Gdk.Display.get_default().get_primary_monitor().get_workarea())
-		separation = monitor.gap + monitor.border
-		servant = self.servant_monitor()
-		split_point = len(visible_windows) - (self.get_active_monitor().nservant if servant else 0)
-
-		arrange = FUNCTIONS_MAP[monitor.function_key](visible_windows[:split_point], monitor)
-		if servant and split_point < len(visible_windows):
-			arrange += FUNCTIONS_MAP[monitor.function_key](visible_windows[split_point:], servant)
+			monitor = monitor.next()
+			visible = visible[split_point:]
 
 		for i in range(len(arrange)):
 			try:
 				set_geometry(
-					visible_windows[i],
+					workspace_windows[i],
 					x=arrange[i][0] + separation, y=arrange[i][1] + separation,
 					w=arrange[i][2] - separation * 2, h=arrange[i][3] - separation * 2)
 			except wm.DirtyState:
@@ -308,6 +307,14 @@ class Layout:
 			primary_monitor.nservant = len(list(filter(lambda xid: not is_on_primary_monitor(self.read[xid]), stack)))
 			copy = stack.copy()
 			stack.sort(key=lambda xid: copy.index(xid) + (10000 if not is_on_primary_monitor(self.read[xid]) else 0))
+
+			for i in range(Gdk.Display.get_default().get_n_monitors()):
+				gdk_monitor = Gdk.Display.get_default().get_monitor(i)
+				if gdk_monitor.is_primary():
+					primary_monitor.set_rectangle(gdk_monitor.get_workarea())
+				elif primary_monitor.next():
+					primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
+					break
 
 	def resume(self):
 		resume = ''
