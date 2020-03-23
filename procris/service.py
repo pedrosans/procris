@@ -27,6 +27,7 @@ import procris.applications as applications
 import procris.messages as messages
 import procris.terminal as terminal
 import procris.remote as remote
+import procris.notification as notification
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gtk, GLib
@@ -68,6 +69,8 @@ def _configure_process():
 # Service lifecycle API
 #
 def start():
+	import procris.notification as notification
+	# notification.show()
 
 	if remote.get_proxy():
 		print("procris is already running, pid: " + remote.get_proxy().get_running_instance_id())
@@ -84,6 +87,7 @@ def start():
 
 
 def stop():
+	notification.close()
 	listener.stop()
 	remote.release()
 	layout.disconnect_from(Wnck.Screen.get_default())

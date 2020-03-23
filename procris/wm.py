@@ -27,6 +27,7 @@ from typing import Callable
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH | Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
 CONFIGURE_EVENT_TYPE = Gdk.EventType.CONFIGURE
 
+
 # https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Display.html
 # https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Window.html
 def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
@@ -38,10 +39,14 @@ def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
 		raise DirtyState(window=window) from e
 
 
-def monitor_work_area_for(window: Wnck.Window) -> Gdk.Rectangle:
+def monitor_for(window: Wnck.Window) -> GdkX11.X11Monitor:
 	gdk_window: GdkX11.X11Window = gdk_window_for(window)
 	gdk_display: GdkX11.X11Display = gdk_window.get_display()
-	gdk_monitor: GdkX11.X11Monitor = gdk_display.get_monitor_at_window(gdk_window)
+	return gdk_display.get_monitor_at_window(gdk_window)
+
+
+def monitor_work_area_for(window: Wnck.Window) -> Gdk.Rectangle:
+	gdk_monitor = monitor_for(window)
 	return gdk_monitor.get_workarea()
 
 

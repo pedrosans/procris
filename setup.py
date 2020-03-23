@@ -8,7 +8,7 @@ icons = [
 	('/usr/share/icons/hicolor/scalable/apps', ['data/icon/procris.svg']),
 ]
 
-for size in (16, 48, 256):
+for size in (16, 48, 96, 256):
 	for name_diff in ('', '-light'):
 		for layout_key in FUNCTION_KEYS:
 			key_func_name_diff = ''

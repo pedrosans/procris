@@ -16,6 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import gi, traceback
+import procris.notification as notification
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk, GLib
 from typing import List, Dict
@@ -23,7 +24,7 @@ from procris.names import CommandLine
 from procris import scratchpads, state
 from procris.windows import Windows
 from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_window, is_on_primary_monitor, \
-	get_height, DirtyState, X_Y_W_H_GEOMETRY_MASK, gdk_window_for, Trap, Monitor
+	get_height, DirtyState, X_Y_W_H_GEOMETRY_MASK, gdk_window_for, Trap, Monitor, monitor_for
 
 
 def is_managed(window):
@@ -75,6 +76,12 @@ class Layout:
 	def get_active_primary_monitor(self) -> Monitor:
 		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
 		return self.primary_monitors[active_workspace.get_number()]
+
+	def get_active_monitor(self) -> Monitor:
+		current: Gdk.Monitor = monitor_for(get_active_managed_window())
+		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
+		monitor: Monitor = self.primary_monitors[active_workspace.get_number()]
+		return monitor if current.is_primary() else monitor.next()
 
 	def read(self, screen: Wnck.Screen, workspace_config: Dict):
 		self.read_screen(screen)
@@ -167,12 +174,12 @@ class Layout:
 		monitor = self.get_active_primary_monitor()
 		return monitor.function_key
 
-	# TODO: where?
 	def set_function(self, function_key):
-		self.get_active_primary_monitor().set_function(function_key)
-		self.windows.read_default_screen()
+		self.get_active_monitor().set_function(function_key)
 		self.read_screen(Wnck.Screen.get_default())
 		self.apply()
+		monitor: Monitor = self.get_active_primary_monitor()
+		notification.show_monitor(monitor)
 
 	#
 	# CALLBACKS
