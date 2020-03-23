@@ -23,8 +23,10 @@ from gi.repository import Wnck, GdkX11, Gdk
 from typing import Callable
 
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH | Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
+CONFIGURE_EVENT_TYPE = Gdk.EventType.CONFIGURE
 
-
+# https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Display.html
+# https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Window.html
 def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
 	display = GdkX11.X11Display.get_default()
 	xid = window.get_xid()
@@ -39,21 +41,6 @@ def monitor_work_area_for(window: Wnck.Window) -> Gdk.Rectangle:
 	gdk_display: GdkX11.X11Display = gdk_window.get_display()
 	gdk_monitor: GdkX11.X11Monitor = gdk_display.get_monitor_at_window(gdk_window)
 	return gdk_monitor.get_workarea()
-
-
-def decoration_size_for(window: Wnck.Window):
-	border_compensation = config.get_window_manger_border()
-	gdk_w = gdk_window_for(window)
-
-	with Trap():
-		is_decorated, decorations = gdk_w.get_decorations()
-		x, y, w, h = window.get_geometry()
-		cx, cy, cw, ch = window.get_client_window_geometry()
-
-	decoration_width = cx - x - border_compensation
-	decoration_height = cy - y - border_compensation
-
-	return is_decorated, decorations, decoration_width, decoration_height
 
 
 def unmaximize(window: Wnck.Window):
@@ -109,7 +96,7 @@ def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, 
 	set_geometry(window, x=new_x, y=new_y, w=new_width, h=new_height)
 
 
-def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None):
+def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None, synchronous=False, raise_exceptions=True):
 
 	unmaximize(window)
 
@@ -119,13 +106,42 @@ def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None):
 		h = geometry.heightp
 
 	xo, yo, wo, ho = calculate_geometry_offset(window)
-	window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x + xo, y + yo, w + wo, h + ho)
+	x, y, w, h = x + xo, y + yo, w + wo, h + ho
+	window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
+
+	if synchronous:
+		countdown = 10000
+		while countdown > 0:
+			countdown -= 1
+			e = Gdk.Display.get_default().get_event()
+			if e:
+				if e.get_event_type() == CONFIGURE_EVENT_TYPE and e.get_window().get_xid() == window.get_xid():
+					Gdk.Display.get_default().sync()
+					return True
+	return False
+
+
+def get_height(window: Wnck.Window):
+	with Trap():
+		wx, wy, ww, wh = window.get_geometry()
+		cx, cy, cw, ch = window.get_client_window_geometry()
+		gx, gy, gw, gh = gdk_window_for(window).get_geometry()
+
+	g_decoration_height = wh - ch
+
+	with Trap():
+		is_decorated, decorations = gdk_window_for(window).get_decorations()
+	client_side_decoration = is_decorated and not decorations and g_decoration_height < 0
+
+	return gh + g_decoration_height + (config.get_window_manger_border() * 2 if client_side_decoration else 0)
 
 
 def calculate_geometry_offset(window: Wnck.Window):
 	border_compensation = config.get_window_manger_border()
-	is_decorated, decorations, decoration_width, decoration_height = decoration_size_for(window)
-	client_side_decoration = is_decorated and not decorations and decoration_width < 0 and decoration_height < 0
+	with Trap():
+		is_decorated, decorations = gdk_window_for(window).get_decorations()
+	dx, dy, dw, dh = decoration_delta(window)
+	client_side_decoration = is_decorated and not decorations and dx < 0 and dy < 0
 	has_title = (
 			Gdk.WMDecoration.TITLE & decorations
 			or Gdk.WMDecoration.ALL & decorations
@@ -135,10 +151,20 @@ def calculate_geometry_offset(window: Wnck.Window):
 	if client_side_decoration:
 		return border_compensation, border_compensation, -border_compensation * 2, -border_compensation * 2
 
+	# this fix is not needed on more recent versions of libgtk
 	if not has_title and not client_side_decoration:
-		return -decoration_width, -decoration_height, decoration_width, decoration_height
+		dx -= border_compensation
+		dy -= border_compensation
+		return -dx, -dy, dx, dy
 
 	return 0, 0, 0, 0
+
+
+def decoration_delta(window: Wnck.Window):
+	with Trap():
+		wx, wy, ww, wh = window.get_geometry()
+		cx, cy, cw, ch = window.get_client_window_geometry()
+	return cx - wx, cy - wy, cw - ww, ch - wh
 
 
 class DirtyState(Exception):

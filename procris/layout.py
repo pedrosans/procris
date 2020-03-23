@@ -18,27 +18,31 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi, traceback
 import procris.cache as persistor
 gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck, Gdk
+from gi.repository import Wnck, Gdk, GLib
 from typing import List, Dict
-from procris import scratchpads, wm
+from procris import scratchpads
 from procris.windows import Windows
-from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_window, is_on_primary_monitor
+from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_window, is_on_primary_monitor, \
+	get_height, DirtyState, X_Y_W_H_GEOMETRY_MASK, gdk_window_for, Trap
 
 
 # https://valadoc.org/gdk-3.0/Gdk.Monitor.html
 class Monitor:
 
-	def __init__(self, primary: bool = False, nmaster: int = 1, gap: int = 0, border: int = 0, function_key: str = 'T'):
+	def __init__(self, primary: bool = False, nmaster: int = 1, mfact: float = 0.5, gap: int = 0, border: int = 0, function_key: str = 'T'):
 		self.primary: bool = primary
 		self.function_key: str = function_key
 		self.nmaster: int = nmaster
 		self.nservant: int = 0
-		self.mfact: float = 0.5
+		self.mfact: float = mfact
 		self.gap = gap
 		self.border = border
 		self.wx = self.wy = self.ww = self.wh = None
 		self.visible_area: Gdk.Rectangle = None
 		self.pointer: Monitor = None
+
+	def get_window_padding(self):
+		return self.border + self.gap
 
 	def set_rectangle(self, rectangle: Gdk.Rectangle):
 		self.visible_area = rectangle
@@ -116,9 +120,7 @@ class Layout:
 		self.windows = windows
 
 	def start(self):
-		self.read_display()
-		self.apply()
-
+		self._install_present_window_handlers()
 		Wnck.Screen.get_default().connect("window-opened", self._window_opened)
 		Wnck.Screen.get_default().connect("window-closed", self._window_closed)
 
@@ -137,6 +139,7 @@ class Layout:
 		return self.primary_monitors[active_workspace.get_number()]
 
 	def _install_present_window_handlers(self):
+		# TODO: uninstall when closed
 		for window in Wnck.Screen.get_default().get_windows():
 			if window.get_xid() not in self.transient_callbacks and is_managed(window):
 				handler_id = window.connect("state-changed", self._state_changed)
@@ -167,11 +170,15 @@ class Layout:
 	# CALLBACKS
 	#
 	def _window_closed(self, screen, window):
-		if is_visible(window):
-			self.read_display()
-			self.apply()
+		try:
+			if is_visible(window):
+				self.read_display()
+				self.apply()
+		except DirtyState:
+			pass  # It was just a try
 
 	def _window_opened(self, screen: Wnck.Screen, window):
+		self._install_present_window_handlers()
 		if is_visible(window, screen.get_active_workspace()):
 			self.read_display()
 			if window.get_name() in scratchpads.names():
@@ -190,9 +197,13 @@ class Layout:
 					monitor = monitor.next()
 					start_index = end_index
 
-			self.windows.read_screen(force_update=False)
-			self.windows.apply_decoration_config()
-			self.apply()
+			try:
+				with Trap():
+					self.windows.read_screen(force_update=False)
+					self.windows.apply_decoration_config()
+					self.apply()
+			except DirtyState:
+				pass  # It was just a try
 
 	def _state_changed(self, window, changed_mask, new_state):
 		if changed_mask & Wnck.WindowState.MINIMIZED and is_managed(window):
@@ -295,7 +306,7 @@ class Layout:
 		window = visible_windows[array[0]]
 
 		window.set_geometry(
-			Wnck.WindowGravity.STATIC, wm.X_Y_W_H_GEOMETRY_MASK,
+			Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK,
 			array[1] + monitor.wx,
 			array[2] + monitor.wy,
 			array[3] if len(array) > 3 else window.get_geometry().widthp,
@@ -309,7 +320,7 @@ class Layout:
 		array = list(map(lambda x: int(x), parameter.split()))
 		visible_windows = self.get_active_windows_as_list()
 		window = visible_windows[array[0]]
-		gdk_window = wm.gdk_window_for(window)
+		gdk_window = gdk_window_for(window)
 
 		gdk_window.move(
 			array[1] + monitor.wx,
@@ -331,32 +342,21 @@ class Layout:
 		self.windows.staging = True
 
 	def apply(self):
-		self._install_present_window_handlers()
 		persistor.persist_layout(self.to_json())
 		primary_monitor: Monitor = self.get_active_primary_monitor()
 		workspace_windows = self.get_active_windows_as_list()
 
-		separation = primary_monitor.gap + primary_monitor.border
-		arrange = []
 		monitor = primary_monitor
 		visible = workspace_windows
 		while monitor and visible:
 			split_point = len(visible) - monitor.nservant
 
 			if monitor.function_key:
-				arrange += FUNCTIONS_MAP[monitor.function_key](visible[:split_point], monitor)
+				monitor_windows: List[Wnck.Window] = visible[:split_point]
+				FUNCTIONS_MAP[monitor.function_key](monitor_windows, monitor)
 
 			monitor = monitor.next()
 			visible = visible[split_point:]
-
-		for i in range(len(arrange)):
-			try:
-				set_geometry(
-					workspace_windows[i],
-					x=arrange[i][0] + separation, y=arrange[i][1] + separation,
-					w=arrange[i][2] - separation * 2, h=arrange[i][3] - separation * 2)
-			except wm.DirtyState:
-				pass  # we did our best to keep WNCK objects fresh, but it can happens and did got dirty
 
 	def read_display(self):
 		self.read.clear()
@@ -461,102 +461,108 @@ class Layout:
 
 
 def monocle(stack, monitor):
-	layout = []
-	for c in stack:
-		layout.append([monitor.wx, monitor.wy, monitor.ww, monitor.wh])
-	return layout
+	padding = monitor.get_window_padding()
+	for window in stack:
+		set_geometry(
+			window,
+			x=monitor.wx + padding, y=monitor.wy + padding,
+			w=monitor.ww - padding * 2, h=monitor.wh - padding * 2)
 
 
-def tile(stack, monitor):
-	layout = []
-
-	if not stack:
-		return None
+def tile(stack: List[Wnck.Window], m):
 	n = len(stack)
 
-	if n > monitor.nmaster:
-		mw = monitor.ww * monitor.mfact if monitor.nmaster else 0
+	if n > m.nmaster:
+		mw = m.ww * m.mfact if m.nmaster else 0
 	else:
-		mw = monitor.ww
+		mw = m.ww
 	my = ty = 0
+	padding = m.get_window_padding()
+
 	for i in range(len(stack)):
-		if i < monitor.nmaster:
-			h = (monitor.wh - my) / (min(n, monitor.nmaster) - i);
-			layout.append([monitor.wx, monitor.wy + my, mw, h])
-			my += layout[-1][3]
+		window = stack[i]
+		if i < m.nmaster:
+			h = (m.wh - my) / (min(n, m.nmaster) - i) - padding * 2
+			synchronized = set_geometry(
+				window, synchronous=True, x=m.wx + padding, y=m.wy + my + ty + padding, w=mw - padding * 2, h=h)
+			my += (get_height(window) if synchronized else h) + padding * 2
 		else:
-			h = (monitor.wh - ty) / (n - i);
-			layout.append([monitor.wx + mw, monitor.wy + ty, monitor.ww - mw, h])
-			ty += layout[-1][3]
+			h = (m.wh - ty) / (n - i) - padding * 2
+			synchronized = set_geometry(
+				window, synchronous=True, x=m.wx + mw + padding, y=m.wy + ty + padding, w=m.ww - mw - padding * 2, h=h)
+			ty += (get_height(window) if synchronized else h) + padding * 2
 
-	return layout
 
-
-def centeredmaster(stack, monitor):
-	if not stack:
-		return None
-
-	layout = []
-	tw = mw = monitor.ww
+def centeredmaster(stack: List[Wnck.Window], m: Monitor):
+	tw = mw = m.ww
 	mx = my = 0
 	oty = ety = 0
 	n = len(stack)
+	padding = m.get_window_padding()
 
-	if n > monitor.nmaster:
-		mw = int(monitor.ww * monitor.mfact) if monitor.nmaster else 0
-		tw = monitor.ww - mw
+	if n > m.nmaster:
+		mw = int(m.ww * m.mfact) if m.nmaster else 0
+		tw = m.ww - mw
 
-		if n - monitor.nmaster > 1:
-			mx = int((monitor.ww - mw) / 2)
-			tw = int((monitor.ww - mw) / 2)
+		if n - m.nmaster > 1:
+			mx = int((m.ww - mw) / 2)
+			tw = int((m.ww - mw) / 2)
 
 	for i in range(len(stack)):
-		c = stack[i]
-		if i < monitor.nmaster:
+		window = stack[i]
+		if i < m.nmaster:
 			# nmaster clients are stacked vertically, in the center of the screen
-			h = int((monitor.wh - my) / (min(n, monitor.nmaster) - i))
-			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
-			my += h
+			h = int((m.wh - my) / (min(n, m.nmaster) - i)) - padding * 2
+			synchronized = set_geometry(
+				window, synchronous=True, x=m.wx + mx + padding, y=m.wy + my + padding, w=mw - padding * 2, h=h)
+			my += (get_height(window) if synchronized else h) + padding * 2
 		else:
 			# stack clients are stacked vertically
-			if (i - monitor.nmaster) % 2:
-				h = int((monitor.wh - ety) / int((1 + n - i) / 2))
-				layout.append([monitor.wx, monitor.wy + ety, tw, h])
-				ety += h
+			if (i - m.nmaster) % 2:
+				h = int((m.wh - ety) / int((1 + n - i) / 2)) - padding * 2
+				synchronized = set_geometry(
+					window, synchronous=True, x=m.wx + padding, y=m.wy + ety + padding, w=tw - padding * 2, h=h)
+				ety += (get_height(window) if synchronized else h) + padding * 2
 			else:
-				h = int((monitor.wh - oty) / int((1 + n - i) / 2))
-				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
-				oty += h
+				h = int((m.wh - oty) / int((1 + n - i) / 2)) - padding * 2
+				synchronized = set_geometry(
+					window, synchronous=True, x=m.wx + mx + mw + padding, y=m.wy + oty + padding, w=tw - padding * 2, h=h)
+				oty += (get_height(window) if synchronized else h) + padding * 2
 
-	return layout
 
-
-def biasedstack(stack, monitor):
-	layout = []
+def biasedstack(stack: List[Wnck.Window], monitor: Monitor):
 	oty = 0
 	n = len(stack)
-
 	mw = int(monitor.ww * monitor.mfact) if monitor.nmaster else 0
 	mx = tw = int((monitor.ww - mw) / 2)
 	my = 0
+	padding = monitor.get_window_padding()
 
 	for i in range(len(stack)):
-		c = stack[i]
+		window: Wnck.Window = stack[i]
 		if i < monitor.nmaster:
 			# nmaster clients are stacked vertically, in the center of the screen
 			h = int((monitor.wh - my) / (min(n, monitor.nmaster) - i))
-			layout.append([monitor.wx + mx, monitor.wy + my, mw, h])
+			set_geometry(
+				window,
+				x=monitor.wx + mx + padding, y=monitor.wy + my + padding,
+				w=mw - padding * 2, h=h - padding * 2)
 			my += h
 		else:
 			# stack clients are stacked vertically
 			if (i - monitor.nmaster) == 0:
-				layout.append([monitor.wx, monitor.wy, tw, monitor.wh])
+				set_geometry(
+					window,
+					x=monitor.wx + padding, y=monitor.wy + padding,
+					w=tw - padding * 2, h=monitor.wh - padding * 2)
 			else:
 				h = int((monitor.wh - oty) / (n - i))
-				layout.append([monitor.wx + mx + mw, monitor.wy + oty, tw, h])
-				oty += h
+				synchronized = set_geometry(
+					window, synchronous=True,
+					x=monitor.wx + mx + mw + padding, y=monitor.wy + oty + padding,
+					w=tw - padding * 2, h=h - padding * 2)
 
-	return layout
+				oty += ((get_height(window) + padding * 2) if synchronized else h)
 
 
 FUNCTIONS_MAP = {'M': monocle, 'T': tile, 'C': centeredmaster, 'B': biasedstack}

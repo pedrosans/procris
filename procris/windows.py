@@ -24,8 +24,8 @@ gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Callable
 from procris.names import CommandLine, PROMPT
-from procris.wm import gdk_window_for, monitor_work_area_for, decoration_size_for, set_geometry, resize, is_visible, \
-	get_active_window
+from procris.wm import gdk_window_for, monitor_work_area_for, set_geometry, resize, is_visible, \
+	get_active_window, decoration_delta
 from procris.decoration import DECORATION_MAP
 
 
@@ -223,8 +223,6 @@ class Windows:
 		resume = ''
 		for wn in self.buffers:
 			gdk_w = gdk_window_for(wn)
-			is_decorated, decorations, decoration_width, decoration_height = decoration_size_for(wn)
-			compensate = is_decorated and not decorations and decoration_width >= 0 and decoration_height >= 0
 
 			resume += '\n'
 			resume += '[{:8}] - {}\n'.format(wn.get_xid(), wn.get_name())
@@ -236,12 +234,15 @@ class Windows:
 			gx, gy, gw, gh = gdk_w.get_geometry()
 			resume += '\t[GDK    ] x: {:4d} y: {:3d} w: {:7.2f} h: {:7.2f} \n'.format(gx, gy, gw, gh)
 
-			resume += '\tcompensate: {:5}\t\tdecoration_width: {:3d}\t\tdecoration_height: {:3d}\n'.format(
-				str(compensate), decoration_width, decoration_height)
-
+			is_decorated, decorations = gdk_w.get_decorations()
 			resume += '\ttype: {:8}\t\t\tdecorated: {:5}\t\tflags: {}\n'.format(
 				gdk_w.get_type_hint().value_name.replace('GDK_WINDOW_TYPE_HINT_', '')[:8],
 				str(is_decorated), list(map(lambda n: n.replace('GDK_DECOR_', ''), decorations.value_names)))
+
+			dx, dy, dw, dh = decoration_delta(wn)
+			compensate = is_decorated and not decorations and dx >= 0 and dy >= 0
+			resume += '\tdecoration delta: {:3d} {:3d} {:3d} {:3d}\tcompensate: {:5}\n'.format(
+				dx, dy, dw, dh, str(compensate))
 
 		return resume
 
