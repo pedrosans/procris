@@ -325,6 +325,7 @@ class Active:
 		if decoration_parameter in DECORATION_MAP.keys():
 			opt = DECORATION_MAP[decoration_parameter]
 		gdk_window = gdk_window_for(self.get_wnck_window())
+		# TODO: UnboundLocalError: local variable 'opt' referenced before assignment
 		gdk_window.set_decorations(opt)
 		self.windows.staging = True
 

@@ -1,3 +1,5 @@
+from typing import List
+
 import Xlib
 import gi, threading, sys
 from Xlib import X
@@ -10,14 +12,6 @@ from gi.repository import Gtk, Gdk, GObject, GLib
 
 MODIFIERS = [Gdk.ModifierType.CONTROL_MASK, Gdk.ModifierType.SHIFT_MASK,
 			Gdk.ModifierType.MOD1_MASK, Gdk.ModifierType.MOD4_MASK]
-CONTEXT_FILTER = [{
-		'core_requests': (0, 0), 'core_replies': (0, 0),
-		'ext_requests': (0, 0, 0, 0), 'ext_replies': (0, 0, 0, 0),
-		'delivered_events': (0, 0),
-		'device_events': (X.KeyPress, X.KeyRelease),
-		'errors': (0, 0),
-		'client_started': False, 'client_died': False,
-	}]
 
 
 def normalize_state(state):
@@ -31,7 +25,7 @@ def parse_accelerator(accelerator_string):
 	a = Gtk.accelerator_parse_with_keycode(accelerator_string)
 
 	if not a.accelerator_codes:
-		raise Exception('Can not parse the accelerator string')
+		raise Exception('Can not parse the accelerator string {}'.format(accelerator_string))
 	if len(a.accelerator_codes) > 1:
 		# https://mail.gnome.org/archives/gtk-devel-list/2000-December/msg00034.html
 		raise Exception('Support to keycodes with multiple keyvalues not implemented')
@@ -45,40 +39,69 @@ def parse_accelerator(accelerator_string):
 	return gdk_keyval, code, mask
 
 
+# http://python-xlib.sourceforge.net/doc/html/python-xlib_13.html
+def format_key_event(event: Xlib.protocol.event.KeyPress):
+	def clean_mask(mask: str):
+		return mask.replace('GDK_', '').replace('_MASK', '').replace('<flags ', '').replace(
+			' of type Gdk.ModifierType>', '')
+
+	print('\nX:')
+	print('\tcode: {}'.format(event.detail))
+	print('\tmask: {} named: {}'.format(event.state, clean_mask(str(Gdk.ModifierType(event.state)))))
+	print('PROCRIS:')
+
+	normalized_mask = normalize_state(event.state)
+	print('\tnormalized mask: {} named: {}'.format(
+		normalized_mask,
+		clean_mask(str(Gdk.ModifierType(normalized_mask)))
+	))
+
+	_wasmapped, keyval, egroup, level, consumed = Gdk.Keymap.get_default().translate_keyboard_state(
+		event.detail, Gdk.ModifierType(event.state), 0)
+
+	print('GDK:')
+	print('\tname: {}'.format(Gdk.keyval_name(keyval)))
+	print('\twasmapped: {}'.format(_wasmapped))
+	print('\tkeyval: {}'.format(keyval))
+	print('\tegroup: {}'.format(egroup))
+	print('\tlevel: {}'.format(level))
+	print('\tconsumed: {}'.format(clean_mask(str(consumed))))
+
+
+class Key:
+
+	def __init__(self, accelerator, function, parameters=[], plexes=[]):
+		self.accelerator = accelerator
+		self.function = function
+		self.parameters = parameters
+		self.plexes = plexes
+
+
 class KeyboardListener:
 
 	def __init__(self, callback=None, on_error=None):
 		self.keys = []
+		self.grabbed: List = []
+		self.temporary_grab: List = []
 		self.on_error = on_error
 		self.callback = callback
 		# XLib errors are received asynchronously, thus the need for a running state flag
 		self.stopped = False
 
-		self.record_thread = threading.Thread(target=self._record, name='x keyboard listener thread')
-		self.well_thread = threading.Thread(target=self._drop_key, daemon=True, name='hotkey well thread')
-
-		self.recording_connection = Display()
+		self.well_thread = threading.Thread(target=self.x_client_loop, daemon=True, name='hotkey well thread')
 		self.well_connection = Display()
-		self.recording_connection.set_error_handler(self._record_display_error_handler)
 		self.well_connection.set_error_handler(self._local_display_error_handler)
-
-		if not self.recording_connection.has_extension("RECORD"):
-			raise Exception("RECORD extension not found")
-
-		r = self.recording_connection.record_get_version(0, 0)
-		print("RECORD extension version %d.%d" % (r.major_version, r.minor_version))
-		self.context = self.recording_connection.record_create_context(0, [record.AllClients], CONTEXT_FILTER)
 
 		self.mod_keys_set = set()
 		for mods in self.well_connection.get_modifier_mapping():
 			for mod in mods:
 				self.mod_keys_set.add(mod)
 
-		self.root = self.well_connection.screen().root
+		self.root: Xlib.display.Window = self.well_connection.screen().root
 		self.root.change_attributes(event_mask=X.KeyPressMask | X.KeyReleaseMask)
-		self.contextual_accelerators = self.accelerators_root = {}
-		self.accelerators_root['level'] = 0
-		self.multiplier = ''
+
+		self.accelerators_root = {'level': 0, 'children': []}
+		self.contextual_accelerators = self.accelerators_root
 
 	#
 	# API
@@ -88,67 +111,39 @@ class KeyboardListener:
 
 	def start(self):
 		for key in self.keys:
-			self._bind(key)
-		self.well_connection.sync()
-		self.recording_connection.sync()
-		if self.stopped:
-			return
+			self._bind_to_root(key)
 		self.well_thread.start()
-		self.record_thread.start()
 
-	def _bind(self, key):
-		if self.stopped:
-			return
+	def _bind_to_root(self, key):
+		self._bind(key, self.accelerators_root)
 
-		last_node = self.accelerators_root
+	def _bind(self, key: Key, node):
+		gdk_key_val, code, mask = parse_accelerator(key.accelerator)
+		node['has_children'] = True
 
-		for accelerator_string in key.accelerators:
-			gdk_key_val, code, mask = parse_accelerator(accelerator_string)
-			last_node['has_children'] = True
+		if (code, mask) in node:
+			raise Exception('key ({}) already mapped'.format(', '.join(key.accelerator)))
 
-			if (code, mask) not in last_node:
-				last_node[(code, mask)] = {}
-				last_node[(code, mask)]['has_children'] = False
+		we = {'code': code, 'mask': mask, 'has_children': False, 'children': [], 'level': node['level'] + 1, 'key': key}
+		node[(code, mask)] = we
+		node['children'].append(we)
 
-			child = last_node[(code, mask)]
-			child['level'] = last_node['level'] + 1
-			if child['level'] == 1:
-				self._grab_keys(code, mask)
-			last_node = child
+		if we['level'] == 1:
+			self._grab_keys(code, mask)
+			self.well_connection.sync()
+			if self.stopped:
+				raise Exception('Unable to bind: {}'.format(', '.join(key.accelerator)))
 
-		if 'key' in last_node:
-			raise Exception('key ({}) already mapped'.format(', '.join(key.accelerators)))
-
-		last_node['key'] = key
-
-		self.well_connection.sync()
-
-		if self.stopped:
-			print('Unable to bind: {}'.format(', '.join(key.accelerators)), file=sys.stderr)
+		for plex in key.plexes:
+			self._bind(plex, we)
 
 	def stop(self):
 		self.stopped = True
-		if self.record_thread.is_alive():
-			self.well_connection.record_disable_context(self.context)
-			self.well_connection.close()
-			print('display stopped recording')
-			self.record_thread.join()
-		print('recording thread ended')
+		self.well_connection.close()
 
 	#
 	# xlib plugs
 	#
-	def _record(self):
-		self.recording_connection.record_enable_context(self.context, self.handler)
-		self.recording_connection.record_free_context(self.context)
-		self.recording_connection.close()
-
-	def _record_display_error_handler(self, exception, *args):
-		print('Error at record display: {}'.format(exception), file=sys.stderr)
-		if not self.stopped:
-			self.stopped = True
-			self.on_error()
-
 	def _local_display_error_handler(self, exception, *args):
 		print('Error at local display: {}'.format(exception), file=sys.stderr)
 		if not self.stopped:
@@ -163,22 +158,21 @@ class KeyboardListener:
 		self.root.grab_key(code, mask | X.Mod2Mask, True, X.GrabModeAsync, X.GrabModeAsync)
 		self.root.grab_key(code, mask | X.LockMask, True, X.GrabModeAsync, X.GrabModeAsync)
 		self.root.grab_key(code, mask | X.Mod2Mask | X.LockMask, True, X.GrabModeAsync, X.GrabModeAsync)
+		self.grabbed.append((code, mask))
+
+	def _ungrab_keys(self, code, mask):
+		self.root.ungrab_key(code, mask)
+		self.root.ungrab_key(code, mask | X.Mod2Mask)
+		self.root.ungrab_key(code, mask | X.LockMask)
+		self.root.ungrab_key(code, mask | X.Mod2Mask | X.LockMask)
+		self.grabbed.remove((code, mask))
 
 	#
 	# Event handling
 	#
-	def _drop_key(self):
+	def x_client_loop(self):
 		while not self.stopped:
-			self.well_connection.next_event()
-
-	def handler(self, reply):
-		data = reply.data
-		while len(data):
-			event, data = rq.EventField(None).parse_binary_value(
-				data, self.recording_connection.display, None, None)
-
-			if event.detail in self.mod_keys_set:
-				continue
+			event = self.well_connection.next_event()
 
 			if event.type == X.KeyPress:
 				self.handle_keypress(event)
@@ -193,30 +187,25 @@ class KeyboardListener:
 		event.keyval = keyval
 		event.keymod = Gdk.ModifierType(mask)  # TODO: explain
 		key_name = Gdk.keyval_name(event.keyval)
-
-		if key_name and key_name.isdigit() and self.contextual_accelerators['level'] == 1:
-			self.multiplier = self.multiplier + key_name
-			return
+		# print('key: {} wid: {} root_x: {} event_x: {}'.format(key_name, event.window.id, event.root_x, event.event_x))
 
 		if (code, mask) not in self.contextual_accelerators:
-			self.reset_key_streak()
+			self.reset_key_streak(event.time)
 
 		if (code, mask) in self.contextual_accelerators:
-			multiplier_int = int(self.multiplier) if self.multiplier else 1
-			self.callback(self.contextual_accelerators[(code, mask)]['key'], event, multiplier=multiplier_int)
+
+			self.callback(self.contextual_accelerators[(code, mask)]['key'], event)
+
 			if self.contextual_accelerators[(code, mask)]['has_children']:
 				self.contextual_accelerators = self.contextual_accelerators[(code, mask)]
+				self.root.grab_keyboard(True, X.GrabModeAsync, X.GrabModeAsync, event.time)
+				self.temporary_grab = True
 			else:
-				self.reset_key_streak()
+				self.reset_key_streak(event.time)
 
-	def reset_key_streak(self):
+	def reset_key_streak(self, time):
 		self.contextual_accelerators = self.accelerators_root
-		self.multiplier = ''
-
-
-class Key:
-
-	def __init__(self, accelerators, function, *parameters):
-		self.accelerators = accelerators
-		self.function = function
-		self.parameters = parameters
+		if self.temporary_grab:
+			self.well_connection.ungrab_keyboard(time)
+			self.temporary_grab = False
+		# for code, mask in self.temporary_grab: self._ungrab_keys(code, mask)

@@ -40,36 +40,7 @@ def handler(reply):
 			print_key_data(event)
 
 
-# http://python-xlib.sourceforge.net/doc/html/python-xlib_13.html
-def print_key_data(event: Xlib.protocol.event.KeyPress):
-	print('\nX:')
-	print('\tcode: {}'.format(event.detail))
-	print('\tmask: {} named: {}'.format(event.state, clean_mask(str(Gdk.ModifierType(event.state)))))
-	print('PROCRIS:')
-
-	normalized_mask = procris.keyboard.normalize_state(event.state)
-	print('\tnormalized mask: {} named: {}'.format(
-		normalized_mask,
-		clean_mask(str(Gdk.ModifierType(normalized_mask)))
-	))
-
-	_wasmapped, keyval, egroup, level, consumed = Gdk.Keymap.get_default().translate_keyboard_state(
-		event.detail, Gdk.ModifierType(event.state), 0)
-
-	print('GDK:')
-	print('\tname: {}'.format(Gdk.keyval_name(keyval)))
-	print('\twasmapped: {}'.format(_wasmapped))
-	print('\tkeyval: {}'.format(keyval))
-	print('\tegroup: {}'.format(egroup))
-	print('\tlevel: {}'.format(level))
-	print('\tconsumed: {}'.format(clean_mask(str(consumed))))
-
-
-def clean_mask(mask: str):
-	return mask.replace('GDK_', '').replace('_MASK', '').replace('<flags ', '').replace(' of type Gdk.ModifierType>', '')
-
-
-listener.handler = handler
+listener.handle_keypress = print_key_data
 listener.start()
 print('ENTER TO STOP THE READING')
 sys.stdin.read(1)

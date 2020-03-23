@@ -33,7 +33,7 @@ gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gtk, GLib
 from types import ModuleType
 from procris.reading import Reading
-from procris.keyboard import KeyboardListener
+from procris.keyboard import KeyboardListener, Key
 from procris.layout import Layout
 from procris.windows import Windows
 from procris.wm import UserEvent
@@ -98,6 +98,10 @@ def read_command_key(c_in):
 	messages.prompt_placeholder = Gtk.accelerator_name(c_in.keyval, c_in.keymod)
 
 
+def escape_reading(c_in: UserEvent):
+	messages.clean()
+
+
 def debug(c_in):
 	text = windows.resume()
 	text += layout.resume()
@@ -118,7 +122,7 @@ def reload(c_in):
 #
 # Callbacks
 #
-def keyboard_listener(key, x_key_event, multiplier=1):
+def keyboard_listener(key: Key, x_key_event, multiplier=1):
 	command_input = UserEvent(
 		time=x_key_event.time, parameters=key.parameters, keyval=x_key_event.keyval, keymod=x_key_event.keymod)
 
