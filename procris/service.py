@@ -27,13 +27,12 @@ import procris.applications as applications
 import procris.messages as messages
 import procris.terminal as terminal
 import procris.remote as remote
-import procris.notification as notification
+import procris.desktop as desktop
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gtk, GLib
 from types import ModuleType
 from procris.reading import Reading
-from procris.status import StatusIcon
 from procris.keyboard import KeyboardListener
 from procris.layout import Layout
 from procris.windows import Windows
@@ -69,8 +68,6 @@ def _configure_process():
 # Service lifecycle API
 #
 def start():
-	import procris.notification as notification
-	# notification.show()
 
 	if remote.get_proxy():
 		print("procris is already running, pid: " + remote.get_proxy().get_running_instance_id())
@@ -81,13 +78,13 @@ def start():
 	windows.apply_decoration_config()
 	layout.apply()
 	listener.start()
-	status_icon.activate()
+	desktop.connect()
 	Gtk.main()
 	print("Ending procris service, pid: {}".format(os.getpid()))
 
 
 def stop():
-	notification.close()
+	desktop.disconnect()
 	listener.stop()
 	remote.release()
 	layout.disconnect_from(Wnck.Screen.get_default())
@@ -104,12 +101,12 @@ def read_command_key(c_in):
 def debug(c_in):
 	text = windows.resume()
 	text += layout.resume()
-	return messages.Message(text, None)
+	messages.add(text=text)
 
 
 def reload(c_in):
+	desktop.update()
 	cache.reload()
-	status_icon.reload()
 	applications.reload()
 	terminal.reload()
 	messages.clean()
@@ -199,8 +196,8 @@ def _post_processing():
 
 	messages.clean_prompt()
 
-	# reload to show the current layout icon
-	status_icon.reload()
+	if desktop.is_connected():
+		desktop.update()
 
 
 #
@@ -232,5 +229,4 @@ SIGHUP = getattr(signal, "SIGHUP", None)
 windows: Windows = Windows()
 reading: Reading = Reading(windows)
 layout: Layout = Layout(windows)
-status_icon: StatusIcon = StatusIcon(layout, stop_function=stop)
 listener: KeyboardListener = KeyboardListener(callback=keyboard_listener, on_error=stop)

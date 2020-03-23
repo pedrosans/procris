@@ -146,8 +146,12 @@ def get_window_manger_border() -> int:
 	return loaded_interface_config['window_manger_border']
 
 
-def get_icon() -> str:
-	return loaded_interface_config['icon']
+def get_desktop_icon() -> str:
+	return loaded_interface_config['desktop_icon']
+
+
+def is_desktop_notifications() -> bool:
+	return loaded_interface_config['desktop_notifications']
 
 
 def set_icon(icon):

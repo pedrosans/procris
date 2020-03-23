@@ -1,9 +1,10 @@
 import gi
 import xdg.IconTheme
-from procris.wm import Monitor
+import procris.state as state
 gi.require_version('Notify', '0.7')
 from gi.repository import Notify, GLib,  GdkPixbuf
-
+from procris.status import StatusIcon
+from procris.wm import Monitor, get_active_workspace
 
 # TODO: rename to desktop and move status icon to this module
 # https://lazka.github.io/pgi-docs/Notify-0.7/classes/Notification.html
@@ -19,6 +20,7 @@ IMAGES = {
     'procris-B': GdkPixbuf.Pixbuf.new_from_file(IMAGE_PATHS['procris-B']),
 }
 
+status_icon: StatusIcon = None
 Notify.init('procris')
 notification = Notify.Notification.new('Procris')
 # notification.set_timeout(-1)
@@ -40,6 +42,8 @@ notification.set_hint('resident', GLib.Variant.new_boolean(True))
 
 
 def show_monitor(monitor: Monitor):
+    if not state.is_desktop_notifications():
+        return
     html = ''
     count = 0
     while monitor:
@@ -49,13 +53,33 @@ def show_monitor(monitor: Monitor):
         monitor = monitor.next()
         if monitor:
             html += '\r'
-    show(summary='Procris - {} monitors'.format(count), body=html, icon='procris')
+    workspace_number: int = get_active_workspace().get_number()
+    show(summary='Procris - workspace {}'.format(workspace_number), body=html, icon='procris')
 
 
 def show(summary: str = 'Procris', body: str = None, icon: str = 'procris'):
+    if not state.is_desktop_notifications():
+        return
     notification.update(summary, body, icon)
     notification.show()
 
 
-def close():
+def connect():
+    import procris.service
+    global status_icon
+    status_icon = StatusIcon(procris.service.layout, stop_function=procris.service.stop)
+    status_icon.activate()
+
+
+def is_connected():
+    return status_icon
+
+
+def update():
+    status_icon.reload()
+
+
+def disconnect():
     notification.close()
+
+

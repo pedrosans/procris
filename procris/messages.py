@@ -40,9 +40,9 @@ def add_error(content: str):
 	add(Message(content, 'error'))
 
 
-def add(message: Message):
+def add(message: Message = None, text: str = None):
 	global prompt_placeholder
-	memory.append(message)
+	memory.append(message if message else Message(text, None))
 	prompt_placeholder = ENTER_TO_CONTINUE
 
 

@@ -18,7 +18,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
 
-
 parser = argparse.ArgumentParser()
 commands_parser = parser.add_subparsers(help='procris sub-commands help', dest='action')
 commands_parser.add_parser('start',	 help='Start procris service')
@@ -52,12 +51,9 @@ elif args.c:
 	import procris.wm as wm
 	import procris.names as names
 	procris.service.load()
-	procris.service._pre_processing()
 	c_in = wm.UserEvent(text=args.c)
-	name = names.match(c_in)
-	message = name.function(c_in)
-	if message:
-		procris.service.messages.add(message)
+	function = names.match(c_in).function
+	procris.service.call(function, c_in)
 	procris.service.messages.print_to_console()
 else:
 	parser.print_help()

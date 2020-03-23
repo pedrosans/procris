@@ -27,36 +27,6 @@ MULTIPLE_COMMANDS_PATTERN = re.compile(r'.*[^\\]\|.*')
 PROMPT = ':'
 
 
-def add(name):
-	LIST.append(name)
-	NAME_MAP[name.name] = name
-	ALIAS_MAP[name.alias] = name
-
-
-def completions_for(c_in: UserEvent):
-	user_input = c_in.vim_command
-	filtered = filter(lambda n: n.startswith(user_input) if user_input else True, NAME_MAP.keys())
-	filtered = filter(lambda n: n != user_input, filtered)
-	return sorted(list(set(filtered)))
-
-
-def has_multiple_names(command_input):
-	return MULTIPLE_COMMANDS_PATTERN.match(command_input)
-
-
-def match(command_input):
-	vim_command = command_input.vim_command
-	"""
-	Returns matching command function if any
-	"""
-	if vim_command in NAME_MAP.keys():
-		return NAME_MAP[vim_command]
-	elif vim_command in ALIAS_MAP.keys():
-		return ALIAS_MAP[vim_command]
-
-	return None
-
-
 class Name:
 
 	def __init__(self, name, function, alias=None, complete: Callable = None):
@@ -107,3 +77,32 @@ class InvalidName(Exception):
 	def __init__(self, message):
 		self.message = message
 
+
+def add(name):
+	LIST.append(name)
+	NAME_MAP[name.name] = name
+	ALIAS_MAP[name.alias] = name
+
+
+def completions_for(c_in: UserEvent):
+	user_input = c_in.vim_command
+	filtered = filter(lambda n: n.startswith(user_input) if user_input else True, NAME_MAP.keys())
+	filtered = filter(lambda n: n != user_input, filtered)
+	return sorted(list(set(filtered)))
+
+
+def has_multiple_names(command_input):
+	return MULTIPLE_COMMANDS_PATTERN.match(command_input)
+
+
+def match(command_input) -> Name:
+	vim_command = command_input.vim_command
+	"""
+	Returns matching command function if any
+	"""
+	if vim_command in NAME_MAP.keys():
+		return NAME_MAP[vim_command]
+	elif vim_command in ALIAS_MAP.keys():
+		return ALIAS_MAP[vim_command]
+
+	return None
