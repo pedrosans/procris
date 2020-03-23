@@ -22,6 +22,8 @@ manual:
 	gzip -c procris.1~ > procris.1.gz
 	rm procris.1~
 	echo "	OK: documentation updated and compressed to procris.1.gz"
+test:
+	python3 -m unittest discover -v
 install:
 	${SETUP_SCRIPT} install --record $(PYTHONPATH)/installed_files.txt 1>/dev/null
 	echo "	OK: procris files installed"
