@@ -352,7 +352,6 @@ class Layout:
 		monitor = primary_monitor
 		visible = workspace_windows
 		split_point = len(list(filter(lambda w: primary_monitor.contains(w), visible)))
-		split_point = len(visible)
 
 		while monitor and visible:
 
