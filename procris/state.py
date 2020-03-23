@@ -58,6 +58,10 @@ def reload():
 	load()
 
 
+def force_defaults():
+	clean()
+
+
 def clean():
 	if os.path.exists(workspace_file):
 		os.remove(workspace_file)

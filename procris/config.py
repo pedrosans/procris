@@ -11,13 +11,15 @@ decoration = procris.decoration
 scratchpads = procris.scratchpads
 applications = procris.applications
 
+procris.state.force_defaults()
+
 DEFAULTS = {
 	'position': 'bottom',
 	'width': 800,
 	'auto_hint': True,
 	'auto_select_first_hint': False,
 	'desktop_icon': 'light',
-	'desktop_notifications': True,
+	'desktop_notifications': False,
 	'window_manger_border': 0,
 	'remove_decorations': False,
 	'inner_gap': 5,
@@ -25,14 +27,14 @@ DEFAULTS = {
 	'workspaces': [
 		{
 			'monitors': [
-				{'nmaster': 1, 'mfact': 0.5, 'function': 'B'},
-				{'nmaster': 1, 'mfact': 0.5, 'function': 'T'}
+				{'nmaster': 1, 'mfact': 0.5, 'function': None},
+				{'nmaster': 1, 'mfact': 0.5, 'function': None}
 			]
 		},
 		{
 			'monitors': [
-				{'function': 'M'},
-				{'function': 'M'}
+				{'function': None},
+				{'function': None}
 			]
 		}
 	]

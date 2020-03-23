@@ -136,13 +136,9 @@ ICON_STYLES_MAP = {'dark': "Dark icon", 'light': "Light icon"}
 # https://developer.gnome.org/notification-spec
 IMAGE_PATHS = {
 	'procris': xdg.IconTheme.getIconPath('procris', size=96),
-	'procris-T': xdg.IconTheme.getIconPath('procris-T', size=96),
-	'procris-B': xdg.IconTheme.getIconPath('procris-B', size=96),
 }
 IMAGES = {
 	'procris': GdkPixbuf.Pixbuf.new_from_file(IMAGE_PATHS['procris']),
-	'procris-T': GdkPixbuf.Pixbuf.new_from_file(IMAGE_PATHS['procris-T']),
-	'procris-B': GdkPixbuf.Pixbuf.new_from_file(IMAGE_PATHS['procris-B']),
 }
 
 
