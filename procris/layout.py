@@ -219,9 +219,10 @@ class Layout:
 			primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
 			resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
 		elif is_managed(window):
-			stack = self.get_active_stack()
-			stack.insert(0, window.get_xid())
 			self.read_screen(screen)
+			stack = self.get_active_stack()
+			copy = stack.copy()
+			stack.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
 
 		try:
 			with Trap():
@@ -345,12 +346,13 @@ class Layout:
 	#
 	# COMMAND METHODS
 	#
-	def apply(self):
+	def apply(self, split_points: List[int] = None):
 		primary_monitor: Monitor = self.get_active_primary_monitor()
 		workspace_windows = self.get_active_windows_as_list()
 		monitor = primary_monitor
 		visible = workspace_windows
 		split_point = len(list(filter(lambda w: primary_monitor.contains(w), visible)))
+		split_point = len(visible)
 
 		while monitor and visible:
 
