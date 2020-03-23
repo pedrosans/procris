@@ -115,10 +115,9 @@ class StatusIcon:
 			item.set_active(item.icon_style == iconname)
 
 		for item in self.layout_submenu.get_children():
-			item.set_active(item.function_key == self.layout.get_function_key())
+			item.set_active(item.function_key == function_key)
 
 		sys_icon = 'procris'
-		function_key = self.layout.get_function_key()
 		if function_key:
 			sys_icon = sys_icon + '-' + function_key
 		if iconname == "dark" or iconname == "light":

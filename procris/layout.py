@@ -45,11 +45,6 @@ class Layout:
 	def __init__(self, windows: Windows):
 		self.windows: Windows = windows
 
-	# TODO: remove?
-	def get_function_key(self):
-		monitor = self.get_active_primary_monitor()
-		return monitor.function_key
-
 	def get_active_stack(self) -> List[int]:
 		return self.stack_for(Wnck.Screen.get_default().get_active_workspace())
 
