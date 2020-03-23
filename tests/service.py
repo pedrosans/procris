@@ -1,7 +1,7 @@
 import unittest
 
 from unittest.mock import MagicMock
-from procris.names import CommandLine
+from procris.wm import UserEvent
 import procris.service as service
 
 
@@ -15,20 +15,20 @@ class ServiceTestCase(unittest.TestCase):
 		service.layout = MagicMock()
 
 	def test_calls_function(self):
-		service.call(self.foo, CommandLine())
+		service.call(self.foo, UserEvent())
 		self.foo.assert_called()
 
 	def test_is_pre_processed(self):
-		service.call(self.foo, CommandLine())
+		service.call(self.foo, UserEvent())
 		service.reading.make_transient.assert_called()
 
 	def test_end_conversation(self):
-		service.call(self.foo, CommandLine())
+		service.call(self.foo, UserEvent())
 		service.reading.end.assert_called()
 
 	def test_dont_end_long_conversation(self):
 		service.reading.is_transient = lambda: False
-		service.call(self.foo, CommandLine())
+		service.call(self.foo, UserEvent())
 		service.reading.end.assert_not_called()
 
 

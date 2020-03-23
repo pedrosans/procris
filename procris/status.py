@@ -17,13 +17,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import gi
 import procris.state as configurations
+import procris.service as service
 import procris.layout
-from procris.names import CommandLine
-
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
 from gi.repository import Gtk
 from gi.repository import AppIndicator3
+from procris.wm import UserEvent
 
 ICONNAME = 'procris'
 ICON_STYLES = ('default', 'light', 'dark')
@@ -38,7 +38,7 @@ class StatusIcon:
 		# Track reloading routine to stop any layout side effect when updating the UI
 		self._reloading = False
 		self.stop_function = stop_function
-		self.layout: procris.Layout = layout
+		self.layout: procris.layout.Layout = layout
 		self.menu = Gtk.Menu()
 
 		self.autostart_item = Gtk.CheckMenuItem(label="Autostart")
@@ -132,10 +132,9 @@ class StatusIcon:
 	def _change_layout(self, radio_menu_item, *args):
 		if not self._reloading and radio_menu_item.get_active():
 			function_key = radio_menu_item.function_key
-			import procris.service as service
-			c_in = CommandLine(time=Gtk.get_current_event_time())
-			c_in.parameters = [function_key]
-			service.call(self.layout.change_function, c_in)
+			event = UserEvent(time=Gtk.get_current_event_time())
+			event.parameters = [function_key]
+			service.call(self.layout.change_function, event)
 
 	def _change_icon(self, radio_menu_item):
 		if not self._reloading and radio_menu_item.get_active():

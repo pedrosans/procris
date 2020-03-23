@@ -18,6 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
 
+
 parser = argparse.ArgumentParser()
 commands_parser = parser.add_subparsers(help='procris sub-commands help', dest='action')
 commands_parser.add_parser('start',	 help='Start procris service')
@@ -48,10 +49,11 @@ elif args.action == 'status':
 		print("Inactive")
 elif args.c:
 	import procris.service
+	import procris.wm as wm
 	import procris.names as names
 	procris.service.load()
 	procris.service._pre_processing()
-	c_in = names.CommandLine(text=args.c).parse()
+	c_in = wm.UserEvent(text=args.c)
 	name = names.match(c_in)
 	message = name.function(c_in)
 	if message:

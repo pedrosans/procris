@@ -1,7 +1,7 @@
 import unittest
 
 from unittest.mock import MagicMock
-from procris.names import CommandLine
+from procris.wm import UserEvent
 from procris.windows import Windows
 import procris.service as service
 
@@ -14,7 +14,7 @@ class WindowsTestCase(unittest.TestCase):
 		print('asdf')
 
 	def test_calls_function(self):
-		self.windows.delete(CommandLine(text='bdelete foo').parse())
+		self.windows.delete(UserEvent(text='bdelete foo'))
 		# self.foo.assert_called()
 		# service.reading.end.assert_not_called()
 

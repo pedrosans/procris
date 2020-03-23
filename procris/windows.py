@@ -23,9 +23,9 @@ from procris import decoration
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Callable
-from procris.names import CommandLine, PROMPT
+from procris.names import PROMPT
 from procris.wm import gdk_window_for, monitor_work_area_for, set_geometry, resize, is_visible, \
-	get_active_window, decoration_delta
+	get_active_window, decoration_delta, UserEvent
 from procris.decoration import DECORATION_MAP
 
 
@@ -132,7 +132,7 @@ class Windows:
 	def find_by_name(self, name):
 		return next((w for w in self.buffers if name.lower().strip() in w.get_name().lower()), None)
 
-	def complete(self, c_in: CommandLine):
+	def complete(self, c_in: UserEvent):
 		if not c_in.vim_command_spacer:
 			return None
 		name = c_in.vim_command_parameter

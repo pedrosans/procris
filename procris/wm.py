@@ -15,14 +15,15 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os
+import re
 import gi
 import traceback
 import procris.state as config
-from procris import state
-
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
+from datetime import datetime
 from typing import Callable
+from procris import state
 
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH | Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
 CONFIGURE_EVENT_TYPE = Gdk.EventType.CONFIGURE
@@ -289,3 +290,58 @@ class Monitor:
 			return self.pointer
 		else:
 			return None
+
+
+class UserEvent:
+
+	colon_spacer = ''
+	vim_command = ''
+	vim_command_spacer = ''
+	vim_command_parameter = ''
+	terminal_command = ''
+	terminal_command_spacer = ''
+	terminal_command_parameter = ''
+
+	def __init__(self, time=None, text=None, parameters=None, keyval=None, keymod=None):
+		self.time = time if time else datetime.now().microsecond
+		self.text = text
+		if text:
+			self._parse()
+		self.keyval = keyval
+		self.keymod = keymod
+		self.parameters = parameters
+
+	def _parse(self):
+		cmd_match = re.match(r'^(\s*)([a-zA-Z]+|!)(.*)', self.text)
+
+		if not cmd_match:
+			return self
+
+		self.colon_spacer = cmd_match.group(1)
+		self.vim_command = cmd_match.group(2)
+
+		vim_command_parameter_text = cmd_match.group(3)
+		parameters_match = re.match(r'^(\s*)(.*)', vim_command_parameter_text)
+
+		self.vim_command_spacer = parameters_match.group(1)
+		self.vim_command_parameter = parameters_match.group(2)
+
+		if self.vim_command == '!' and self.vim_command_parameter:
+			grouped_terminal_command = re.match(r'^(\w+)(\s*)(.*)', self.vim_command_parameter)
+			self.terminal_command = grouped_terminal_command.group(1)
+			self.terminal_command_spacer = grouped_terminal_command.group(2)
+			self.terminal_command_parameter = grouped_terminal_command.group(3)
+
+		return self
+
+	def mount_vim_command(self):
+		return self.colon_spacer + self.vim_command + self.vim_command_spacer
+
+	def print(self):
+		print('------------------------------------------')
+		print('vc ::{}::'.format(self.vim_command))
+		print('vcs::{}::'.format(self.vim_command_spacer))
+		print('vcp::{}::'.format(self.vim_command_parameter))
+		print('tc ::{}::'.format(self.terminal_command))
+		print('tcs::{}::'.format(self.terminal_command_spacer))
+		print('tcp::{}::'.format(self.terminal_command_parameter))

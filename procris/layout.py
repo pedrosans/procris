@@ -20,11 +20,10 @@ import procris.notification as notification
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk, GLib
 from typing import List, Dict
-from procris.names import CommandLine
 from procris import scratchpads, state
 from procris.windows import Windows
 from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_window, is_on_primary_monitor, \
-	get_height, DirtyState, X_Y_W_H_GEOMETRY_MASK, gdk_window_for, Trap, Monitor, monitor_for
+	get_height, DirtyState, X_Y_W_H_GEOMETRY_MASK, gdk_window_for, Trap, Monitor, monitor_for, UserEvent
 
 
 def is_managed(window):
@@ -230,7 +229,7 @@ class Layout:
 	#
 	# COMMANDS
 	#
-	def change_function(self, c_in: CommandLine):
+	def change_function(self, c_in: UserEvent):
 		function_key = c_in.parameters[0]
 		promote_selected = False if len(c_in.parameters) < 2 else c_in.parameters[1]
 		active = get_active_managed_window()
@@ -243,7 +242,7 @@ class Layout:
 		self.persist()
 		notification.show_monitor(self.get_active_primary_monitor())
 
-	def gap(self, c_in: CommandLine):
+	def gap(self, c_in: UserEvent):
 		parameters = c_in.vim_command_parameter.split()
 		where = parameters[0]
 		pixels = int(parameters[1])
@@ -252,11 +251,11 @@ class Layout:
 		self.windows.staging = True
 		self.apply()
 
-	def complete_gap_options(self, c_in: CommandLine):
+	def complete_gap_options(self, c_in: UserEvent):
 		input = c_in.vim_command_parameter.lower()
 		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
 
-	def swap_focused_with(self, c_in: CommandLine):
+	def swap_focused_with(self, c_in: UserEvent):
 		active = get_active_managed_window()
 		if active:
 
@@ -274,14 +273,14 @@ class Layout:
 				self.apply()
 				self.persist()
 
-	def move_focus(self, c_in: CommandLine):
+	def move_focus(self, c_in: UserEvent):
 		if get_active_managed_window():
 			stack = self.get_active_stack()
 			direction = c_in.parameters[0]
 			new_index = self._incremented_index(direction)
 			self.windows.active.change_to(stack[new_index])
 
-	def move_to_master(self, c_in: CommandLine):
+	def move_to_master(self, c_in: UserEvent):
 		active = get_active_managed_window()
 		if active:
 			stack = self.get_active_stack()
@@ -290,24 +289,24 @@ class Layout:
 			self.apply()
 			self.persist()
 
-	def increase_master_area(self, c_in: CommandLine):
+	def increase_master_area(self, c_in: UserEvent):
 		self.get_active_primary_monitor().increase_master_area(increment=c_in.parameters[0])
 		self.apply()
 		self.persist()
 
-	def increment_master(self, c_in: CommandLine):
+	def increment_master(self, c_in: UserEvent):
 		self.get_active_primary_monitor().increment_master(
 			increment=c_in.parameters[0], upper_limit=len(self.get_active_stack()))
 		self.apply()
 		self.persist()
 
-	def increment_servant(self, c_in: CommandLine):
+	def increment_servant(self, c_in: UserEvent):
 		self.get_active_primary_monitor().increment_servant(
 			increment=c_in.parameters[0], upper_limit=len(self.get_active_stack()))
 		self.apply()
 		self.persist()
 
-	def geometry(self, c_in: CommandLine):
+	def geometry(self, c_in: UserEvent):
 		parameters = list(map(lambda word: int(word), c_in.vim_command_parameter.split()))
 		lib = parameters[0]
 		window = self.get_active_windows_as_list()[parameters[1]]

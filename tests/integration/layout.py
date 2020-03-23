@@ -26,10 +26,12 @@ class LayoutIntegrationTestCase(unittest.TestCase):
 
 		tests.integration.run_and_join(launch_setup_apps)
 
-		self.windows.read_default_screen()
-		self.layout._read_default_display()
+		screen = Wnck.Screen.get_default()
 
-		for w in Wnck.Screen.get_default().get_windows():
+		self.windows.read_default_screen()
+		self.layout.read_screen(screen)
+
+		for w in screen.get_windows():
 			if w.get_name() in ['Calculator', 'Logs']:
 				print('Opened: {} at {}'.format(w.get_name(), w.get_workspace().get_name()))
 				self.calculator = w if w.get_name() == 'Calculator' else self.calculator

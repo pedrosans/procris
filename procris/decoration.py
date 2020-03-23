@@ -16,11 +16,10 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi
 import procris.state as persistor
-from procris.wm import gdk_window_for
+from procris.wm import gdk_window_for, UserEvent
 
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
-from procris.names import CommandLine
 from typing import List
 
 
@@ -66,7 +65,7 @@ def restore(buffers: List[Wnck.Window]):
 			gdk_window_for(w).set_decorations(Gdk.WMDecoration(original_decorations[str(w.get_xid())]))
 
 
-def complete(c_in: CommandLine):
+def complete(c_in: UserEvent):
 	option_name = c_in.vim_command_parameter
 	return list(filter(lambda x: x.lower().startswith(option_name.lower().strip()), DECORATION_MAP.keys()))
 

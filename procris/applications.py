@@ -21,7 +21,8 @@ gi.require_version('Gdk', '3.0')
 from gi.repository import Gdk, GLib, Gio, GdkX11
 from datetime import datetime
 from procris.messages import Message
-from procris.names import CommandLine
+from procris.wm import UserEvent
+
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 
@@ -37,7 +38,7 @@ SPAWN_FLAGS = GLib.SpawnFlags.STDOUT_TO_DEV_NULL | GLib.SpawnFlags.STDERR_TO_DEV
 DESKTOP_STARTUP_ID = "DESKTOP_STARTUP_ID"
 
 
-def launch(c_in: CommandLine):
+def launch(c_in: UserEvent):
 	launch_name(name=c_in.vim_command_parameter, timestamp=c_in.time)
 
 
@@ -91,7 +92,7 @@ def reload():
 	load()
 
 
-def complete(c_in: CommandLine):
+def complete(c_in: UserEvent):
 	name_filter = c_in.vim_command_parameter
 	lower = name_filter.lower()
 	matches = filter(lambda x: lower in x.lower(), NAME_MAP.keys())

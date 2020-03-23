@@ -25,7 +25,7 @@ gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from procris.view import ReadingWindow
 from procris.names import PromptHistory
-from procris.names import CommandLine
+from procris.wm import UserEvent
 from procris.windows import Windows
 from procris.assistant import Completion
 
@@ -122,7 +122,7 @@ class Reading:
 			return True
 
 		if event.keyval == Gdk.KEY_Return:
-			self.enter(CommandLine(time=event.time, keyval=event.keyval))
+			self.enter(UserEvent(time=event.time, keyval=event.keyval))
 			return True
 
 	def on_entry_key_release(self, widget, event):
@@ -135,7 +135,7 @@ class Reading:
 			return True
 
 		if configurations.is_auto_hint():
-			self.completion.search_for(CommandLine(text=self.view.get_command()).parse())
+			self.completion.search_for(UserEvent(text=self.view.get_command()))
 		else:
 			self.completion.clean()
 
@@ -158,7 +158,7 @@ class Reading:
 			return False
 
 		if not self.completion.assisting and event.keyval in HINT_LAUNCH_KEYS:
-			self.completion.search_for(CommandLine(text=self.view.get_command()).parse())
+			self.completion.search_for(UserEvent(text=self.view.get_command()))
 
 		if self.completion.assisting:
 			shift_mask = event.state & Gdk.ModifierType.SHIFT_MASK

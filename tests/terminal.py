@@ -1,6 +1,6 @@
 import unittest
 import procris.terminal as terminal
-from procris.names import CommandLine
+from procris.wm import UserEvent
 
 
 class TerminalTestCase(unittest.TestCase):
@@ -37,4 +37,4 @@ class TerminalTestCase(unittest.TestCase):
 		terminal.query_command_parameters = lambda x: ['bar']
 		self.assertEqual(
 			['bar'],
-			terminal.complete(CommandLine(text='!foo ').parse()))
+			terminal.complete(UserEvent(text='!foo ')))

@@ -17,7 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import re
 from typing import Callable
-from datetime import datetime
+
+from procris.wm import UserEvent
 
 LIST = []
 NAME_MAP = {}
@@ -26,69 +27,13 @@ MULTIPLE_COMMANDS_PATTERN = re.compile(r'.*[^\\]\|.*')
 PROMPT = ':'
 
 
-# TODO: rename to input or move to an input type
-class CommandLine:
-
-	def __init__(self, time=None, text=None, parameters=None, keyval=None, keymod=None):
-		self.time = time if time else datetime.now().microsecond
-		self.text = text
-		self.keyval = keyval
-		self.keymod = keymod
-		self.parameters = parameters
-		self.colon_spacer = ''
-		self.vim_command = ''
-		self.vim_command_spacer = ''
-		self.vim_command_parameter = ''
-		self.terminal_command = ''
-		self.terminal_command_spacer = ''
-		self.terminal_command_parameter = ''
-
-	def parse(self):
-		if not self.text:
-			return self
-
-		match = re.match(r'^(\s*)([a-zA-Z]+|!)(.*)', self.text)
-
-		if not match:
-			return self
-
-		self.colon_spacer = match.group(1)
-		self.vim_command = match.group(2)
-
-		vim_command_parameter_text = match.group(3)
-		parameters_match = re.match(r'^(\s*)(.*)', vim_command_parameter_text)
-
-		self.vim_command_spacer = parameters_match.group(1)
-		self.vim_command_parameter = parameters_match.group(2)
-
-		if self.vim_command == '!' and self.vim_command_parameter:
-			grouped_terminal_command = re.match(r'^(\w+)(\s*)(.*)', self.vim_command_parameter)
-			self.terminal_command = grouped_terminal_command.group(1)
-			self.terminal_command_spacer = grouped_terminal_command.group(2)
-			self.terminal_command_parameter = grouped_terminal_command.group(3)
-
-		return self
-
-	def mount_vim_command(self):
-		return self.colon_spacer + self.vim_command + self.vim_command_spacer
-
-	def print(self):
-		print('------------------------------------------')
-		print('vc ::{}::'.format(self.vim_command))
-		print('vcs::{}::'.format(self.vim_command_spacer))
-		print('vcp::{}::'.format(self.vim_command_parameter))
-		print('tc ::{}::'.format(self.terminal_command))
-		print('tcs::{}::'.format(self.terminal_command_spacer))
-		print('tcp::{}::'.format(self.terminal_command_parameter))
-
-
 def add(name):
 	LIST.append(name)
 	NAME_MAP[name.name] = name
 	ALIAS_MAP[name.alias] = name
 
 
-def completions_for(c_in: CommandLine):
+def completions_for(c_in: UserEvent):
 	user_input = c_in.vim_command
 	filtered = filter(lambda n: n.startswith(user_input) if user_input else True, NAME_MAP.keys())
 	filtered = filter(lambda n: n != user_input, filtered)

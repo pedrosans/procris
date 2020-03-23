@@ -37,7 +37,7 @@ from procris.status import StatusIcon
 from procris.keyboard import KeyboardListener
 from procris.layout import Layout
 from procris.windows import Windows
-from procris.names import CommandLine
+from procris.wm import UserEvent
 
 
 def load():
@@ -122,7 +122,7 @@ def reload(c_in):
 # Callbacks
 #
 def keyboard_listener(key, x_key_event, multiplier=1):
-	command_input = CommandLine(
+	command_input = UserEvent(
 		time=x_key_event.time, parameters=key.parameters, keyval=x_key_event.keyval, keymod=x_key_event.keymod)
 
 	_execute_inside_main_loop(key.function, command_input, multiplier)
@@ -140,7 +140,7 @@ def execute(cmd: str = None, timestamp: int = None, move_to_main_loop=True):
 	if names.has_multiple_names(cmd):
 		raise names.InvalidName('TODO: iterate multiple commands')
 
-	c_in = CommandLine(text=cmd, time=timestamp).parse()
+	c_in = UserEvent(text=cmd, time=timestamp)
 	name = names.match(c_in)
 
 	if not name:
