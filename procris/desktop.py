@@ -47,8 +47,8 @@ def show_monitor(monitor: Monitor):
     html = ''
     count = 0
     while monitor:
-        html += '<b>{}</b>: <b>{}</b> <i>nmaster</i>: <b>{}</b> <i>nservant</i>: <b>{}</b>'.format(
-            1 if monitor.primary else 2, monitor.function_key, monitor.nmaster, monitor.nservant)
+        html += '<b>{}</b>: <b>{}</b> <i>nmaster</i>: <b>{}</b>'.format(
+            1 if monitor.primary else 2, monitor.function_key, monitor.nmaster)
         count += 1
         monitor = monitor.next()
         if monitor:

@@ -56,6 +56,11 @@ class Layout:
 	def get_active_windows_as_list(self) -> List[Wnck.Window]:
 		return list(map(lambda xid: self.window_by_xid[xid], self.get_active_stack()))
 
+	def get_active_primary_monitor_windows(self) -> List[Wnck.Window]:
+		primary_monitor = self.get_active_primary_monitor()
+		visible = self.get_active_windows_as_list()
+		return list(filter(lambda w: primary_monitor.contains(w), visible))
+
 	def get_active_primary_monitor(self) -> Monitor:
 		return self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
 
@@ -86,6 +91,7 @@ class Layout:
 
 		for workspace in screen.get_workspaces():
 			self._read_workspace(screen, workspace)
+			self._read_workspace_windows_monitor(workspace)
 
 	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace):
 		primary_monitor: Monitor = self.primary_monitor_for(workspace)
@@ -102,10 +108,6 @@ class Layout:
 				stack.copy()):
 			stack.remove(outsider)
 
-		primary_monitor.nservant = len(list(filter(lambda xid: not is_on_primary_monitor(self.window_by_xid[xid]), stack)))
-		copy = stack.copy()
-		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not is_on_primary_monitor(self.window_by_xid[xid]) else 0))
-
 		for i in range(Gdk.Display.get_default().get_n_monitors()):
 			gdk_monitor = Gdk.Display.get_default().get_monitor(i)
 			if gdk_monitor.is_primary():
@@ -113,6 +115,12 @@ class Layout:
 			elif primary_monitor.next():
 				primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
 				break
+
+	def _read_workspace_windows_monitor(self, workspace: Wnck.Workspace):
+		primary_monitor: Monitor = self.primary_monitor_for(workspace)
+		stack: List[int] = self.stack_for(workspace)
+		copy = stack.copy()
+		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not primary_monitor.contains(self.window_by_xid[xid]) else 0))
 
 	def read_user_config(self, config_json: Dict, screen: Wnck.Screen):
 		number_of_workspaces = len(screen.get_workspaces())
@@ -206,22 +214,14 @@ class Layout:
 		self._install_present_window_handlers(screen)
 		if not is_visible(window, screen.get_active_workspace()):
 			return
-		self.read_screen(screen)
 		if window.get_name() in scratchpads.names():
 			scratchpad = scratchpads.get(window.get_name())
 			primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
 			resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
-		else:
+		elif is_managed(window):
 			stack = self.get_active_stack()
-			monitor = self.get_active_primary_monitor()
-			start_index = 0
-			while monitor:
-				end_index = len(stack) - monitor.nservant
-				if monitor.contains(window):
-					old_index = stack.index(window.get_xid())
-					stack.insert(start_index, stack.pop(old_index))
-				monitor = monitor.next()
-				start_index = end_index
+			stack.insert(0, window.get_xid())
+			self.read_screen(screen)
 
 		try:
 			with Trap():
@@ -296,6 +296,15 @@ class Layout:
 			new_index = self._incremented_index(direction)
 			self.windows.active.change_to(stack[new_index])
 
+	def move_to_monitor(self, c_in: UserEvent):
+		active = get_active_managed_window()
+		if active:
+			stack = self.get_active_stack()
+			old_index = stack.index(active.get_xid())
+			stack.insert(0, stack.pop(old_index))
+			self.apply(split_points=[])
+			self.persist()
+
 	def move_to_master(self, c_in: UserEvent):
 		active = get_active_managed_window()
 		if active:
@@ -312,12 +321,6 @@ class Layout:
 
 	def increment_master(self, c_in: UserEvent):
 		self.get_active_primary_monitor().increment_master(
-			increment=c_in.parameters[0], upper_limit=len(self.get_active_stack()))
-		self.apply()
-		self.persist()
-
-	def increment_servant(self, c_in: UserEvent):
-		self.get_active_primary_monitor().increment_servant(
 			increment=c_in.parameters[0], upper_limit=len(self.get_active_stack()))
 		self.apply()
 		self.persist()
@@ -347,8 +350,9 @@ class Layout:
 		workspace_windows = self.get_active_windows_as_list()
 		monitor = primary_monitor
 		visible = workspace_windows
+		split_point = len(list(filter(lambda w: primary_monitor.contains(w), visible)))
+
 		while monitor and visible:
-			split_point = len(visible) - monitor.nservant
 
 			if monitor.function_key:
 				monitor_windows: List[Wnck.Window] = visible[:split_point]
@@ -356,6 +360,7 @@ class Layout:
 
 			monitor = monitor.next()
 			visible = visible[split_point:]
+			split_point = len(visible)
 
 	def _incremented_index(self, increment):
 		stack = self.get_active_stack()

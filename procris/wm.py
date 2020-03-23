@@ -220,7 +220,6 @@ class Monitor:
 		self.primary: bool = primary
 		self.function_key: str = function_key
 		self.nmaster: int = nmaster
-		self.nservant: int = 0
 		self.mfact: float = mfact
 		self.wx = self.wy = self.ww = self.wh = None
 		self.visible_area: Gdk.Rectangle = None
@@ -248,12 +247,7 @@ class Monitor:
 	def increment_master(self, increment=None, upper_limit=None):
 		self.nmaster += increment
 		self.nmaster = max(0, self.nmaster)
-		self.nmaster = min(upper_limit - self.nservant, self.nmaster)
-
-	def increment_servant(self, increment=None, upper_limit=None):
-		self.nservant += increment
-		self.nservant = max(0, self.nservant)
-		self.nservant = min(upper_limit - self.nmaster, self.nservant)
+		self.nmaster = min(upper_limit, self.nmaster)
 
 	def contains(self, window: Wnck.Window):
 		rect = self.visible_area
@@ -262,14 +256,12 @@ class Monitor:
 
 	def from_json(self, json):
 		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
-		self.nservant = json['nservant'] if 'nservant' in json else self.nservant
 		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
 		self.function_key = json['function'] if 'function' in json else self.function_key
 
 	def to_json(self):
 		return {
 			'nmaster': self.nmaster,
-			'nservant': self.nservant,
 			'mfact': self.mfact,
 			'function': self.function_key
 		}
