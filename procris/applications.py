@@ -22,6 +22,8 @@ from gi.repository import Gdk, GLib, Gio, GdkX11
 from datetime import datetime
 from procris.messages import Message
 from procris.names import CommandLine
+gi.require_version('Wnck', '3.0')
+from gi.repository import Wnck, GdkX11, Gdk
 
 APPS_GLOB = [
 		"/usr/share/applications/*.desktop",
@@ -29,6 +31,10 @@ APPS_GLOB = [
 		os.path.expanduser('~/.local/share/applications')+'/*.desktop']
 NAME_MAP = {}
 LOCATION_MAP = {}
+USER_SETUP = None
+USER_SETUP_DATA = None
+SPAWN_FLAGS = GLib.SpawnFlags.STDOUT_TO_DEV_NULL | GLib.SpawnFlags.STDERR_TO_DEV_NULL
+DESKTOP_STARTUP_ID = "DESKTOP_STARTUP_ID"
 
 
 def launch(c_in: CommandLine):
@@ -48,15 +54,20 @@ def launch_name(name: str = None, timestamp: int = None, desktop: int = -1):
 		return Message('Missing application name', 'error')
 
 	try:
-		launcher = Gio.DesktopAppInfo.new_from_filename(LOCATION_MAP[name])
+		app_info = Gio.DesktopAppInfo.new_from_filename(LOCATION_MAP[name])
 		display: Gdk.Display = Gdk.Display.get_default()
 		context: GdkX11.X11AppLaunchContext = display.get_app_launch_context()
+		context.setenv(DESKTOP_STARTUP_ID, context.get_startup_notify_id(app_info, []))
 		context.set_timestamp(timestamp)
 		context.set_desktop(desktop)
 		context.set_screen(display.get_default_screen())
-		launcher.launch_uris(None, context)
+		app_info.launch_uris_as_manager([], context, SPAWN_FLAGS, USER_SETUP, USER_SETUP_DATA, pid_callback)
 	except GLib.GError as exc:
 		return Message('Error launching ' + name, 'error')
+
+
+def pid_callback(app_info: Gio.DesktopAppInfo, pid: int):
+	print('Launched: {}'.format(pid))
 
 
 def load():
