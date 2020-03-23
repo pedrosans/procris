@@ -151,7 +151,7 @@ def message(ipc_message):
 	execute(cmd=ipc_message, timestamp=datetime.now().microsecond)
 
 
-def execute(cmd: str = None, timestamp: int = None):
+def execute(cmd: str = None, timestamp: int = None, inside_main_loop=True):
 	if names.has_multiple_names(cmd):
 		raise names.InvalidName('TODO: iterate multiple commands')
 
@@ -161,7 +161,10 @@ def execute(cmd: str = None, timestamp: int = None):
 	if not name:
 		raise names.InvalidName('Not an editor command: ' + cmd)
 
-	_execute_inside_main_loop(name.function, c_in)
+	if inside_main_loop:
+		_execute_inside_main_loop(name.function, c_in)
+	else:
+		_execute(name.function, c_in)
 
 	return True
 

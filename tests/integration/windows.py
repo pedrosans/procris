@@ -10,7 +10,6 @@ from datetime import datetime
 from subprocess import Popen
 from procris.windows import Windows
 
-warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 WINDOW_NAME = 'test-terminal-name'
 
@@ -23,13 +22,10 @@ def term_window() -> Wnck.Window:
 	return None
 
 
-def minimize_active():
-	GLib.idle_add(minimize_active, priority=GLib.PRIORITY_HIGH)
-
-
 class ServiceIntegrationTestCase(unittest.TestCase):
 
 	def setUp(self) -> None:
+		warnings.filterwarnings("ignore", category=ResourceWarning)
 		Popen(['alacritty', '--title', WINDOW_NAME])
 		threading.Thread(target=lambda: Gtk.main()).start()
 		time.sleep(2)
@@ -43,11 +39,13 @@ class ServiceIntegrationTestCase(unittest.TestCase):
 		GLib.idle_add(windows.read_screen, priority=GLib.PRIORITY_HIGH)
 		time.sleep(1)
 
-		self.assertEqual(WINDOW_NAME, windows.active.get_wnck_window().get_name())
+		active: Wnck.Window = windows.active.get_wnck_window()
+		self.assertEqual(WINDOW_NAME, active.get_name())
 
-		windows.active.minimize(None)
-		self.assertIsNone(windows.active.get_wnck_window())
+		GLib.idle_add(windows.active.minimize, None, priority=GLib.PRIORITY_HIGH)
 		time.sleep(1)
+
+		self.assertNotEqual(windows.active.xid, active.get_xid())
 
 		GLib.idle_add(windows.read_screen, priority=GLib.PRIORITY_HIGH)
 		time.sleep(1)

@@ -60,9 +60,6 @@ class CommandLine:
 		self.vim_command_spacer = parameters_match.group(1)
 		self.vim_command_parameter = parameters_match.group(2)
 
-		if self.vim_command_parameter:
-			self.vim_command_parameter = self.vim_command_parameter.strip()
-
 		if self.vim_command == '!' and self.vim_command_parameter:
 			grouped_terminal_command = re.match(r'^(\w+)(\s*)(.*)', self.vim_command_parameter)
 			self.terminal_command = grouped_terminal_command.group(1)

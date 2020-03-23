@@ -74,8 +74,8 @@ def is_on_primary_monitor(window: Wnck.Window):
 def get_active_window(workspace: Wnck.Workspace = None, window_filter: Callable = None):
 	workspace = workspace if workspace else Wnck.Screen.get_default().get_active_workspace()
 	for stacked in reversed(Wnck.Screen.get_default().get_windows_stacked()):
-		if is_visible(stacked, workspace):
-			return stacked if (not window_filter or window_filter(stacked)) else None
+		if is_visible(stacked, workspace) and (not window_filter or window_filter(stacked)):
+			return stacked
 	return None
 
 

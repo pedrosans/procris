@@ -304,7 +304,7 @@ class BufferName(messages.Message):
 		self.window = window
 		self.index = 1 + windows.buffers.index(self.window)
 		self.flags = ''
-		top, below = windows.get_left_right_top_windows()
+		top, below = windows.get_top_two_windows()
 		if self.window is top:
 			self.flags += '%a'
 		elif self.window is below:
