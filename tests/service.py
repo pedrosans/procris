@@ -9,10 +9,10 @@ class ServiceTestCase(unittest.TestCase):
 
 	def setUp(self):
 		self.foo = MagicMock()
-		service.status_icon = MagicMock()
 		service.reading = MagicMock()
 		service.windows = MagicMock()
 		service.layout = MagicMock()
+		service.desktop = MagicMock()
 
 	def test_calls_function(self):
 		service.call(self.foo, UserEvent())

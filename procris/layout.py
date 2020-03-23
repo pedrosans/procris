@@ -120,7 +120,7 @@ class Layout:
 		for workspace_index in range(min(number_of_workspaces, configured_workspaces)):
 			workspace_json = config_json['workspaces'][workspace_index]
 
-			if 'stack' in workspace_json and workspace_index in self.stacks:
+			if 'stack' in workspace_json:
 				stack = self.stacks[workspace_index]
 				copy = stack.copy()
 				stack.sort(
