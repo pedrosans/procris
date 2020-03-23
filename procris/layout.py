@@ -174,13 +174,6 @@ class Layout:
 		monitor = self.get_active_primary_monitor()
 		return monitor.function_key
 
-	def set_function(self, function_key):
-		self.get_active_monitor().set_function(function_key)
-		self.read_screen(Wnck.Screen.get_default())
-		self.apply()
-		monitor: Monitor = self.get_active_primary_monitor()
-		notification.show_monitor(monitor)
-
 	#
 	# CALLBACKS
 	#
@@ -245,8 +238,10 @@ class Layout:
 			stack = self.get_active_stack()
 			old_index = stack.index(active.get_xid())
 			stack.insert(0, stack.pop(old_index))
-		self.set_function(function_key)
+		self.get_active_monitor().set_function(function_key)
+		self.apply()
 		self.persist()
+		notification.show_monitor(self.get_active_primary_monitor())
 
 	def gap(self, c_in: CommandLine):
 		parameters = c_in.vim_command_parameter.split()

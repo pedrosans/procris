@@ -149,12 +149,12 @@ def execute(cmd: str = None, timestamp: int = None, move_to_main_loop=True):
 	if move_to_main_loop:
 		_execute_inside_main_loop(name.function, c_in)
 	else:
-		_execute(name.function, c_in)
+		call(name.function, c_in)
 
 	return True
 
 
-def _execute(function, command_input, multiplier=1):
+def call(function, command_input, multiplier=1):
 	try:
 
 		_pre_processing()
@@ -208,7 +208,7 @@ def _post_processing():
 #
 def _execute_inside_main_loop(function, command_input, multiplier=1):
 
-	GLib.idle_add(_execute, function, command_input, multiplier,  priority=GLib.PRIORITY_HIGH)
+	GLib.idle_add(call, function, command_input, multiplier, priority=GLib.PRIORITY_HIGH)
 
 
 def _signal_function():

@@ -18,6 +18,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi
 import procris.state as configurations
 import procris.layout
+from procris.names import CommandLine
+
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
 from gi.repository import Gtk
@@ -127,11 +129,13 @@ class StatusIcon:
 	#
 	# CALLBACKS
 	#
-	def _change_layout(self, radio_menu_item):
+	def _change_layout(self, radio_menu_item, *args):
 		if not self._reloading and radio_menu_item.get_active():
 			function_key = radio_menu_item.function_key
-			self.layout.set_function(function_key)
-			self.reload()
+			import procris.service as service
+			c_in = CommandLine(time=Gtk.get_current_event_time())
+			c_in.parameters = [function_key]
+			service.call(self.layout.change_function, c_in)
 
 	def _change_icon(self, radio_menu_item):
 		if not self._reloading and radio_menu_item.get_active():
