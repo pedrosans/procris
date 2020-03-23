@@ -18,12 +18,12 @@ import gi, procris
 import procris.messages as messages
 import procris.names as names
 import procris.cache as configurations
+import procris.service as service
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
 from procris.view import ReadingWindow
-from procris.assistant import Completion
 from procris.names import PromptHistory
 from procris.names import CommandLine
 from procris.windows import Windows
@@ -186,7 +186,7 @@ class Reading:
 		self.prompt_history.append(cmd)
 
 		try:
-			procris.service.execute(cmd, gtk_time)
+			service.execute(cmd, gtk_time, move_to_main_loop=False)
 		except names.InvalidName as e:
 			messages.add_error(e.message)
 			self.begin(gtk_time)
