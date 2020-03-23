@@ -15,7 +15,7 @@ DEFAULTS = {
 	'position': 'bottom',
 	'width': 800,
 	'auto_hint': True,
-	'auto_select_first_hint': True,
+	'auto_select_first_hint': False,
 	'desktop_icon': 'light',
 	'desktop_notifications': True,
 	'window_manger_border': 0,
