@@ -123,20 +123,23 @@ def reload(c_in):
 # Callbacks
 #
 def keyboard_listener(key: Key, x_key_event, multiplier=1):
+	if not key.function:
+		return
+
 	command_input = UserEvent(
 		time=x_key_event.time, parameters=key.parameters, keyval=x_key_event.keyval, keymod=x_key_event.keymod)
 
 	_execute_inside_main_loop(key.function, command_input, multiplier)
 
 
+#
+# API
+#
 def message(ipc_message):
 	from datetime import datetime
 	execute(cmd=ipc_message, timestamp=datetime.now().microsecond)
 
 
-#
-# API
-#
 def execute(cmd: str = None, timestamp: int = None, move_to_main_loop=True):
 	if names.has_multiple_names(cmd):
 		raise names.InvalidName('TODO: iterate multiple commands')
