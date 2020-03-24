@@ -37,14 +37,17 @@ class Axis:
 		self.position_mask = position_mask
 		self.size_mask = size_mask
 
+	def position_of(self, window: Wnck.Window):
+		return window.get_geometry().xp if self is HORIZONTAL else window.get_geometry().yp
+
 
 INCREMENT = 0.1
 DECREMENT = -0.1
 CENTER = 0.5
 VERTICAL = Axis(Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
 HORIZONTAL = Axis(Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
-HORIZONTAL.perpendicular_axis = VERTICAL
-VERTICAL.perpendicular_axis = HORIZONTAL
+HORIZONTAL.perpendicular = VERTICAL
+VERTICAL.perpendicular = HORIZONTAL
 STRETCH = 1000
 
 
@@ -65,7 +68,6 @@ class Windows:
 		self.visible: List[Wnck.Window] = []
 		self.buffers: List[Wnck.Window] = []
 		self.line: List[Wnck.Window] = None
-		self.column: List[Wnck.Window] = None
 		self.staging = False
 		self.count = 0
 
@@ -91,7 +93,6 @@ class Windows:
 
 		self.update_active()
 		self.line = sorted(self.visible, key=sort_line)
-		self.column = sorted(self.visible, key=sort_column)
 
 	def update_active(self):
 		active_window = get_active_window(window_filter=lambda x: x in self.visible)
@@ -118,7 +119,6 @@ class Windows:
 	def remove_from_visible(self, window: Wnck.Window):
 		self.visible.remove(window)
 		self.line.remove(window)
-		self.column.remove(window)
 
 	def apply_decoration_config(self):
 		if configurations.is_remove_decorations():
@@ -358,10 +358,23 @@ class Focus:
 		self.windows.staging = True
 
 	def move(self, increment, axis):
-		oriented_list = self.windows.line if axis is HORIZONTAL else self.windows.column
-		index = oriented_list.index(self.active.get_wnck_window()) + increment
-		if 0 <= index < len(oriented_list):
-			self.active.xid = oriented_list[index].get_xid()
+		active = self.active.get_wnck_window()
+
+		def key(w):
+			axis_position = axis.position_of(w)
+			perpendicular_distance = abs(axis.perpendicular.position_of(w) - axis.perpendicular.position_of(active))
+			perpendicular_distance *= -1 if axis_position < axis.position_of(active) else 1
+			return axis_position * STRETCH + perpendicular_distance
+
+		sorted_windows = sorted(self.windows.visible, key=key)
+		index = sorted_windows.index(self.active.get_wnck_window())
+		if 0 <= index + increment < len(sorted_windows):
+			index = index + increment
+			next_index = index + increment
+			while 0 <= next_index < len(sorted_windows) and axis.position_of(sorted_windows[index]) == axis.position_of(active):
+				index = next_index
+				next_index += increment
+		self.active.xid = sorted_windows[index].get_xid()
 		self.windows.staging = True
 
 	def cycle(self, c_in):
