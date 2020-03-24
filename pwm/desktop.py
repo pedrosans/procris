@@ -14,7 +14,7 @@ class StatusIcon:
 
 	app_indicator: AppIndicator3.Indicator
 	autostart_item: Gtk.CheckMenuItem = Gtk.CheckMenuItem(label="Autostart")
-	decorations_item: Gtk.CheckMenuItem  = Gtk.CheckMenuItem(label="Remove decorations")
+	decorations_item: Gtk.CheckMenuItem = Gtk.CheckMenuItem(label="Remove decorations")
 	icons_submenu = Gtk.Menu()
 	layout_submenu = Gtk.Menu()
 	# Track reloading routine to stop any layout side effect when updating the UI
@@ -132,10 +132,17 @@ class StatusIcon:
 ICONNAME = 'pwm'
 ICON_STYLES_MAP = {'dark': "Dark icon", 'light': "Light icon"}
 status_icon: StatusIcon = None
+notification: Notify.Notification = None
+
 
 # https://lazka.github.io/pgi-docs/Notify-0.7/classes/Notification.html
 # https://developer.gnome.org/notification-spec
 def load():
+	global notification
+	Notify.init('pwm')
+	notification = Notify.Notification.new('pwm')
+	notification.set_app_name('pwm')
+	notification.set_hint('resident', GLib.Variant.new_boolean(True))
 	icon_path = xdg.IconTheme.getIconPath('pwm', size=96)
 	if icon_path:
 		icon_image = GdkPixbuf.Pixbuf.new_from_file(icon_path)
@@ -146,10 +153,6 @@ def load():
 		print(' The status icon may be invisible during this run')
 		print(' Images for the icon can be installed with "make install" or "./setup.py install"')
 		print('**********************************************************************************')
-	Notify.init('pwm')
-	notification = Notify.Notification.new('pwm')
-	notification.set_app_name('pwm')
-	notification.set_hint('resident', GLib.Variant.new_boolean(True))
 
 
 def connect():
@@ -165,6 +168,10 @@ def is_connected():
 
 def update():
 	status_icon.reload()
+
+
+def disconnect():
+	notification.close()
 
 
 def show_monitor(monitor: Monitor):
@@ -188,22 +195,3 @@ def show(summary: str = 'pwm', body: str = None, icon: str = 'pwm'):
 		return
 	notification.update(summary, body, icon)
 	notification.show()
-
-
-def connect():
-	import pwm.service
-	global status_icon
-	status_icon = StatusIcon(pwm.service.layout, stop_function=pwm.service.stop)
-	status_icon.activate()
-
-
-def is_connected():
-	return status_icon
-
-
-def update():
-	status_icon.reload()
-
-
-def disconnect():
-	notification.close()

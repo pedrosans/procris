@@ -43,6 +43,7 @@ def load():
 	applications.load()
 	terminal.load()
 	cache.load()
+	desktop.load()
 	_read_environment(Wnck.Screen.get_default(), cache.get_config_module())
 	_configure_process()
 
