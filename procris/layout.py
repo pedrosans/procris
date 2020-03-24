@@ -637,6 +637,7 @@ def biasedstack(stack: List[Wnck.Window], monitor: Monitor):
 
 
 FUNCTIONS_MAP = {
+	None: None,
 	'M': monocle, 'T': tile,
 	'C': centeredmaster, '>': centeredfloatingmaster, 'B': biasedstack,
 	'@': spiral, '\\': dwindle

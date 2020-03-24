@@ -1,7 +1,11 @@
 #!/usr/bin/env python3
 from distutils.core import setup
 
-FUNCTION_KEYS = ['', 'T', 'M', 'C', 'B']
+from procris.desktop import ICON_STYLES_MAP
+from procris.layout import FUNCTIONS_MAP
+
+FUNCTION_KEYS = FUNCTIONS_MAP
+ICON_STYLE_KEYS = ICON_STYLES_MAP
 
 icons = [
 	('/usr/share/icons/hicolor/symbolic', ['data/icon/procris.svg']),
@@ -9,14 +13,13 @@ icons = [
 ]
 
 for size in (16, 48, 96, 256):
-	for name_diff in ('', '-light'):
+	for name in ICON_STYLE_KEYS:
 		for layout_key in FUNCTION_KEYS:
-			key_func_name_diff = ''
-			if layout_key:
-				key_func_name_diff = key_func_name_diff + '-' + layout_key
+			function_segment = '-{}'.format(layout_key) if layout_key else ''
+			name_segment = '-{}'.format(name)
 			icons.append((
 				'/usr/share/icons/hicolor/{}x{}/apps'.format(size, size),
-				['data/icon/{}x{}/procris{}{}.png'.format(size, size, key_func_name_diff, name_diff)]))
+				['data/icon/{}x{}/procris{}{}.png'.format(size, size, function_segment, name_segment)]))
 
 setup(
 	name='Procris',

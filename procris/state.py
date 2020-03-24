@@ -150,13 +150,13 @@ def get_desktop_icon() -> str:
 	return loaded_interface_config['desktop_icon']
 
 
+def set_desktop_icon(icon):
+	loaded_interface_config['desktop_icon'] = icon
+	persist_interface_config()
+
+
 def is_desktop_notifications() -> bool:
 	return loaded_interface_config['desktop_notifications']
-
-
-def set_icon(icon):
-	loaded_interface_config['icon'] = icon
-	persist_interface_config()
 
 
 def is_remove_decorations() -> bool:
