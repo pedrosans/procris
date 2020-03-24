@@ -12,11 +12,12 @@ _export_sizes() {
 
 _export_sizes ""
 
-for LETTER in "T" "M" "C" "B" ; do
+for LETTER in "M" "T" "C" ">" "B" "@" "\\"; do
+	ESCAPED_LETTER=$(sed 's/[\/]/\\&/g'<<<"$LETTER")
 	SVG_NAME_DIFF="-$LETTER"
-	LETTER_SVG=$DIR/procris$SVG_NAME_DIFF.svg
-	cp $DIR/procris-layout.svg $LETTER_SVG
-	sed -i "s/X<\/tspan/$LETTER<\/tspan/" $LETTER_SVG
+	LETTER_SVG=$DIR/pwm$SVG_NAME_DIFF.svg
+	cp $DIR/pwm-layout.svg $LETTER_SVG
+	sed -i "s/X<\/tspan/$ESCAPED_LETTER<\/tspan/" $LETTER_SVG
 	_export_sizes $SVG_NAME_DIFF
 	rm $LETTER_SVG
 done
