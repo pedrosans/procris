@@ -2,14 +2,14 @@ import unittest
 import threading
 import time
 import warnings
-import procris.service as service
+import pwm.service as service
 from gi.repository import Wnck, Gtk, GLib, Gdk
 from subprocess import Popen
 
 WINDOW_NAME = 'test-window-term-name'
 
 
-class Procris(threading.Thread):
+class Application(threading.Thread):
 
 	def run(self) -> None:
 		service.load()
@@ -20,7 +20,7 @@ class Procris(threading.Thread):
 		self.join()
 
 
-procris = Procris()
+application = Application()
 
 
 class ServiceIntegrationTestCase(unittest.TestCase):
@@ -28,11 +28,11 @@ class ServiceIntegrationTestCase(unittest.TestCase):
 	def setUpClass(cls=None) -> None:
 		warnings.filterwarnings("ignore", category=DeprecationWarning)
 		warnings.filterwarnings("ignore", category=ResourceWarning)
-		procris.start()
+		application.start()
 		time.sleep(2)
 
 	def tearDownClass(cls=None) -> None:
-		procris.stop()
+		application.stop()
 
 	def test_open_close_window(self):
 		service.message('edit Calculator')

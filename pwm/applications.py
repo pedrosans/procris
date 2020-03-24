@@ -20,8 +20,8 @@ import xdg.Exceptions
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gdk, GLib, Gio, GdkX11
 from datetime import datetime
-from procris.messages import Message
-from procris.wm import UserEvent
+from pwm.messages import Message
+from pwm.wm import UserEvent
 
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk

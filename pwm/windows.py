@@ -16,17 +16,17 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import gi, os, re
-import procris.messages as messages
-import procris.state as configurations
-from procris import decoration
+import pwm.messages as messages
+import pwm.state as configurations
+from pwm import decoration
 
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Callable
-from procris.names import PROMPT
-from procris.wm import gdk_window_for, monitor_work_area_for, set_geometry, resize, is_visible, \
+from pwm.names import PROMPT
+from pwm.wm import gdk_window_for, monitor_work_area_for, set_geometry, resize, is_visible, \
 	get_active_window, decoration_delta, UserEvent
-from procris.decoration import DECORATION_MAP
+from pwm.decoration import DECORATION_MAP
 
 
 class Axis:
@@ -145,7 +145,7 @@ class Windows:
 	#
 	def list(self, c_in):
 		messages.add(messages.Message(PROMPT + c_in.text, 'info'))
-		from procris.view import BufferName
+		from pwm.view import BufferName
 		for window in self.buffers:
 			messages.add(BufferName(window, self))
 

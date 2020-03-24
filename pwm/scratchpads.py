@@ -20,7 +20,7 @@ import gi
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Callable
-from procris.wm import is_visible
+from pwm.wm import is_visible
 
 
 class Scratchpad:

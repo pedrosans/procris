@@ -1,11 +1,11 @@
 import unittest
 
-import procris.assistant
-import procris.names as names
-import procris.terminal as terminal
+import pwm.assistant
+import pwm.names as names
+import pwm.terminal as terminal
 from unittest.mock import MagicMock
-from procris.assistant import Completion
-from procris.wm import UserEvent
+from pwm.assistant import Completion
+from pwm.wm import UserEvent
 
 
 class AssistantTestCase(unittest.TestCase):

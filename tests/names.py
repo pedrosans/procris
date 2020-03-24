@@ -1,5 +1,5 @@
 import unittest
-from procris.wm import UserEvent
+from pwm.wm import UserEvent
 
 
 class CommandInputTestCase(unittest.TestCase):

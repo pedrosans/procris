@@ -1,4 +1,4 @@
-import procris.applications as applications
+import pwm.applications as applications
 import unittest
 
 applications.load()

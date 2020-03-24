@@ -15,8 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi
-import procris.state as persistor
-from procris.wm import gdk_window_for, UserEvent
+import pwm.state as persistor
+from pwm.wm import gdk_window_for, UserEvent
 
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk

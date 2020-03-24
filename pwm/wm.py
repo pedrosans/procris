@@ -18,12 +18,12 @@ import os
 import re
 import gi
 import traceback
-import procris.state as config
+import pwm.state as config
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 from datetime import datetime
 from typing import Callable
-from procris import state
+from pwm import state
 
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH | Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
 CONFIGURE_EVENT_TYPE = Gdk.EventType.CONFIGURE

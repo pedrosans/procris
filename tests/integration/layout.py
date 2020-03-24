@@ -2,9 +2,9 @@ import unittest
 from datetime import datetime
 import tests.integration
 import gi
-import procris.applications as applications
-from procris.layout import Layout
-from procris.windows import Windows
+import pwm.applications as applications
+from pwm.layout import Layout
+from pwm.windows import Windows
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 

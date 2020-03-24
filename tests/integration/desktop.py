@@ -9,7 +9,7 @@ class XdgIntegrationTestCase(unittest.TestCase):
 
 	def test_list_application_names(self):
 		import xdg.IconTheme
-		p = xdg.IconTheme.getIconPath('procris-T')
+		p = xdg.IconTheme.getIconPath('pwm-T')
 		GdkPixbuf.Pixbuf.new_from_file(p)
 
 		print(p)

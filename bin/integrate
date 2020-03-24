@@ -3,4 +3,4 @@
 # in the same bash where this script is sourced
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 export PYTHONPATH="$(dirname $DIR)"
-export LAUNCH_SCRIPT="$PYTHONPATH/bin/procris open"
+export LAUNCH_SCRIPT="$PYTHONPATH/bin/pwm start"

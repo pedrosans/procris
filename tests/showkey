@@ -7,8 +7,8 @@ from Xlib.protocol import rq
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GObject, GLib
-from procris.keyboard import KeyboardListener
-import procris.keyboard as keyboard
+from pwm.keyboard import KeyboardListener
+import pwm.keyboard as keyboard
 
 
 def handle(event):
@@ -21,7 +21,7 @@ def handle(event):
 	code = event.detail
 	mask = keyboard.normalize_state(event.state)
 	key_name = Gdk.keyval_name(keyval)
-	print('NORMALIZED USING PROCRIS:')
+	print('NORMALIZED USING pwm:')
 	print('     keyval: {}'.format(keyval))
 	print('     code: {}'.format(code))
 	print('     mask: {}'.format(mask))

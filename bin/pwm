@@ -19,41 +19,41 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import argparse
 
 parser = argparse.ArgumentParser()
-commands_parser = parser.add_subparsers(help='procris sub-commands help', dest='action')
-commands_parser.add_parser('start',	 help='Start procris service')
-commands_parser.add_parser('stop',	 help='Stop the running procris service if any')
-commands_parser.add_parser('status', help='Show the status of procris service')
+commands_parser = parser.add_subparsers(help='pwm sub-commands help', dest='action')
+commands_parser.add_parser('start',	 help='Start pwm service')
+commands_parser.add_parser('stop',	 help='Stop the running pwm service if any')
+commands_parser.add_parser('status', help='Show the status of pwm service')
 parser.add_argument('-c', required=False)
 
 args = parser.parse_args()
 
 if args.action == 'start':
-	import procris.service
-	procris.service.load()
-	procris.service.start()
+	import pwm.service
+	pwm.service.load()
+	pwm.service.start()
 elif args.action == 'stop':
-	import procris.remote as remote
+	import pwm.remote as remote
 	proxy = remote.get_proxy()
 	if proxy:
 		proxy.stop_running_instance()
 		print("Remote instance were stopped")
 	else:
-		print("procris is not running")
+		print("pwm is not running")
 elif args.action == 'status':
-	import procris.remote as remote
+	import pwm.remote as remote
 	proxy = remote.get_proxy()
 	if proxy:
 		print("Active, pid: " + proxy.get_running_instance_id())
 	else:
 		print("Inactive")
 elif args.c:
-	import procris.service
-	import procris.wm as wm
-	import procris.names as names
-	procris.service.load()
+	import pwm.service
+	import pwm.wm as wm
+	import pwm.names as names
+	pwm.service.load()
 	c_in = wm.UserEvent(text=args.c)
 	function = names.match(c_in).function
-	procris.service.call(function, c_in)
-	procris.service.messages.print_to_console()
+	pwm.service.call(function, c_in)
+	pwm.service.messages.print_to_console()
 else:
 	parser.print_help()

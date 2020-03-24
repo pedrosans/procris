@@ -14,20 +14,20 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, procris
-import procris.messages as messages
-import procris.names as names
-import procris.state as configurations
-import procris.service as service
+import gi, pwm
+import pwm.messages as messages
+import pwm.names as names
+import pwm.state as configurations
+import pwm.service as service
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gtk, Gdk, GLib
-from procris.view import ReadingWindow
-from procris.names import PromptHistory
-from procris.wm import UserEvent
-from procris.windows import Windows
-from procris.assistant import Completion
+from pwm.view import ReadingWindow
+from pwm.names import PromptHistory
+from pwm.wm import UserEvent
+from pwm.windows import Windows
+from pwm.assistant import Completion
 
 HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]
 HINT_LEFT = [Gdk.KEY_Left]

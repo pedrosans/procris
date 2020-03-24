@@ -22,12 +22,12 @@ import os
 import json
 
 
-PROCRIS_DESKTOP = 'procris.desktop'
-PROCRIS_PACKAGE = 'procris'
+PWM_DESKTOP = 'pwm.desktop'
+PWM_PACKAGE = 'pwm'
 auto_start_dir = Base.save_config_path("autostart")
-auto_start_file = os.path.join(auto_start_dir, PROCRIS_DESKTOP)
-config_dir = Base.save_config_path(PROCRIS_PACKAGE)
-cache_dir = Base.save_cache_path(PROCRIS_PACKAGE)
+auto_start_file = os.path.join(auto_start_dir, PWM_DESKTOP)
+config_dir = Base.save_config_path(PWM_PACKAGE)
+cache_dir = Base.save_cache_path(PWM_PACKAGE)
 workspace_file = cache_dir + '/workspace.json'
 decorations_file = cache_dir + '/decoration.json'
 config_file = cache_dir + '/config.json'
@@ -38,7 +38,7 @@ config_module: ModuleType = None
 
 
 #
-# Wherever exists in between procris.stop() and procris.start()
+# Wherever exists in between pwm.stop() and pwm.start()
 #
 def load():
 	global loaded_interface_config, loaded_workspace_config, loaded_decorations, config_module
@@ -111,7 +111,7 @@ def read_config_module():
 		print(
 			'info: not possible to load custom config at: {}'.format(get_custom_mappings_module_path()))
 
-	import procris.config as default_config
+	import pwm.config as default_config
 	return default_config
 
 
@@ -201,9 +201,9 @@ def is_autostart():
 def set_autostart( auto_start):
 	dfile = Desktop.DesktopEntry(auto_start_file)
 	dfile.set("X-GNOME-Autostart-enabled", str(auto_start).lower())
-	dfile.set("Name", "procris")
-	dfile.set("Icon", "procris")
-	dfile.set("Exec", "procris start")
+	dfile.set("Name", "pwm")
+	dfile.set("Icon", "pwm")
+	dfile.set("Exec", "pwm start")
 	dfile.write(filename=auto_start_file)
 
 
@@ -211,7 +211,7 @@ def set_autostart( auto_start):
 # UTIL
 #
 def get_css_file_path():
-	return os.path.join(config_dir, "procris.css")
+	return os.path.join(config_dir, "pwm.css")
 
 
 def get_custom_mappings_module_path():

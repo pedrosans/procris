@@ -1,17 +1,17 @@
-from procris.keyboard import Key
-from procris.names import Name
-import procris
+from pwm.keyboard import Key
+from pwm.names import Name
+import pwm
 
-service = procris.service
+service = pwm.service
 layout = service.layout
 windows = service.windows
 reading = service.reading
-terminal = procris.terminal
-decoration = procris.decoration
-scratchpads = procris.scratchpads
-applications = procris.applications
+terminal = pwm.terminal
+decoration = pwm.decoration
+scratchpads = pwm.scratchpads
+applications = pwm.applications
 
-procris.state.force_defaults()
+pwm.state.force_defaults()
 
 DEFAULTS = {
 	'position': 'bottom',
@@ -54,8 +54,8 @@ KEYS = [
 	Key('<Ctrl>f', layout.change_function, parameters=[None]),
 	Key('<Ctrl><Shift>j', layout.swap_focused_with, parameters=[1]),
 	Key('<Ctrl><Shift>k', layout.swap_focused_with, parameters=[-1]),
-	Key('<Ctrl>q', procris.service.read_command_key, plexes=[
-		Key('Escape', procris.service.escape_reading),
+	Key('<Ctrl>q', pwm.service.read_command_key, plexes=[
+		Key('Escape', pwm.service.escape_reading),
 		Key('<Ctrl>e', windows.active.focus.cycle),
 		Key('<Ctrl>w', windows.active.focus.cycle),
 		Key('<Shift>w', windows.active.focus.cycle),

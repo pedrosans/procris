@@ -1,6 +1,6 @@
 [Desktop Entry]
 Type=Application
-Name=Procris
-Icon=procris
-Exec=procris start
+Name=pwm
+Icon=pwm
+Exec=pwm start
 Categories=Utility;

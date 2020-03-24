@@ -16,13 +16,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
 import gi, traceback
-import procris.desktop as desktop
+import pwm.desktop as desktop
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk, GLib
 from typing import List, Dict
-from procris import scratchpads, state
-from procris.windows import Windows
-from procris.wm import set_geometry, is_visible, resize, is_buffer, get_active_window, is_on_primary_monitor, \
+from pwm import scratchpads, state
+from pwm.windows import Windows
+from pwm.wm import set_geometry, is_visible, resize, is_buffer, get_active_window, is_on_primary_monitor, \
 	get_height, DirtyState, X_Y_W_H_GEOMETRY_MASK, gdk_window_for, Trap, Monitor, monitor_for, UserEvent, get_width
 
 
@@ -385,7 +385,7 @@ class Layout:
 					FUNCTIONS_MAP[monitor.function_key].__name__ if monitor.function_key else None, m.is_primary())
 				resume += '\t\t[GDK]\t\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
 					rect.x, rect.y, rect.width, rect.height)
-				resume += '\t\t[PROCRIS]\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
+				resume += '\t\t[pwm]\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
 					monitor.wx, monitor.wy, monitor.ww, monitor.wh)
 
 				resume += '\t\t[Stack]\t\t('

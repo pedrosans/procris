@@ -1,4 +1,4 @@
-_procris ()
+_pwm ()
 {
   local cur
   cur=${COMP_WORDS[COMP_CWORD]}
@@ -7,4 +7,4 @@ _procris ()
   return 0
 }
 
-complete -F _procris -o filenames procris
+complete -F _pwm -o filenames pwm

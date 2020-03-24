@@ -6,7 +6,7 @@ from Xlib import X
 from Xlib.ext import record
 from Xlib.display import Display
 from Xlib.protocol import rq
-from procris.keyboard import normalize_state, format_key_event
+from pwm.keyboard import normalize_state, format_key_event
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 CONTEXT_FILTER = [{

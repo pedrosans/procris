@@ -16,9 +16,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import os, glob, subprocess, shlex, re, traceback
-import procris.messages as messages
+import pwm.messages as messages
 from subprocess import PIPE
-from procris.wm import UserEvent
+from pwm.wm import UserEvent
 
 COMMANDS_GLOB = ["/usr/bin/*", "/snap/bin/*", os.path.expanduser('~/.local/bin')+'/*']
 ALIAS_PATTERN = r'^\s*alias\s+.*$'

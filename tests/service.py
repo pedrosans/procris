@@ -1,8 +1,8 @@
 import unittest
 
 from unittest.mock import MagicMock
-from procris.wm import UserEvent
-import procris.service as service
+from pwm.wm import UserEvent
+import pwm.service as service
 
 
 class ServiceTestCase(unittest.TestCase):

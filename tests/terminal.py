@@ -1,6 +1,6 @@
 import unittest
-import procris.terminal as terminal
-from procris.wm import UserEvent
+import pwm.terminal as terminal
+from pwm.wm import UserEvent
 
 
 class TerminalTestCase(unittest.TestCase):

@@ -15,14 +15,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi, io
-import procris.messages as messages
-import procris.state as configurations
-import procris.names as names
+import pwm.messages as messages
+import pwm.state as configurations
+import pwm.names as names
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
 from gi.repository import Gtk, Gdk, Pango, GLib
-from procris.windows import Windows
+from pwm.windows import Windows
 
 
 def create_icon_image(window: Wnck.Window, size):
@@ -35,7 +35,7 @@ def create_icon_image(window: Wnck.Window, size):
 class ReadingWindow(Gtk.Window):
 
 	def __init__(self, controller, windows):
-		Gtk.Window.__init__(self, title="procris")
+		Gtk.Window.__init__(self, title="pwm")
 
 		self.columns = 100
 

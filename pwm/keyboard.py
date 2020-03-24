@@ -48,7 +48,7 @@ def format_key_event(event: Xlib.protocol.event.KeyPress):
 	print('\nX:')
 	print('\tcode: {}'.format(event.detail))
 	print('\tmask: {} named: {}'.format(event.state, clean_mask(str(Gdk.ModifierType(event.state)))))
-	print('PROCRIS:')
+	print('pwm:')
 
 	normalized_mask = normalize_state(event.state)
 	print('\tnormalized mask: {} named: {}'.format(

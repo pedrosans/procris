@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import re
 from typing import Callable
 
-from procris.wm import UserEvent
+from pwm.wm import UserEvent
 
 LIST = []
 NAME_MAP = {}

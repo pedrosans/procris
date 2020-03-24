@@ -32,15 +32,15 @@ class ForeignInterface (ExportedGObject):
 		bus_name = dbus.service.BusName(SERVICE_NAME, BUS)
 		super(ForeignInterface, self).__init__(conn=BUS, object_path=SERVICE_OBJECT_PATH, bus_name=bus_name)
 
-	@dbus.service.method("io.github.procris.Service", in_signature='', out_signature='s')
+	@dbus.service.method("io.github.pwm.Service", in_signature='', out_signature='s')
 	def get_id(self):
 		return str(os.getpid())
 
-	@dbus.service.method("io.github.procris.Service", in_signature='s', out_signature='')
+	@dbus.service.method("io.github.pwm.Service", in_signature='s', out_signature='')
 	def message(self, ipc_message):
 		self.ipc_handler(ipc_message)
 
-	@dbus.service.method("io.github.procris.Service", in_signature='', out_signature='')
+	@dbus.service.method("io.github.pwm.Service", in_signature='', out_signature='')
 	def stop(self):
 		self.stop()
 
@@ -52,15 +52,15 @@ class Proxy:
 
 	def send_message(self, ipc_message):
 		self.dbus_proxy.get_dbus_method(
-			'message', 'io.github.procris.Service'
+			'message', 'io.github.pwm.Service'
 		)(ipc_message)
 
 	def get_running_instance_id(self):
-		get_remote_id = self.dbus_proxy.get_dbus_method('get_id', 'io.github.procris.Service')
+		get_remote_id = self.dbus_proxy.get_dbus_method('get_id', 'io.github.pwm.Service')
 		return get_remote_id()
 
 	def stop_running_instance(self):
-		quit_function = self.dbus_proxy.get_dbus_method('stop', 'io.github.procris.Service')
+		quit_function = self.dbus_proxy.get_dbus_method('stop', 'io.github.pwm.Service')
 		quit_function()
 
 
@@ -70,7 +70,7 @@ def export(ipc_handler: Callable = None, stop: Callable = None) -> ForeignInterf
 
 def release():
 	BUS.release_name(SERVICE_NAME)
-	print('procris service were released from bus')
+	print('pwm service were released from bus')
 
 
 def get_proxy() -> Proxy:
@@ -84,5 +84,5 @@ dbus.mainloop.glib.threads_init()
 BUS = dbus.Bus()
 if not BUS:
 	print("no bus session")
-SERVICE_NAME = "io.github.procris"
-SERVICE_OBJECT_PATH = "/io/github/procris"
+SERVICE_NAME = "io.github.pwm"
+SERVICE_OBJECT_PATH = "/io/github/pwm"

@@ -4,9 +4,9 @@ _export_sizes() {
 	NAMEDIFF=$1
 	for SIZE in 16 48 96 256 ; do
 		mkdir -p $DIR/$SIZE'x'$SIZE
-		inkscape -z -e $DIR/$SIZE'x'$SIZE/procris$NAMEDIFF.png -w $SIZE -h $SIZE $DIR/procris$NAMEDIFF.svg 1>/dev/null
-		# inkscape -z -e $DIR/$SIZE'x'$SIZE/procris-dark.png -w $SIZE -h $SIZE $DIR/$MODEL.svg
-		convert $DIR/$SIZE'x'$SIZE/procris$NAMEDIFF.png -channel RGB -negate $DIR/$SIZE'x'$SIZE/procris$NAMEDIFF-light.png 1>/dev/null
+		inkscape -z -e $DIR/$SIZE'x'$SIZE/pwm$NAMEDIFF-dark.png -w $SIZE -h $SIZE $DIR/pwm$NAMEDIFF.svg 1>/dev/null
+		# inkscape -z -e $DIR/$SIZE'x'$SIZE/pwm-dark.png -w $SIZE -h $SIZE $DIR/$MODEL.svg
+		convert $DIR/$SIZE'x'$SIZE/pwm$NAMEDIFF-dark.png -channel RGB -negate $DIR/$SIZE'x'$SIZE/pwm$NAMEDIFF-light.png 1>/dev/null
 	done
 }
 

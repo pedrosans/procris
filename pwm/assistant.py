@@ -15,9 +15,9 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import re
-import procris.names as names
-import procris.state as configurations
-from procris.names import Name
+import pwm.names as names
+import pwm.state as configurations
+from pwm.names import Name
 
 
 class Completion:

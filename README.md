@@ -1,4 +1,4 @@
-# ![alt text](data/icon/procris.svg "Procris logo") Procris
+# ![alt text](data/icon/pwm.svg "Procris logo") Procris
 
 Procris is a desktop environment plugin that adds tiling features from mainly dwm and Vim to the desktop environment of choice.
 
@@ -271,7 +271,7 @@ means both an application and a window. So the bellow commands will:
 
 A custom mappings module can be provided by placing its definition in `~/.config/procris/mappings.py`.
 In the case of a custom module, it will be loaded instead of the default one. The default one at
-[procris/mappings.py](procris/config.py) is meant to be a starting point.
+[procris/mappings.py](pwm/config.py) is meant to be a starting point.
 
 #### Interface
 
@@ -295,7 +295,7 @@ width = 100%
 ```
 
 The style can be customized by placing a custom css at `~/.config/procris/procris.css`.
-The default CSS in the module [view](procris/view.py) is meant to be used as a reference.
+The default CSS in the module [view](pwm/view.py) is meant to be used as a reference.
 A possible customization example is:
 
 ```css

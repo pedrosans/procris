@@ -21,22 +21,22 @@ xlib_support_initialized = x11.XInitThreads()
 if not xlib_support_initialized:
 	raise Exception('Unable to initialize Xlib support for multiple threads.')
 import os, gi, signal, setproctitle, traceback
-import procris.names as names
-import procris.state as cache
-import procris.applications as applications
-import procris.messages as messages
-import procris.terminal as terminal
-import procris.remote as remote
-import procris.desktop as desktop
+import pwm.names as names
+import pwm.state as cache
+import pwm.applications as applications
+import pwm.messages as messages
+import pwm.terminal as terminal
+import pwm.remote as remote
+import pwm.desktop as desktop
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gtk, GLib
 from types import ModuleType
-from procris.reading import Reading
-from procris.keyboard import KeyboardListener, Key
-from procris.layout import Layout
-from procris.windows import Windows
-from procris.wm import UserEvent
+from pwm.reading import Reading
+from pwm.keyboard import KeyboardListener, Key
+from pwm.layout import Layout
+from pwm.windows import Windows
+from pwm.wm import UserEvent
 
 
 def load():
@@ -58,7 +58,7 @@ def _read_environment(screen: Wnck.Screen, config: ModuleType):
 
 def _configure_process():
 	Wnck.set_client_type(Wnck.ClientType.PAGER)
-	setproctitle.setproctitle("procris")
+	setproctitle.setproctitle("pwm")
 	unix_signal_add = _signal_function()
 	for sig in (SIGINT, SIGTERM, SIGHUP):
 		unix_signal_add(GLib.PRIORITY_HIGH, sig, _unix_signal_handler, sig)
@@ -70,7 +70,7 @@ def _configure_process():
 def start():
 
 	if remote.get_proxy():
-		print("procris is already running, pid: " + remote.get_proxy().get_running_instance_id())
+		print("pwm is already running, pid: " + remote.get_proxy().get_running_instance_id())
 		quit()
 
 	remote.export(ipc_handler=message, stop=stop)
@@ -80,7 +80,7 @@ def start():
 	listener.start()
 	desktop.connect()
 	Gtk.main()
-	print("Ending procris service, pid: {}".format(os.getpid()))
+	print("Ending pwm service, pid: {}".format(os.getpid()))
 
 
 def stop():

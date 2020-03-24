@@ -1,13 +1,13 @@
-import procris.layout
-import procris.state as state
+import pwm.layout
+import pwm.state as state
 import xdg.IconTheme
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
 gi.require_version('Notify', '0.7')
-from procris import state as configurations
+from pwm import state as configurations
 from gi.repository import Notify, Gtk, GLib, GdkPixbuf, AppIndicator3
-from procris.wm import Monitor, get_active_workspace, UserEvent
+from pwm.wm import Monitor, get_active_workspace, UserEvent
 
 
 class StatusIcon:
@@ -22,7 +22,7 @@ class StatusIcon:
 
 	def __init__(self, layout, stop_function=None):
 		self.stop_function = stop_function
-		self.layout: procris.layout.Layout = layout
+		self.layout: pwm.layout.Layout = layout
 		self.menu = Gtk.Menu()
 
 		self.autostart_item.connect("toggled", self._change_autostart)
@@ -57,8 +57,8 @@ class StatusIcon:
 		layout_menu_item = Gtk.MenuItem(label="Layout")
 		layout_menu_item.set_submenu(self.layout_submenu)
 
-		for function_key in procris.layout.FUNCTIONS_MAP.keys():
-			function = procris.layout.FUNCTIONS_MAP[function_key]
+		for function_key in pwm.layout.FUNCTIONS_MAP.keys():
+			function = pwm.layout.FUNCTIONS_MAP[function_key]
 			name = function.__name__ if function else 'none'
 			menu_item = Gtk.RadioMenuItem(
 				label=name,
@@ -73,7 +73,7 @@ class StatusIcon:
 		self.decorations_item.set_active(configurations.is_remove_decorations())
 		self.autostart_item.set_active(configurations.is_autostart())
 
-		self.app_indicator = AppIndicator3.Indicator.new("procris", ICONNAME, AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
+		self.app_indicator = AppIndicator3.Indicator.new("pwm", ICONNAME, AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
 		self.app_indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
 		self.app_indicator.set_menu(self.menu)
 		self.menu.show_all()
@@ -91,7 +91,7 @@ class StatusIcon:
 		for item in self.layout_submenu.get_children():
 			item.set_active(item.function_key == function_key)
 
-		sys_icon = 'procris'
+		sys_icon = 'pwm'
 		if function_key:
 			sys_icon = sys_icon + '-' + function_key
 		if iconname == "dark" or iconname == "light":
@@ -108,7 +108,7 @@ class StatusIcon:
 			function_key = radio_menu_item.function_key
 			event = UserEvent(time=Gtk.get_current_event_time())
 			event.parameters = [function_key]
-			import procris.service as service
+			import pwm.service as service
 			service.call(self.layout.change_function, event)
 
 	def _change_icon(self, radio_menu_item: Gtk.RadioMenuItem):
@@ -129,25 +129,42 @@ class StatusIcon:
 		self.stop_function()
 
 
-ICONNAME = 'procris'
+ICONNAME = 'pwm'
 ICON_STYLES_MAP = {'dark': "Dark icon", 'light': "Light icon"}
+status_icon: StatusIcon = None
 
 # https://lazka.github.io/pgi-docs/Notify-0.7/classes/Notification.html
 # https://developer.gnome.org/notification-spec
-IMAGE_PATHS = {
-	'procris': xdg.IconTheme.getIconPath('procris', size=96),
-}
-IMAGES = {
-	'procris': GdkPixbuf.Pixbuf.new_from_file(IMAGE_PATHS['procris']),
-}
+def load():
+	icon_path = xdg.IconTheme.getIconPath('pwm', size=96)
+	if icon_path:
+		icon_image = GdkPixbuf.Pixbuf.new_from_file(icon_path)
+		notification.set_image_from_pixbuf(icon_image)
+	else:
+		print('**********************************************************************************')
+		print(' No image found for status icon and notifications.')
+		print(' The status icon may be invisible during this run')
+		print(' Images for the icon can be installed with "make install" or "./setup.py install"')
+		print('**********************************************************************************')
+	Notify.init('pwm')
+	notification = Notify.Notification.new('pwm')
+	notification.set_app_name('pwm')
+	notification.set_hint('resident', GLib.Variant.new_boolean(True))
 
 
-status_icon: StatusIcon = None
-Notify.init('procris')
-notification = Notify.Notification.new('Procris')
-notification.set_app_name('procris')
-notification.set_image_from_pixbuf(IMAGES['procris'])
-notification.set_hint('resident', GLib.Variant.new_boolean(True))
+def connect():
+	import pwm.service
+	global status_icon
+	status_icon = StatusIcon(pwm.service.layout, stop_function=pwm.service.stop)
+	status_icon.activate()
+
+
+def is_connected():
+	return status_icon
+
+
+def update():
+	status_icon.reload()
 
 
 def show_monitor(monitor: Monitor):
@@ -163,10 +180,10 @@ def show_monitor(monitor: Monitor):
 		if monitor:
 			html += '\r'
 	workspace_number: int = get_active_workspace().get_number()
-	show(summary='Procris - workspace {}'.format(workspace_number), body=html, icon='procris')
+	show(summary='pwm - workspace {}'.format(workspace_number), body=html, icon='pwm')
 
 
-def show(summary: str = 'Procris', body: str = None, icon: str = 'procris'):
+def show(summary: str = 'pwm', body: str = None, icon: str = 'pwm'):
 	if not state.is_desktop_notifications():
 		return
 	notification.update(summary, body, icon)
@@ -174,9 +191,9 @@ def show(summary: str = 'Procris', body: str = None, icon: str = 'procris'):
 
 
 def connect():
-	import procris.service
+	import pwm.service
 	global status_icon
-	status_icon = StatusIcon(procris.service.layout, stop_function=procris.service.stop)
+	status_icon = StatusIcon(pwm.service.layout, stop_function=pwm.service.stop)
 	status_icon.activate()
 
 

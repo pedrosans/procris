@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
-from procris.windows import Windows
-import procris.terminal as terminal
+from pwm.windows import Windows
+import pwm.terminal as terminal
 
 import tests.integration
 terminal.load()
