@@ -246,9 +246,6 @@ class Monitor:
 		self.ww = self.visible_area.width - outer_gap * 2
 		self.wh = self.visible_area.height - outer_gap * 2
 
-	def set_function(self, key: str):
-		self.function_key = key
-
 	def increase_master_area(self, increment: float = None):
 		self.mfact += increment
 		self.mfact = max(0.1, self.mfact)

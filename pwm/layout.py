@@ -41,9 +41,11 @@ class Layout:
 	window_by_xid: Dict[int, Wnck.Window] = {}
 	handlers_by_xid: Dict[int, int] = {}
 	screen_handlers: List[int] = []
+	function_keys_well = List
 
 	def __init__(self, windows: Windows):
 		self.windows: Windows = windows
+		self.function_keys_well = list(reversed(list(FUNCTIONS_MAP.keys())))
 
 	def get_active_stack(self) -> List[int]:
 		return self.stack_for(Wnck.Screen.get_default().get_active_workspace())
@@ -247,14 +249,23 @@ class Layout:
 	# COMMANDS
 	#
 	def change_function(self, c_in: UserEvent):
-		function_key = c_in.parameters[0]
 		promote_selected = False if len(c_in.parameters) < 2 else c_in.parameters[1]
 		active = get_active_managed_window()
 		if promote_selected and active:
 			stack = self.get_active_stack()
 			old_index = stack.index(active.get_xid())
 			stack.insert(0, stack.pop(old_index))
-		self.get_active_monitor().set_function(function_key)
+		function_key = c_in.parameters[0]
+		self._set_function(function_key)
+
+	def cycle_function(self, c_in: UserEvent):
+		active_primary_monitor: Monitor = self.get_active_monitor()
+		index = self.function_keys_well.index(active_primary_monitor.function_key)
+		self._set_function(self.function_keys_well[index - 1])
+
+	def _set_function(self, key):
+		active_primary_monitor: Monitor = self.get_active_monitor()
+		active_primary_monitor.function_key = key
 		self.apply()
 		self.persist()
 		desktop.show_monitor(self.get_active_primary_monitor())

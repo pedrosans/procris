@@ -27,51 +27,52 @@ DEFAULTS = {
 	'workspaces': [
 		{
 			'monitors': [
-				{'nmaster': 1, 'mfact': 0.5, 'function': None},
-				{'nmaster': 1, 'mfact': 0.5, 'function': None}
+				{'nmaster': 1, 'mfact': 0.55, 'function': None},
+				{'nmaster': 1, 'mfact': 0.55, 'function': None}
 			]
 		},
 		{
 			'monitors': [
-				{'function': None},
-				{'function': None}
+				{'nmaster': 1, 'mfact': 0.55, 'function': None},
+				{'nmaster': 1, 'mfact': 0.55, 'function': None}
 			]
 		}
 	]
 }
 KEYS = [
-	Key('<Ctrl>Return', layout.move_to_master),
-	Key('<Ctrl>KP_Enter', layout.move_to_master),
-	Key('<Ctrl>i', layout.increment_master, parameters=[1]),
-	Key('<Ctrl>d', layout.increment_master, parameters=[-1]),
-	Key('<Ctrl>j', layout.move_focus, parameters=[1]),
-	Key('<Ctrl>k', layout.move_focus, parameters=[-1]),
-	Key('<Ctrl>l', layout.increase_master_area, parameters=[0.05]),
-	Key('<Ctrl>h', layout.increase_master_area, parameters=[-0.05]),
-	Key('<Ctrl>u', layout.change_function, parameters=['C']),
-	Key('<Ctrl>t', layout.change_function, parameters=['T']),
-	Key('<Ctrl>m', layout.change_function, parameters=['M']),
-	Key('<Ctrl>f', layout.change_function, parameters=[None]),
-	Key('<Ctrl><Shift>j', layout.swap_focused_with, parameters=[1]),
-	Key('<Ctrl><Shift>k', layout.swap_focused_with, parameters=[-1]),
-	Key('<Ctrl>q', pwm.service.read_command_key, plexes=[
+	Key('<CTRL>Return', layout.move_to_master),
+	Key('<CTRL>KP_Enter', layout.move_to_master),
+	Key('<CTRL>i', layout.increment_master, parameters=[1]),
+	Key('<CTRL>d', layout.increment_master, parameters=[-1]),
+	Key('<CTRL>l', layout.increase_master_area, parameters=[0.05]),
+	Key('<CTRL>h', layout.increase_master_area, parameters=[-0.05]),
+	Key('<CTRL>j', layout.move_focus, parameters=[1]),
+	Key('<CTRL>k', layout.move_focus, parameters=[-1]),
+	Key('<CTRL><SHIFT>j', layout.swap_focused_with, parameters=[1]),
+	Key('<CTRL><SHIFT>k', layout.swap_focused_with, parameters=[-1]),
+	Key('<CTRL>u', layout.change_function, parameters=['C']),
+	Key('<CTRL>t', layout.change_function, parameters=['T']),
+	Key('<CTRL>m', layout.change_function, parameters=['M']),
+	Key('<CTRL>f', layout.change_function, parameters=[None]),
+	Key('<CTRL>space', layout.cycle_function, parameters=[None]),
+	Key('<CTRL>q', pwm.service.read_command_key, plexes=[
 		Key('Escape', pwm.service.escape_reading),
-		Key('<Ctrl>e', windows.active.focus.cycle),
-		Key('<Ctrl>w', windows.active.focus.cycle),
-		Key('<Shift>w', windows.active.focus.cycle),
+		Key('<CTRL>e', windows.active.focus.cycle),
+		Key('<CTRL>w', windows.active.focus.cycle),
+		Key('<SHIFT>w', windows.active.focus.cycle),
 		Key('w', windows.active.focus.cycle),
 		Key('q', windows.active.minimize),
 		Key('o', windows.active.only),
-		Key('<Ctrl>o', windows.active.only),
+		Key('<CTRL>o', windows.active.only),
 		Key('l', windows.active.focus.move_right),
 		Key('p', windows.active.focus.move_to_previous),
-		Key('<Ctrl>l', windows.active.focus.move_right),
+		Key('<CTRL>l', windows.active.focus.move_right),
 		Key('j', windows.active.focus.move_down),
-		Key('<ctrl>j', windows.active.focus.move_down),
+		Key('<CTRL>j', windows.active.focus.move_down),
 		Key('h', windows.active.focus.move_left),
-		Key('<Ctrl>h', windows.active.focus.move_left),
+		Key('<CTRL>h', windows.active.focus.move_left),
 		Key('k', windows.active.focus.move_up),
-		Key('<Ctrl>k', windows.active.focus.move_up),
+		Key('<CTRL>k', windows.active.focus.move_up),
 	])
 ]
 NAMES = [
