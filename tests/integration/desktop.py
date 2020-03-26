@@ -1,19 +1,13 @@
 import unittest
-import gi
-import xdg.IconTheme
-gi.require_version('Notify', '0.7')
-from gi.repository import Notify, GLib,  GdkPixbuf
+import pwm.desktop
 
 
 class XdgIntegrationTestCase(unittest.TestCase):
 
-	def test_list_application_names(self):
-		import xdg.IconTheme
-		p = xdg.IconTheme.getIconPath('pwm-T')
-		GdkPixbuf.Pixbuf.new_from_file(p)
-
-		print(p)
-
+	def test_load_theme(self):
+		pwm.desktop.load()
+		self.assertIsNotNone(pwm.desktop.ICON_STYLES_MAP.keys())
+		pwm.desktop.unload()
 
 
 if __name__ == '__main__':

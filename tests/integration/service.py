@@ -49,25 +49,6 @@ class ServiceIntegrationTestCase(unittest.TestCase):
 		time.sleep(1)
 		self.assertNotIn('Calculator', service.messages.to_string())
 
-	def test_minimize(self):
-		Popen(['alacritty', '--title', WINDOW_NAME])
-		time.sleep(2)
-
-		service.message('ls')
-		time.sleep(1)
-		self.assertIn('%a ' + WINDOW_NAME, service.messages.to_string())
-
-		service.message('quit')
-		time.sleep(1)
-
-		service.message('ls')
-		time.sleep(1)
-		self.assertIn(WINDOW_NAME, service.messages.to_string())
-		self.assertNotIn('%a ' + WINDOW_NAME, service.messages.to_string())
-
-		service.message('bdelete ' + WINDOW_NAME)
-		time.sleep(2)
-
 
 if __name__ == '__main__':
 	unittest.main()

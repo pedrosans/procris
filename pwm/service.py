@@ -87,7 +87,7 @@ def start():
 
 
 def stop():
-	desktop.disconnect()
+	desktop.unload()
 	listener.stop()
 	remote.release()
 	layout.disconnect_from(Wnck.Screen.get_default())

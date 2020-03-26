@@ -68,7 +68,7 @@ def launch_name(name: str = None, timestamp: int = None, desktop: int = -1):
 
 
 def pid_callback(app_info: Gio.DesktopAppInfo, pid: int):
-	print('Launched: {}'.format(pid))
+	print('Launched application pid: {}'.format(pid))
 
 
 def load():

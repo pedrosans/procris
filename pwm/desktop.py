@@ -170,7 +170,7 @@ def update():
 	status_icon.reload()
 
 
-def disconnect():
+def unload():
 	notification.close()
 
 
