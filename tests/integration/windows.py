@@ -2,15 +2,13 @@ import unittest
 import threading
 import time
 import warnings
-from typing import Callable
 
 import gi
-from pwm.wm import gdk_window_for
+from tests.integration import run_on_main_loop_and_wait
 
 gi.require_version('Wnck', '3.0')
 gi.require_version('Gtk', '3.0')
-from gi.repository import Wnck, GLib, Gtk, Gdk
-from datetime import datetime
+from gi.repository import Wnck, GLib, Gtk
 from subprocess import Popen
 from pwm.windows import Windows
 
@@ -72,11 +70,6 @@ class ServiceIntegrationTestCase(unittest.TestCase):
 WINDOW_NAME_ONE = 'test-terminal-name-one'
 WINDOW_NAME_TWO = 'test-terminal-name-two'
 WINDOW_NAME_THREE = 'test-terminal-name-three'
-
-
-def run_on_main_loop_and_wait(function):
-	GLib.idle_add(function, priority=GLib.PRIORITY_HIGH)
-	time.sleep(1)
 
 
 def get_window(name, windows) -> Wnck.Window:

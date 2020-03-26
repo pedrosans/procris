@@ -13,3 +13,8 @@ def run(function: Callable) -> threading.Thread:
 	t.start()
 	time.sleep(2)
 	return t
+
+
+def run_on_main_loop_and_wait(function):
+	GLib.idle_add(function, priority=GLib.PRIORITY_HIGH)
+	time.sleep(1)

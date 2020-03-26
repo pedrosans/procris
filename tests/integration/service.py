@@ -3,24 +3,7 @@ import threading
 import time
 import warnings
 import pwm.service as service
-from gi.repository import Wnck, Gtk, GLib, Gdk
 from subprocess import Popen
-
-WINDOW_NAME = 'test-window-term-name'
-
-
-class Application(threading.Thread):
-
-	def run(self) -> None:
-		service.load()
-		service.start()
-
-	def stop(self):
-		service.stop()
-		self.join()
-
-
-application = Application()
 
 
 class ServiceIntegrationTestCase(unittest.TestCase):
@@ -48,6 +31,44 @@ class ServiceIntegrationTestCase(unittest.TestCase):
 		service.message('ls')
 		time.sleep(1)
 		self.assertNotIn('Calculator', service.messages.to_string())
+
+	def test_minimize_command(self):
+		Popen(['alacritty', '--title', WINDOW_NAME])
+		time.sleep(1)
+		Popen(['wmctrl', '-a', WINDOW_NAME])
+		time.sleep(1)
+
+		service.message('ls')
+		time.sleep(1)
+		self.assertIn('%a ' + WINDOW_NAME, service.messages.to_string())
+
+		service.message('quit')
+		time.sleep(1)
+
+		service.message('ls')
+		time.sleep(1)
+		self.assertIn(WINDOW_NAME, service.messages.to_string())
+		self.assertNotIn('%a ' + WINDOW_NAME, service.messages.to_string())
+
+		service.message('bdelete ' + WINDOW_NAME)
+		time.sleep(2)
+
+
+WINDOW_NAME = 'test-window-term-name'
+
+
+class Application(threading.Thread):
+
+	def run(self) -> None:
+		service.load()
+		service.start()
+
+	def stop(self):
+		service.stop()
+		self.join()
+
+
+application = Application()
 
 
 if __name__ == '__main__':
