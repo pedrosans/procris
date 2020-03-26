@@ -143,8 +143,9 @@ class Windows:
 	#
 	# COMMANDS
 	#
-	def list(self, c_in):
-		messages.add(messages.Message(PROMPT + c_in.text, 'info'))
+	def list(self, user_event: UserEvent):
+		if user_event.text:
+			messages.add(messages.Message(PROMPT + user_event.text, 'info'))
 		from pwm.view import BufferName
 		for window in self.buffers:
 			messages.add(BufferName(window, self))

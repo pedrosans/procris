@@ -31,7 +31,9 @@ import pwm.desktop as desktop
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gtk, GLib
+from datetime import datetime
 from types import ModuleType
+from typing import Callable
 from pwm.reading import Reading
 from pwm.keyboard import KeyboardListener, Key
 from pwm.layout import Layout
@@ -95,8 +97,15 @@ def stop():
 #
 # Commands
 #
-def read_command_key(c_in):
+def show_reading(c_in):
 	messages.prompt_placeholder = Gtk.accelerator_name(c_in.keyval, c_in.keymod)
+
+
+def show_prompt(user_event: UserEvent):
+	messages.clean()
+	reading.begin(user_event.time)
+	reading.set_command_mode()
+	reading.show_completions()
 
 
 def escape_reading(c_in: UserEvent):
@@ -127,62 +136,60 @@ def keyboard_listener(key: Key, x_key_event, multiplier=1):
 	if not key.function:
 		return
 
-	command_input = UserEvent(
+	user_event = UserEvent(
 		time=x_key_event.time, parameters=key.parameters, keyval=x_key_event.keyval, keymod=x_key_event.keymod)
 
-	_execute_inside_main_loop(key.function, command_input, multiplier)
+	_execute_inside_main_loop(key.function, user_event, multiplier)
 
 
 #
 # API
 #
 def message(ipc_message):
-	from datetime import datetime
-	execute(cmd=ipc_message, timestamp=datetime.now().microsecond)
+	execute(cmd=ipc_message)
 
 
-def execute(cmd: str = None, timestamp: int = None, move_to_main_loop=True):
-	if names.has_multiple_names(cmd):
-		raise names.InvalidName('TODO: iterate multiple commands')
+def execute(function: Callable = None, cmd: str = None, timestamp: int = None, move_to_main_loop=True):
+	if not timestamp:
+		timestamp = datetime.now().microsecond
+	user_event = UserEvent(text=cmd, time=timestamp)
 
-	c_in = UserEvent(text=cmd, time=timestamp)
-	name = names.match(c_in)
+	if cmd:
+		if names.has_multiple_names(cmd):
+			raise names.InvalidName('TODO: iterate multiple commands')
 
-	if not name:
-		raise names.InvalidName('Not an editor command: ' + cmd)
+		name = names.match(user_event)
+
+		if not name:
+			raise names.InvalidName('Not an editor command: ' + cmd)
+
+		function = name.function
 
 	if move_to_main_loop:
-		_execute_inside_main_loop(name.function, c_in)
+		_execute_inside_main_loop(function, user_event)
 	else:
-		call(name.function, c_in)
+		call(function, user_event)
 
 	return True
 
 
-def call(function, command_input, multiplier=1):
+def call(function, user_event: UserEvent, multiplier=1):
 	try:
 
 		_pre_processing()
 
 		for i in range(multiplier):
-			return_message = function(command_input)
+			return_message = function(user_event)
 			if return_message:
 				messages.add(return_message)
 
-		if messages.has_message():
-			reading.begin(command_input.time)
-
-		if windows.staging:
-			windows.commit_navigation(command_input.time)
-			reading.make_transient()
-
-		_post_processing()
+		_post_processing(user_event)
 
 	except Exception as inst:
-		msg = 'ERROR ({}) executing: {}'.format(str(inst), command_input.text)
+		msg = 'ERROR ({}) executing: {}'.format(str(inst), user_event.text)
 		print(traceback.format_exc())
 		messages.add_error(msg)
-		reading.begin(command_input.time)
+		reading.begin(user_event.time)
 
 	return False
 
@@ -196,7 +203,13 @@ def _pre_processing():
 	reading.make_transient()
 
 
-def _post_processing():
+def _post_processing(user_event: UserEvent):
+	if messages.has_message():
+		reading.begin(user_event.time)
+
+	if windows.staging:
+		windows.commit_navigation(user_event.time)
+		reading.make_transient()
 
 	if reading.is_transient():
 		reading.end()

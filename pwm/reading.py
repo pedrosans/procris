@@ -118,14 +118,15 @@ class Reading:
 			return
 
 		if event.keyval == Gdk.KEY_colon and not ctrl:
-			self.colon()
+			self.set_command_mode()
 			return True
 
 		if event.keyval == Gdk.KEY_Return:
-			self.enter(UserEvent(time=event.time, keyval=event.keyval))
+			messages.clean()
+			self.view.update()
 			return True
 
-	def on_entry_key_release(self, widget, event):
+	def on_entry_key_release(self, widget: Gtk.Entry, event: Gdk.EventKey):
 		if event.keyval in HINT_OPERATION_KEYS:
 			return False
 
@@ -133,6 +134,10 @@ class Reading:
 			self.clean()
 			self.view.update()
 			return True
+
+		self.show_completions()
+
+	def show_completions(self):
 
 		if configurations.is_auto_hint():
 			self.completion.search_for(UserEvent(text=self.view.get_command()))
@@ -186,17 +191,7 @@ class Reading:
 		self.prompt_history.append(cmd)
 
 		try:
-			service.execute(cmd, gtk_time, move_to_main_loop=False)
+			service.execute(cmd=cmd, timestamp=gtk_time, move_to_main_loop=False)
 		except names.InvalidName as e:
 			messages.add_error(e.message)
 			self.begin(gtk_time)
-
-	#
-	# UI handlers
-	#
-	def colon(self):
-		self.set_command_mode()
-
-	def enter(self, c_in):
-		messages.clean()
-		self.view.update()

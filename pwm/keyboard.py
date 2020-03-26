@@ -174,7 +174,7 @@ class KeyboardListener:
 		while not self.stopped:
 			event = self.well_connection.next_event()
 
-			if event.type == X.KeyPress:
+			if event.type == X.KeyPress and event.detail not in self.mod_keys_set:
 				self.handle_keypress(event)
 
 	# http://python-xlib.sourceforge.net/doc/html/python-xlib_13.html
