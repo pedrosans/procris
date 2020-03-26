@@ -31,7 +31,8 @@ def is_managed(window):
 
 
 def get_active_managed_window():
-	return get_active_window(window_filter=is_managed)
+	active = Wnck.Screen.get_default().get_active_window()
+	return active if is_managed(active) else None
 
 
 class Layout:
@@ -66,8 +67,8 @@ class Layout:
 	def get_active_primary_monitor(self) -> Monitor:
 		return self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
 
-	def get_active_monitor(self) -> Monitor:
-		current: Gdk.Monitor = monitor_for(get_active_managed_window())
+	def monitor_of(self, window: Wnck.Window) -> Monitor:
+		current: Gdk.Monitor = monitor_for(window)
 		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
 		monitor: Monitor = self.primary_monitors[active_workspace.get_number()]
 		return monitor if current.is_primary() else monitor.next()
@@ -258,14 +259,18 @@ class Layout:
 		function_key = c_in.parameters[0]
 		self._set_function(function_key)
 
+	# TODO: based on mouse position?
+	# TODO: rename c_in
 	def cycle_function(self, c_in: UserEvent):
-		active_primary_monitor: Monitor = self.get_active_monitor()
-		index = self.function_keys_well.index(active_primary_monitor.function_key)
+		active = get_active_managed_window()
+		monitor: Monitor = self.monitor_of(active) if active else self.get_active_primary_monitor()
+		index = self.function_keys_well.index(monitor.function_key)
 		self._set_function(self.function_keys_well[index - 1])
 
 	def _set_function(self, key):
-		active_primary_monitor: Monitor = self.get_active_monitor()
-		active_primary_monitor.function_key = key
+		active = get_active_managed_window()
+		monitor: Monitor = self.monitor_of(active) if active else self.get_active_primary_monitor()
+		monitor.function_key = key
 		self.apply()
 		self.persist()
 		desktop.show_monitor(self.get_active_primary_monitor())
@@ -285,21 +290,21 @@ class Layout:
 
 	def swap_focused_with(self, c_in: UserEvent):
 		active = get_active_managed_window()
-		if active:
+		if not active:
+			return
+		direction = c_in.parameters[0]
+		retain_focus = True if len(c_in.parameters) < 2 else c_in.parameters[1]
 
-			direction = c_in.parameters[0]
-			retain_focus = True if len(c_in.parameters) < 2 else c_in.parameters[1]
+		stack = self.get_active_stack()
+		old_index = stack.index(active.get_xid())
+		new_index = self._incremented_index(direction)
 
-			stack = self.get_active_stack()
-			old_index = stack.index(active.get_xid())
-			new_index = self._incremented_index(direction)
-
-			if new_index != old_index:
-				stack.insert(new_index, stack.pop(old_index))
-				if not retain_focus:
-					self.windows.active.change_to(stack[old_index])
-				self.apply()
-				self.persist()
+		if new_index != old_index:
+			stack.insert(new_index, stack.pop(old_index))
+			if not retain_focus:
+				self.windows.active.change_to(stack[old_index])
+			self.apply()
+			self.persist()
 
 	def move_focus(self, c_in: UserEvent):
 		if get_active_managed_window():
