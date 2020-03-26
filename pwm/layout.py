@@ -249,19 +249,19 @@ class Layout:
 	#
 	# COMMANDS
 	#
-	def change_function(self, c_in: UserEvent):
-		promote_selected = False if len(c_in.parameters) < 2 else c_in.parameters[1]
+	def change_function(self, user_event: UserEvent):
+		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
 		active = get_active_managed_window()
 		if promote_selected and active:
 			stack = self.get_active_stack()
 			old_index = stack.index(active.get_xid())
 			stack.insert(0, stack.pop(old_index))
-		function_key = c_in.parameters[0]
+		function_key = user_event.parameters[0]
 		self._set_function(function_key)
 
 	# TODO: based on mouse position?
-	# TODO: rename c_in
-	def cycle_function(self, c_in: UserEvent):
+	# TODO: rename user_event
+	def cycle_function(self, user_event: UserEvent):
 		active = get_active_managed_window()
 		monitor: Monitor = self.monitor_of(active) if active else self.get_active_primary_monitor()
 		index = self.function_keys_well.index(monitor.function_key)
@@ -275,8 +275,8 @@ class Layout:
 		self.persist()
 		desktop.show_monitor(self.get_active_primary_monitor())
 
-	def gap(self, c_in: UserEvent):
-		parameters = c_in.vim_command_parameter.split()
+	def gap(self, user_event: UserEvent):
+		parameters = user_event.vim_command_parameter.split()
 		where = parameters[0]
 		pixels = int(parameters[1])
 		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
@@ -284,16 +284,16 @@ class Layout:
 		self.windows.staging = True
 		self.apply()
 
-	def complete_gap_options(self, c_in: UserEvent):
-		input = c_in.vim_command_parameter.lower()
+	def complete_gap_options(self, user_event: UserEvent):
+		input = user_event.vim_command_parameter.lower()
 		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
 
-	def swap_focused_with(self, c_in: UserEvent):
+	def swap_focused_with(self, user_event: UserEvent):
 		active = get_active_managed_window()
 		if not active:
 			return
-		direction = c_in.parameters[0]
-		retain_focus = True if len(c_in.parameters) < 2 else c_in.parameters[1]
+		direction = user_event.parameters[0]
+		retain_focus = True if len(user_event.parameters) < 2 else user_event.parameters[1]
 
 		stack = self.get_active_stack()
 		old_index = stack.index(active.get_xid())
@@ -306,44 +306,43 @@ class Layout:
 			self.apply()
 			self.persist()
 
-	def move_focus(self, c_in: UserEvent):
+	def move_focus(self, user_event: UserEvent):
 		if get_active_managed_window():
 			stack = self.get_active_stack()
-			direction = c_in.parameters[0]
+			direction = user_event.parameters[0]
 			new_index = self._incremented_index(direction)
 			self.windows.active.change_to(stack[new_index])
 
-	def move_to_monitor(self, c_in: UserEvent):
+	def _incremented_index(self, increment):
+		stack = self.get_active_stack()
 		active = get_active_managed_window()
-		if active:
-			stack = self.get_active_stack()
-			old_index = stack.index(active.get_xid())
-			stack.insert(0, stack.pop(old_index))
-			self.apply(split_points=[])
-			self.persist()
+		old_index = stack.index(active.get_xid())
+		new_index = old_index + increment
+		return min(max(new_index, 0), len(stack) - 1)
 
-	def move_to_master(self, c_in: UserEvent):
+	def move_to_master(self, user_event: UserEvent):
 		active = get_active_managed_window()
-		if active:
-			stack = self.get_active_stack()
-			old_index = stack.index(active.get_xid())
-			stack.insert(0, stack.pop(old_index))
-			self.apply()
-			self.persist()
-
-	def increase_master_area(self, c_in: UserEvent):
-		self.get_active_primary_monitor().increase_master_area(increment=c_in.parameters[0])
+		if not active:
+			return
+		stack = self.get_active_stack()
+		old_index = stack.index(active.get_xid())
+		stack.insert(0, stack.pop(old_index))
 		self.apply()
 		self.persist()
 
-	def increment_master(self, c_in: UserEvent):
+	def increase_master_area(self, user_event: UserEvent):
+		self.get_active_primary_monitor().increase_master_area(increment=user_event.parameters[0])
+		self.apply()
+		self.persist()
+
+	def increment_master(self, user_event: UserEvent):
 		self.get_active_primary_monitor().increment_master(
-			increment=c_in.parameters[0], upper_limit=len(self.get_active_stack()))
+			increment=user_event.parameters[0], upper_limit=len(self.get_active_stack()))
 		self.apply()
 		self.persist()
 
-	def geometry(self, c_in: UserEvent):
-		parameters = list(map(lambda word: int(word), c_in.vim_command_parameter.split()))
+	def geometry(self, user_event: UserEvent):
+		parameters = list(map(lambda word: int(word), user_event.vim_command_parameter.split()))
 		lib = parameters[0]
 		window = self.get_active_windows_as_list()[parameters[1]]
 		x = parameters[2]
@@ -378,13 +377,6 @@ class Layout:
 			monitor = monitor.next()
 			visible = visible[split_point:]
 			split_point = len(visible)
-
-	def _incremented_index(self, increment):
-		stack = self.get_active_stack()
-		active = get_active_managed_window()
-		old_index = stack.index(active.get_xid())
-		new_index = old_index + increment
-		return min(max(new_index, 0), len(stack) - 1)
 
 	def resume(self):
 		resume = ''
