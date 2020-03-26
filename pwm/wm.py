@@ -51,15 +51,6 @@ def monitor_work_area_for(window: Wnck.Window) -> Gdk.Rectangle:
 	return gdk_monitor.get_workarea()
 
 
-def unmaximize(window: Wnck.Window):
-	if window.is_maximized():
-		window.unmaximize()
-	if window.is_maximized_horizontally():
-		window.unmaximize_horizontally()
-	if window.is_maximized_vertically():
-		window.unmaximize_vertically()
-
-
 def is_buffer(window: Wnck.Window) -> bool:
 	return window.get_pid() != os.getpid() and not window.is_skip_tasklist()
 
@@ -110,7 +101,7 @@ def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, 
 
 def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None, synchronous=False, raise_exceptions=True):
 
-	unmaximize(window)
+	window.unmaximize()
 
 	if not w and not h:
 		geometry = window.get_geometry()
