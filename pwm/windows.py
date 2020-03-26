@@ -275,7 +275,7 @@ class Active:
 			self.windows.staging = True
 
 	def only(self, c_in):
-		for w in self.windows.visible:
+		for w in self.windows.visible.copy():
 			if self.xid != w.get_xid():
 				w.minimize()
 				self.windows.remove_from_visible(w)
