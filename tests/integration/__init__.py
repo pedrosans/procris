@@ -1,6 +1,7 @@
 import threading
 import time
 from typing import Callable
+from gi.repository import GLib
 
 
 def run_and_join(function: Callable):

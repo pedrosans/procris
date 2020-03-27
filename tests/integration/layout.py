@@ -3,7 +3,7 @@ from datetime import datetime
 import tests.integration
 import gi
 import pwm.applications as applications
-from pwm.layout import Layout
+from pwm.layout import Monitors
 from pwm.model import Windows
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
@@ -20,7 +20,7 @@ class LayoutIntegrationTestCase(unittest.TestCase):
 
 	def setUp(self) -> None:
 		self.windows = Windows()
-		self.layout = Layout(windows=self.windows)
+		self.layout = Monitors(windows=self.windows)
 		self.calculator = None
 		self.logs = None
 

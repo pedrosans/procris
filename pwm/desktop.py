@@ -22,7 +22,7 @@ class StatusIcon:
 
 	def __init__(self, layout, stop_function=None):
 		self.stop_function = stop_function
-		self.layout: pwm.layout.Layout = layout
+		self.layout: pwm.layout.Monitors = layout
 		self.menu = Gtk.Menu()
 
 		self.autostart_item.connect("toggled", self._change_autostart)

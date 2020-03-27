@@ -35,7 +35,7 @@ def get_active_managed_window():
 	return active if is_managed(active) else None
 
 
-class Layout:
+class Monitors:
 
 	stacks: Dict[int, List[int]] = {}
 	primary_monitors: Dict[int, Monitor] = {}

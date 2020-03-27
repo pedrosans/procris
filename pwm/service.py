@@ -36,7 +36,7 @@ from types import ModuleType
 from typing import Callable
 from pwm.reading import Reading
 from pwm.keyboard import KeyboardListener, Key
-from pwm.layout import Layout
+from pwm.layout import Monitors
 from pwm.model import Windows
 from pwm.wm import UserEvent
 
@@ -249,5 +249,5 @@ SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP = getattr(signal, "SIGHUP", None)
 windows: Windows = Windows()
 reading: Reading = Reading(windows)
-layout: Layout = Layout(windows)
+layout: Monitors = Monitors(windows)
 listener: KeyboardListener = KeyboardListener(callback=keyboard_listener, on_error=stop)
