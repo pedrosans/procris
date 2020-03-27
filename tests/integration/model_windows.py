@@ -30,15 +30,17 @@ class ServiceIntegrationTestCase(unittest.TestCase):
 		Popen(['alacritty', '--title', WINDOW_NAME_TWO])
 		Popen(['alacritty', '--title', WINDOW_NAME_THREE])
 		time.sleep(1)
-		Popen(['wmctrl', '-a', WINDOW_NAME_ONE])
+		Popen(['wmctrl', '-a', WINDOW_NAME_ONE]).communicate()
 		time.sleep(1)
 		self.windows = Windows()
 		run_on_main_loop_and_wait(self.windows.read_default_screen)
 
 	def tearDown(self) -> None:
-		Popen(['wmctrl', '-c', WINDOW_NAME_ONE])
-		Popen(['wmctrl', '-c', WINDOW_NAME_TWO])
-		Popen(['wmctrl', '-c', WINDOW_NAME_THREE])
+		Popen(['wmctrl', '-c', WINDOW_NAME_ONE]).communicate()
+		time.sleep(1)
+		Popen(['wmctrl', '-c', WINDOW_NAME_TWO]).communicate()
+		time.sleep(1)
+		Popen(['wmctrl', '-c', WINDOW_NAME_THREE]).communicate()
 		time.sleep(1)
 
 	def test_read_active(self):
