@@ -3,8 +3,8 @@ from pwm.names import Name
 import pwm
 
 service = pwm.service
-layout = service.layout
 windows = service.windows
+monitors = service.monitors
 reading = service.reading
 terminal = pwm.terminal
 decoration = pwm.decoration
@@ -40,19 +40,19 @@ DEFAULTS = {
 	]
 }
 KEYS = [
-	Key('<ctrl>Return', layout.move_to_master),
-	Key('<ctrl>KP_Enter', layout.move_to_master),
-	Key('<ctrl>i', layout.increment_master, parameters=[1]),
-	Key('<ctrl>d', layout.increment_master, parameters=[-1]),
-	Key('<ctrl>l', layout.increase_master_area, parameters=[0.05]),
-	Key('<ctrl>h', layout.increase_master_area, parameters=[-0.05]),
-	Key('<ctrl><shift>j', layout.swap_focused_with, parameters=[1]),
-	Key('<ctrl><shift>k', layout.swap_focused_with, parameters=[-1]),
-	Key('<ctrl>u', layout.change_function, parameters=['C']),
-	Key('<ctrl>t', layout.change_function, parameters=['T']),
-	Key('<ctrl>m', layout.change_function, parameters=['M']),
-	Key('<ctrl>f', layout.change_function, parameters=[None]),
-	Key('<ctrl>space', layout.cycle_function, parameters=[None]),
+	Key('<ctrl>Return', monitors.move_to_master),
+	Key('<ctrl>KP_Enter', monitors.move_to_master),
+	Key('<ctrl>i', monitors.increment_master, parameters=[1]),
+	Key('<ctrl>d', monitors.increment_master, parameters=[-1]),
+	Key('<ctrl>l', monitors.increase_master_area, parameters=[0.05]),
+	Key('<ctrl>h', monitors.increase_master_area, parameters=[-0.05]),
+	Key('<ctrl><shift>j', monitors.swap_focused_with, parameters=[1]),
+	Key('<ctrl><shift>k', monitors.swap_focused_with, parameters=[-1]),
+	Key('<ctrl>u', monitors.change_function, parameters=['C']),
+	Key('<ctrl>t', monitors.change_function, parameters=['T']),
+	Key('<ctrl>m', monitors.change_function, parameters=['M']),
+	Key('<ctrl>f', monitors.change_function, parameters=[None]),
+	Key('<ctrl>space', monitors.cycle_function, parameters=[None]),
 	Key('<ctrl>q', None, plexes=[
 		Key('Escape', pwm.service.escape_reading),
 		Key('<shift>colon', pwm.service.show_prompt),
@@ -87,5 +87,5 @@ NAMES = [
 	Name('report', service.debug),
 	Name('quit', windows.active.minimize, alias='q'),
 	Name('only', windows.active.only, alias='on'),
-	Name('gap', layout.gap, complete=layout.complete_gap_options),
+	Name('gap', monitors.gap, complete=monitors.complete_gap_options),
 ]

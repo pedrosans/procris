@@ -1,4 +1,5 @@
 import pwm.layout
+import pwm.model
 import pwm.state as state
 import xdg.IconTheme
 import gi
@@ -20,9 +21,9 @@ class StatusIcon:
 	# Track reloading routine to stop any layout side effect when updating the UI
 	_reloading = False
 
-	def __init__(self, layout, stop_function=None):
+	def __init__(self, monitors, stop_function=None):
 		self.stop_function = stop_function
-		self.layout: pwm.layout.Monitors = layout
+		self.monitors: pwm.model.Monitors = monitors
 		self.menu = Gtk.Menu()
 
 		self.autostart_item.connect("toggled", self._change_autostart)
@@ -83,7 +84,7 @@ class StatusIcon:
 		self._reloading = True
 
 		iconname = configurations.get_desktop_icon()
-		function_key = self.layout.get_active_primary_monitor().function_key
+		function_key = self.monitors.get_active_primary_monitor().function_key
 
 		for item in self.icons_submenu.get_children():
 			item.set_active(item.icon_style == iconname)
@@ -109,7 +110,7 @@ class StatusIcon:
 			event = UserEvent(time=Gtk.get_current_event_time())
 			event.parameters = [function_key]
 			import pwm.service as service
-			service.call(self.layout.change_function, event)
+			service.call(self.monitors.change_function, event)
 
 	def _change_icon(self, radio_menu_item: Gtk.RadioMenuItem):
 		if not self._reloading and radio_menu_item.get_active():
@@ -122,8 +123,8 @@ class StatusIcon:
 	def _change_decorations(self, check_menu_item: Gtk.CheckMenuItem):
 		to_remove = check_menu_item.get_active()
 		configurations.set_remove_decorations(to_remove)
-		self.layout.windows.read_default_screen()
-		self.layout.windows.apply_decoration_config()
+		self.monitors.windows.read_default_screen()
+		self.monitors.windows.apply_decoration_config()
 
 	def _quit(self, data):
 		self.stop_function()
@@ -158,7 +159,7 @@ def load():
 def connect():
 	import pwm.service
 	global status_icon
-	status_icon = StatusIcon(pwm.service.layout, stop_function=pwm.service.stop)
+	status_icon = StatusIcon(pwm.service.monitors, stop_function=pwm.service.stop)
 	status_icon.activate()
 
 

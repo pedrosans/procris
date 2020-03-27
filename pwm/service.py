@@ -36,8 +36,7 @@ from types import ModuleType
 from typing import Callable
 from pwm.reading import Reading
 from pwm.keyboard import KeyboardListener, Key
-from pwm.layout import Monitors
-from pwm.model import Windows
+from pwm.model import Windows, Monitors
 from pwm.wm import UserEvent
 
 
@@ -56,7 +55,7 @@ def _read_environment(screen: Wnck.Screen, config: ModuleType):
 	for key in config.KEYS:
 		listener.add(key)
 	windows.read(screen)
-	layout.read(screen, cache.get_workspace_config())
+	monitors.read(screen, cache.get_workspace_config())
 
 
 def _configure_process():
@@ -77,9 +76,9 @@ def start():
 		quit()
 
 	remote.export(ipc_handler=message, stop=stop)
-	layout.connect_to(Wnck.Screen.get_default())
+	monitors.connect_to(Wnck.Screen.get_default())
 	windows.apply_decoration_config()
-	layout.apply()
+	monitors.apply()
 	listener.start()
 	desktop.connect()
 	Gtk.main()
@@ -90,7 +89,7 @@ def stop():
 	desktop.unload()
 	listener.stop()
 	remote.release()
-	layout.disconnect_from(Wnck.Screen.get_default())
+	monitors.disconnect_from(Wnck.Screen.get_default())
 	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
 
 
@@ -114,7 +113,7 @@ def escape_reading(c_in: UserEvent):
 
 def debug(c_in):
 	text = windows.resume()
-	text += layout.resume()
+	text += monitors.resume()
 	messages.add(text=text)
 
 
@@ -198,7 +197,7 @@ def _pre_processing():
 	screen = Wnck.Screen.get_default()
 
 	windows.read(screen)
-	layout.read_screen(screen)
+	monitors.read_screen(screen)
 
 	reading.make_transient()
 
@@ -249,5 +248,5 @@ SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP = getattr(signal, "SIGHUP", None)
 windows: Windows = Windows()
 reading: Reading = Reading(windows)
-layout: Monitors = Monitors(windows)
+monitors: Monitors = Monitors(windows)
 listener: KeyboardListener = KeyboardListener(callback=keyboard_listener, on_error=stop)

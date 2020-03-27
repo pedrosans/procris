@@ -11,7 +11,7 @@ class ServiceTestCase(unittest.TestCase):
 		self.foo = MagicMock()
 		service.reading = MagicMock()
 		service.windows = MagicMock()
-		service.layout = MagicMock()
+		service.monitors = MagicMock()
 		service.desktop = MagicMock()
 
 	def test_calls_function(self):

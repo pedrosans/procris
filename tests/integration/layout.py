@@ -3,8 +3,8 @@ from datetime import datetime
 import tests.integration
 import gi
 import pwm.applications as applications
-from pwm.layout import Monitors
-from pwm.model import Windows
+from pwm.model import Windows, Monitors
+
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 
@@ -20,7 +20,7 @@ class LayoutIntegrationTestCase(unittest.TestCase):
 
 	def setUp(self) -> None:
 		self.windows = Windows()
-		self.layout = Monitors(windows=self.windows)
+		self.monitors = Monitors(windows=self.windows)
 		self.calculator = None
 		self.logs = None
 
@@ -29,7 +29,7 @@ class LayoutIntegrationTestCase(unittest.TestCase):
 		screen = Wnck.Screen.get_default()
 
 		self.windows.read_default_screen()
-		self.layout.read_screen(screen)
+		self.monitors.read_screen(screen)
 
 		for w in screen.get_windows():
 			if w.get_name() in ['Calculator', 'Logs']:
@@ -47,22 +47,22 @@ class LayoutIntegrationTestCase(unittest.TestCase):
 	def test_read_window_in_workspace(self):
 		self.assertIn(
 			self.calculator.get_xid(),
-			self.layout.stacks[0],
-			'calc: {} should be in: {}'.format(self.calculator.get_xid(), self.layout.stacks[0]))
+			self.monitors.stacks[0],
+			'calc: {} should be in: {}'.format(self.calculator.get_xid(), self.monitors.stacks[0]))
 		self.assertIn(
 			self.logs.get_xid(),
-			self.layout.stacks[1],
-			'logs: {} should be in: {}'.format(self.logs.get_xid(), self.layout.stacks[1]))
+			self.monitors.stacks[1],
+			'logs: {} should be in: {}'.format(self.logs.get_xid(), self.monitors.stacks[1]))
 
 	def test_dont_read_window_outside_its_workspace(self):
 		self.assertNotIn(
 			self.calculator.get_xid(),
-			self.layout.stacks[1],
-			'calc: {} should not be in: {}'.format(self.calculator.get_xid(), self.layout.stacks[1]))
+			self.monitors.stacks[1],
+			'calc: {} should not be in: {}'.format(self.calculator.get_xid(), self.monitors.stacks[1]))
 		self.assertNotIn(
 			self.logs.get_xid(),
-			self.layout.stacks[0],
-			'logs: {} should not be in: {}'.format(self.logs.get_xid(), self.layout.stacks[0]))
+			self.monitors.stacks[0],
+			'logs: {} should not be in: {}'.format(self.logs.get_xid(), self.monitors.stacks[0]))
 
 
 if __name__ == '__main__':
