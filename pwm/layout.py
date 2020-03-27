@@ -21,7 +21,7 @@ gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk, GLib
 from typing import List, Dict
 from pwm import scratchpads, state
-from pwm.windows import Windows
+from pwm.model import Windows
 from pwm.wm import set_geometry, is_visible, resize, is_buffer, get_active_window, is_on_primary_monitor, \
 	get_height, DirtyState, X_Y_W_H_GEOMETRY_MASK, gdk_window_for, Trap, Monitor, monitor_for, UserEvent, get_width
 

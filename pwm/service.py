@@ -37,7 +37,7 @@ from typing import Callable
 from pwm.reading import Reading
 from pwm.keyboard import KeyboardListener, Key
 from pwm.layout import Layout
-from pwm.windows import Windows
+from pwm.model import Windows
 from pwm.wm import UserEvent
 
 

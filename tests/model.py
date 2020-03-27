@@ -2,7 +2,7 @@ import unittest
 
 from unittest.mock import MagicMock
 from pwm.wm import UserEvent
-from pwm.windows import Windows
+from pwm.model import Windows
 import pwm.service as service
 
 

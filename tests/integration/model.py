@@ -10,7 +10,7 @@ gi.require_version('Wnck', '3.0')
 gi.require_version('Gtk', '3.0')
 from gi.repository import Wnck, GLib, Gtk
 from subprocess import Popen
-from pwm.windows import Windows
+from pwm.model import Windows
 
 
 class ServiceIntegrationTestCase(unittest.TestCase):

@@ -4,7 +4,7 @@ import tests.integration
 import gi
 import pwm.applications as applications
 from pwm.layout import Layout
-from pwm.windows import Windows
+from pwm.model import Windows
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 

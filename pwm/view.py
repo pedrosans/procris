@@ -22,7 +22,7 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
 from gi.repository import Gtk, Gdk, Pango, GLib
-from pwm.windows import Windows
+from pwm.model import Windows
 
 
 def create_icon_image(window: Wnck.Window, size):

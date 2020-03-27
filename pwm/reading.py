@@ -26,7 +26,7 @@ from gi.repository import Gtk, Gdk, GLib
 from pwm.view import ReadingWindow
 from pwm.names import PromptHistory
 from pwm.wm import UserEvent
-from pwm.windows import Windows
+from pwm.model import Windows
 from pwm.assistant import Completion
 
 HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]

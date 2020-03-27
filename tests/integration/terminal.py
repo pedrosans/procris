@@ -1,6 +1,6 @@
 import unittest
 from datetime import datetime
-from pwm.windows import Windows
+from pwm.model import Windows
 import pwm.terminal as terminal
 
 import tests.integration
