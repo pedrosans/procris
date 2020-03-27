@@ -1,14 +1,13 @@
 import pwm.layout
-import pwm.model
 import pwm.state as state
 import xdg.IconTheme
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
 gi.require_version('Notify', '0.7')
-from pwm import state as configurations
 from gi.repository import Notify, Gtk, GLib, GdkPixbuf, AppIndicator3
-from pwm.wm import Monitor, get_active_workspace, UserEvent
+from pwm import state as configurations
+from pwm.wm import get_active_workspace, UserEvent, Monitor
 
 
 class StatusIcon:
@@ -21,15 +20,14 @@ class StatusIcon:
 	# Track reloading routine to stop any layout side effect when updating the UI
 	_reloading = False
 
-	def __init__(self, monitors, stop_function=None):
+	def __init__(self, windows, monitors, stop_function=None):
 		self.stop_function = stop_function
-		self.monitors: pwm.model.Monitors = monitors
+		self.windows = windows
+		self.monitors = monitors
 		self.menu = Gtk.Menu()
 
-		self.autostart_item.connect("toggled", self._change_autostart)
 		self.menu.append(self.autostart_item)
 
-		self.decorations_item.connect("toggled", self._change_decorations)
 		self.menu.append(self.decorations_item)
 
 		self.add_icon_options()
@@ -71,8 +69,10 @@ class StatusIcon:
 		self.menu.append(layout_menu_item)
 
 	def activate(self):
-		self.decorations_item.set_active(configurations.is_remove_decorations())
 		self.autostart_item.set_active(configurations.is_autostart())
+		self.autostart_item.connect("toggled", self._change_autostart)
+		self.decorations_item.set_active(configurations.is_remove_decorations())
+		self.decorations_item.connect("toggled", self._change_decorations)
 
 		self.app_indicator = AppIndicator3.Indicator.new("pwm", ICONNAME, AppIndicator3.IndicatorCategory.APPLICATION_STATUS)
 		self.app_indicator.set_status(AppIndicator3.IndicatorStatus.ACTIVE)
@@ -104,14 +104,6 @@ class StatusIcon:
 	#
 	# CALLBACKS
 	#
-	def _change_layout(self, radio_menu_item: Gtk.RadioMenuItem):
-		if not self._reloading and radio_menu_item.get_active():
-			function_key = radio_menu_item.function_key
-			event = UserEvent(time=Gtk.get_current_event_time())
-			event.parameters = [function_key]
-			import pwm.service as service
-			service.call(self.monitors.change_function, event)
-
 	def _change_icon(self, radio_menu_item: Gtk.RadioMenuItem):
 		if not self._reloading and radio_menu_item.get_active():
 			configurations.set_desktop_icon(radio_menu_item.icon_style)
@@ -120,11 +112,19 @@ class StatusIcon:
 	def _change_autostart(self, check_menu_item: Gtk.CheckMenuItem):
 		configurations.set_autostart(check_menu_item.get_active())
 
+	def _change_layout(self, radio_menu_item: Gtk.RadioMenuItem):
+		if not self._reloading and radio_menu_item.get_active():
+			function_key = radio_menu_item.function_key
+			event = UserEvent(time=Gtk.get_current_event_time())
+			event.parameters = [function_key]
+			import pwm.service as service
+			service.call(self.monitors.change_function, event)
+
 	def _change_decorations(self, check_menu_item: Gtk.CheckMenuItem):
 		to_remove = check_menu_item.get_active()
 		configurations.set_remove_decorations(to_remove)
-		self.monitors.windows.read_default_screen()
-		self.monitors.windows.apply_decoration_config()
+		import pwm.service as service
+		service.call(self.windows.decorate, None)
 
 	def _quit(self, data):
 		self.stop_function()
@@ -159,7 +159,8 @@ def load():
 def connect():
 	import pwm.service
 	global status_icon
-	status_icon = StatusIcon(pwm.service.monitors, stop_function=pwm.service.stop)
+	# TODO: pass window and monitor as parameters
+	status_icon = StatusIcon(pwm.model.windows, pwm.model.monitors, stop_function=pwm.service.stop)
 	status_icon.activate()
 
 

@@ -3,8 +3,8 @@ from pwm.names import Name
 import pwm
 
 service = pwm.service
-windows = service.windows
-monitors = service.monitors
+windows = pwm.model.windows
+monitors = pwm.model.monitors
 reading = service.reading
 terminal = pwm.terminal
 decoration = pwm.decoration
@@ -46,9 +46,8 @@ KEYS = [
 	Key('<ctrl>d', monitors.increment_master, parameters=[-1]),
 	Key('<ctrl>l', monitors.increase_master_area, parameters=[0.05]),
 	Key('<ctrl>h', monitors.increase_master_area, parameters=[-0.05]),
-	Key('<ctrl><shift>j', monitors.swap_focused_with, parameters=[1]),
-	Key('<ctrl><shift>k', monitors.swap_focused_with, parameters=[-1]),
-	Key('<ctrl>u', monitors.change_function, parameters=['C']),
+	Key('<ctrl><shift>j', windows.active.focus.swap, parameters=[1]),
+	Key('<ctrl><shift>k', windows.active.focus.swap, parameters=[-1]),
 	Key('<ctrl>t', monitors.change_function, parameters=['T']),
 	Key('<ctrl>m', monitors.change_function, parameters=['M']),
 	Key('<ctrl>f', monitors.change_function, parameters=[None]),

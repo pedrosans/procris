@@ -8,28 +8,19 @@ from subprocess import Popen
 
 class ServiceIntegrationTestCase(unittest.TestCase):
 
+	@staticmethod
 	def setUpClass(cls=None) -> None:
 		warnings.filterwarnings("ignore", category=DeprecationWarning)
 		warnings.filterwarnings("ignore", category=ResourceWarning)
 		application.start()
 		time.sleep(2)
 
-	def tearDownClass(cls=None) -> None:
-		application.stop()
-
 	def test_open_close_window(self):
-		service.message('edit Calculator')
-		time.sleep(2)
-
-		service.message('ls')
-		time.sleep(1)
+		run('edit Calculator', wait=2)
+		run('ls')
 		self.assertIn('Calculator', service.messages.to_string())
-
-		service.message('bdelete Calculator')
-		time.sleep(2)
-
-		service.message('ls')
-		time.sleep(1)
+		run('bdelete Calculator', wait=2)
+		run('ls')
 		self.assertNotIn('Calculator', service.messages.to_string())
 
 	def test_minimize_command(self):
@@ -38,23 +29,18 @@ class ServiceIntegrationTestCase(unittest.TestCase):
 		Popen(['wmctrl', '-a', WINDOW_NAME])
 		time.sleep(1)
 
-		service.message('ls')
-		time.sleep(1)
+		run('ls')
 		self.assertIn('%a ' + WINDOW_NAME, service.messages.to_string())
-
-		service.message('quit')
-		time.sleep(1)
-
-		service.message('ls')
-		time.sleep(1)
+		run('quit')
+		run('ls')
 		self.assertIn(WINDOW_NAME, service.messages.to_string())
 		self.assertNotIn('%a ' + WINDOW_NAME, service.messages.to_string())
 
-		service.message('bdelete ' + WINDOW_NAME)
-		time.sleep(2)
+		run('bdelete ' + WINDOW_NAME, wait=2)
 
-
-WINDOW_NAME = 'test-window-term-name'
+	@staticmethod
+	def tearDownClass(cls=None) -> None:
+		application.stop()
 
 
 class Application(threading.Thread):
@@ -68,7 +54,13 @@ class Application(threading.Thread):
 		self.join()
 
 
+WINDOW_NAME = 'test-window-term-name'
 application = Application()
+
+
+def run(cmd, wait : int = 1):
+	service.message(cmd)
+	time.sleep(wait)
 
 
 if __name__ == '__main__':

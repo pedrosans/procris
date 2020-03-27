@@ -18,7 +18,7 @@ import traceback
 import gi, os, re
 import pwm.messages as messages
 import pwm.state as configurations
-from pwm import decoration, state, desktop as desktop, scratchpads
+from pwm import decoration, state, desktop, scratchpads
 from pwm.layout import FUNCTIONS_MAP
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
@@ -33,7 +33,7 @@ from pwm.decoration import DECORATION_MAP
 class Windows:
 
 	def __init__(self):
-		self.active = ActiveWindow(windows=self)
+		self.active = ActiveWindow()
 		self.visible: List[Wnck.Window] = []
 		self.buffers: List[Wnck.Window] = []
 		self.line: List[Wnck.Window] = None
@@ -111,6 +111,9 @@ class Windows:
 	#
 	# COMMANDS
 	#
+	def decorate(self, user_event: UserEvent):
+		self.apply_decoration_config()
+
 	def list(self, user_event: UserEvent):
 		if user_event.text:
 			messages.add(messages.Message(PROMPT + user_event.text, 'info'))
@@ -219,152 +222,15 @@ class Windows:
 		return resume
 
 
-class ActiveWindow:
-
-	windows: Windows = None
-
-	def __init__(self, windows=None):
-		self.windows = windows
-		self.xid = None
-		self.focus = Focus(windows=windows, active=self)
-
-	def get_wnck_window(self):
-		for w in self.windows.buffers:
-			if w.get_xid() == self.xid:
-				return w
-		return None
-
-	def clean(self):
-		self.xid = None
-
-	def change_to(self, xid: int):
-		if self.xid != xid:
-			self.xid = xid
-			self.windows.staging = True
-
-	def only(self, c_in):
-		for w in self.windows.visible.copy():
-			if self.xid != w.get_xid():
-				w.minimize()
-				self.windows.remove_from_visible(w)
-		self.windows.staging = True
-
-	def minimize(self, c_in):
-		if self.xid:
-			active_window = self.get_wnck_window()
-			active_window.minimize()
-			self.windows.remove_from_visible(active_window)
-			self.windows.update_active()
-			self.windows.staging = True
-
-	def maximize(self, c_in):
-		if self.xid:
-			self.get_wnck_window().maximize()
-			self.windows.staging = True
-
-	def move_right(self, c_in):
-		self._snap_active_window(HORIZONTAL, 0.5)
-
-	def move_left(self, c_in):
-		self._snap_active_window(HORIZONTAL, 0)
-
-	def move_up(self, c_in):
-		self._snap_active_window(VERTICAL, 0)
-
-	def move_down(self, c_in):
-		self._snap_active_window(VERTICAL, 0.5)
-
-	def _snap_active_window(self, axis, position):
-		self._move_on_axis(self.get_wnck_window(), axis, position, 0.5)
-
-	def _move_on_axis(self, window, axis, position, proportion):
-		if axis == HORIZONTAL:
-			resize(window, l=position, t=0, w=proportion, h=1)
-		else:
-			resize(window, l=0, t=position, w=1, h=proportion)
-		self.windows.staging = True
-
-	def centralize(self, c_in):
-		resize(self.get_wnck_window(), l=0.1, t=0.1, w=0.8, h=0.8)
-		self.windows.staging = True
-
-	# TODO: apply layout
-	def decorate(self, c_in):
-		decoration_parameter = c_in.vim_command_parameter
-		if decoration_parameter in DECORATION_MAP.keys():
-			opt = DECORATION_MAP[decoration_parameter]
-		gdk_window = gdk_window_for(self.get_wnck_window())
-		# TODO: UnboundLocalError: local variable 'opt' referenced before assignment
-		gdk_window.set_decorations(opt)
-		self.windows.staging = True
-
-
-class Focus:
-
-	windows: Windows = None
-	active: ActiveWindow = None
-
-	def __init__(self, windows=None, active=None):
-		self.windows = windows
-		self.active = active
-
-	def move_right(self, c_in):
-		self.move(1, HORIZONTAL)
-
-	def move_left(self, c_in):
-		self.move(-1, HORIZONTAL)
-
-	def move_up(self, c_in):
-		self.move(-1, VERTICAL)
-
-	def move_down(self, c_in):
-		self.move(1, VERTICAL)
-
-	def move_to_previous(self, c_in):
-		stack = list(filter(lambda x: x in self.windows.visible, Wnck.Screen.get_default().get_windows_stacked()))
-		i = stack.index(self.active.get_wnck_window())
-		self.active.xid = stack[i - 1].get_xid()
-		self.windows.staging = True
-
-	def move(self, increment, axis):
-		active = self.active.get_wnck_window()
-
-		def key(w):
-			axis_position = axis.position_of(w)
-			perpendicular_distance = abs(axis.perpendicular.position_of(w) - axis.perpendicular.position_of(active))
-			perpendicular_distance *= -1 if axis_position < axis.position_of(active) else 1
-			return axis_position * STRETCH + perpendicular_distance
-
-		sorted_windows = sorted(self.windows.visible, key=key)
-		index = sorted_windows.index(self.active.get_wnck_window())
-		if 0 <= index + increment < len(sorted_windows):
-			index = index + increment
-			next_index = index + increment
-			while 0 <= next_index < len(sorted_windows) and axis.position_of(sorted_windows[index]) == axis.position_of(active):
-				index = next_index
-				next_index += increment
-		self.active.xid = sorted_windows[index].get_xid()
-		self.windows.staging = True
-
-	def cycle(self, c_in):
-		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
-		i = self.windows.line.index(self.active.get_wnck_window())
-		next_window = self.windows.line[(i + direction) % len(self.windows.line)]
-		self.active.xid = next_window.get_xid()
-		self.windows.staging = True
-
-
 class Monitors:
 
 	stacks: Dict[int, List[int]] = {}
 	primary_monitors: Dict[int, Monitor] = {}
 	window_by_xid: Dict[int, Wnck.Window] = {}
 	handlers_by_xid: Dict[int, int] = {}
-	screen_handlers: List[int] = []
 	function_keys_wheel = List
 
-	def __init__(self, windows: Windows):
-		self.windows: Windows = windows
+	def __init__(self):
 		self.function_keys_wheel = list(reversed(list(FUNCTIONS_MAP.keys())))
 
 	def get_active_stack(self) -> List[int]:
@@ -491,11 +357,6 @@ class Monitors:
 
 	def connect_to(self, screen: Wnck.Screen):
 		self._install_present_window_handlers(screen)
-		opened_handler_id = screen.connect("window-opened", self._window_opened)
-		closed_handler_id = screen.connect("window-closed", self._window_closed)
-		viewport_handler_id = screen.connect("viewports-changed", self._viewports_changed)
-		workspace_handler_id = screen.connect("active-workspace-changed", self._active_workspace_changed)
-		self.screen_handlers.extend([opened_handler_id, closed_handler_id, viewport_handler_id, workspace_handler_id])
 
 	def _install_present_window_handlers(self, screen: Wnck.Screen):
 		for window in screen.get_windows():
@@ -508,52 +369,10 @@ class Monitors:
 		for xid in self.handlers_by_xid.keys():
 			if xid in self.window_by_xid:
 				self.window_by_xid[xid].disconnect(self.handlers_by_xid[xid])
-		for handler_id in self.screen_handlers:
-			screen.disconnect(handler_id)
 
 	#
 	# CALLBACKS
 	#
-	def _viewports_changed(self, scree: Wnck.Screen):
-		desktop.show_monitor(self.get_active_primary_monitor())
-
-	def _active_workspace_changed(self, screen: Wnck.Screen, workspace: Wnck.Workspace):
-		desktop.show_monitor(self.get_active_primary_monitor())
-		desktop.update()
-
-	def _window_closed(self, screen: Wnck.Screen, window):
-		try:
-			if window.get_xid() in self.handlers_by_xid:
-				window.disconnect(self.handlers_by_xid[window.get_xid()])
-				del self.handlers_by_xid[window.get_xid()]
-			if is_visible(window) and is_managed(window):
-				self.read_screen(screen)
-				self.apply()
-		except DirtyState:
-			pass  # It was just a try
-
-	def _window_opened(self, screen: Wnck.Screen, window: Wnck.Window):
-		self._install_present_window_handlers(screen)
-		if not is_visible(window, screen.get_active_workspace()):
-			return
-		if window.get_name() in scratchpads.names():
-			scratchpad = scratchpads.get(window.get_name())
-			primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
-			resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
-		elif is_managed(window):
-			self.read_screen(screen)
-			stack = self.get_active_stack()
-			copy = stack.copy()
-			stack.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
-
-		try:
-			with Trap():
-				self.windows.read_default_screen(force_update=False)
-				self.windows.apply_decoration_config()
-				self.apply()
-				self.persist()
-		except DirtyState:
-			pass  # It was just a try
 
 	def _state_changed(self, window: Wnck.Window, changed_mask, new_state):
 		if changed_mask & Wnck.WindowState.MINIMIZED and is_managed(window):
@@ -600,44 +419,12 @@ class Monitors:
 		pixels = int(parameters[1])
 		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
 		self.get_active_primary_monitor().update_work_area()
-		self.windows.staging = True
+		windows.staging = True
 		self.apply()
 
 	def complete_gap_options(self, user_event: UserEvent):
 		input = user_event.vim_command_parameter.lower()
 		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
-
-	def swap_focused_with(self, user_event: UserEvent):
-		active = get_active_managed_window()
-		if not active:
-			return
-		direction = user_event.parameters[0]
-		retain_focus = True if len(user_event.parameters) < 2 else user_event.parameters[1]
-
-		stack = self.get_active_stack()
-		old_index = stack.index(active.get_xid())
-		new_index = self._incremented_index(direction)
-
-		if new_index != old_index:
-			stack.insert(new_index, stack.pop(old_index))
-			if not retain_focus:
-				self.windows.active.change_to(stack[old_index])
-			self.apply()
-			self.persist()
-
-	def move_focus(self, user_event: UserEvent):
-		if get_active_managed_window():
-			stack = self.get_active_stack()
-			direction = user_event.parameters[0]
-			new_index = self._incremented_index(direction)
-			self.windows.active.change_to(stack[new_index])
-
-	def _incremented_index(self, increment):
-		stack = self.get_active_stack()
-		active = get_active_managed_window()
-		old_index = stack.index(active.get_xid())
-		new_index = old_index + increment
-		return min(max(new_index, 0), len(stack) - 1)
 
 	def move_to_master(self, user_event: UserEvent):
 		active = get_active_managed_window()
@@ -675,7 +462,7 @@ class Monitors:
 				x + gdk_monitor.get_workarea().x, y + gdk_monitor.get_workarea().y,
 				parameters[4] if len(parameters) > 4 else window.get_geometry().widthp,
 				parameters[5] if len(parameters) > 5 else window.get_geometry().heightp)
-		self.windows.staging = True
+		windows.staging = True
 
 	#
 	# COMMAND METHODS
@@ -723,6 +510,166 @@ class Monitors:
 		return resume
 
 
+class ActiveWindow:
+
+	def __init__(self):
+		self.xid = None
+		self.focus = Focus(self)
+
+	def get_wnck_window(self):
+		for w in windows.buffers:
+			if w.get_xid() == self.xid:
+				return w
+		return None
+
+	def clean(self):
+		self.xid = None
+
+	def change_to(self, xid: int):
+		if self.xid != xid:
+			self.xid = xid
+			windows.staging = True
+
+	def only(self, c_in):
+		for w in windows.visible.copy():
+			if self.xid != w.get_xid():
+				w.minimize()
+				windows.remove_from_visible(w)
+		windows.staging = True
+
+	def minimize(self, c_in):
+		if self.xid:
+			active_window = self.get_wnck_window()
+			active_window.minimize()
+			windows.remove_from_visible(active_window)
+			windows.update_active()
+			windows.staging = True
+
+	def maximize(self, c_in):
+		if self.xid:
+			self.get_wnck_window().maximize()
+			windows.staging = True
+
+	def move_right(self, c_in):
+		self._snap_active_window(HORIZONTAL, 0.5)
+
+	def move_left(self, c_in):
+		self._snap_active_window(HORIZONTAL, 0)
+
+	def move_up(self, c_in):
+		self._snap_active_window(VERTICAL, 0)
+
+	def move_down(self, c_in):
+		self._snap_active_window(VERTICAL, 0.5)
+
+	def _snap_active_window(self, axis, position):
+		self._move_on_axis(self.get_wnck_window(), axis, position, 0.5)
+
+	def _move_on_axis(self, window, axis, position, proportion):
+		if axis == HORIZONTAL:
+			resize(window, l=position, t=0, w=proportion, h=1)
+		else:
+			resize(window, l=0, t=position, w=1, h=proportion)
+		windows.staging = True
+
+	def centralize(self, c_in):
+		resize(self.get_wnck_window(), l=0.1, t=0.1, w=0.8, h=0.8)
+		windows.staging = True
+
+	# TODO: apply layout
+	def decorate(self, c_in):
+		decoration_parameter = c_in.vim_command_parameter
+		if decoration_parameter in DECORATION_MAP.keys():
+			opt = DECORATION_MAP[decoration_parameter]
+		gdk_window = gdk_window_for(self.get_wnck_window())
+		# TODO: UnboundLocalError: local variable 'opt' referenced before assignment
+		gdk_window.set_decorations(opt)
+		windows.staging = True
+
+
+class Focus:
+
+	def __init__(self, active: ActiveWindow):
+		self.active = active
+
+	def move_right(self, c_in):
+		self.move(1, HORIZONTAL)
+
+	def move_left(self, c_in):
+		self.move(-1, HORIZONTAL)
+
+	def move_up(self, c_in):
+		self.move(-1, VERTICAL)
+
+	def move_down(self, c_in):
+		self.move(1, VERTICAL)
+
+	def move_to_previous(self, c_in):
+		stack = list(filter(lambda x: x in windows.visible, Wnck.Screen.get_default().get_windows_stacked()))
+		i = stack.index(self.active.get_wnck_window())
+		self.active.xid = stack[i - 1].get_xid()
+		windows.staging = True
+
+	def move(self, increment, axis):
+		active = self.active.get_wnck_window()
+
+		def key(w):
+			axis_position = axis.position_of(w)
+			perpendicular_distance = abs(axis.perpendicular.position_of(w) - axis.perpendicular.position_of(active))
+			perpendicular_distance *= -1 if axis_position < axis.position_of(active) else 1
+			return axis_position * STRETCH + perpendicular_distance
+
+		sorted_windows = sorted(windows.visible, key=key)
+		index = sorted_windows.index(self.active.get_wnck_window())
+		if 0 <= index + increment < len(sorted_windows):
+			index = index + increment
+			next_index = index + increment
+			while 0 <= next_index < len(sorted_windows) and axis.position_of(sorted_windows[index]) == axis.position_of(active):
+				index = next_index
+				next_index += increment
+		self.active.xid = sorted_windows[index].get_xid()
+		windows.staging = True
+
+	def cycle(self, c_in):
+		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
+		i = windows.line.index(self.active.get_wnck_window())
+		next_window = windows.line[(i + direction) % len(windows.line)]
+		self.active.xid = next_window.get_xid()
+		windows.staging = True
+
+	def swap(self, user_event: UserEvent):
+		active = get_active_managed_window()
+		if not active:
+			return
+		direction = user_event.parameters[0]
+		retain_focus = True if len(user_event.parameters) < 2 else user_event.parameters[1]
+
+		stack = monitors.get_active_stack()
+		old_index = stack.index(active.get_xid())
+		new_index = self._incremented_index(direction)
+
+		if new_index != old_index:
+			stack.insert(new_index, stack.pop(old_index))
+			if not retain_focus:
+				windows.active.change_to(stack[old_index])
+			monitors.apply()
+			monitors.persist()
+
+	def step(self, user_event: UserEvent):
+		if get_active_managed_window():
+			stack = monitors.get_active_stack()
+			direction = user_event.parameters[0]
+			new_index = self._incremented_index(direction)
+			windows.active.change_to(stack[new_index])
+
+	def _incremented_index(self, increment):
+		stack = monitors.get_active_stack()
+		active = get_active_managed_window()
+		old_index = stack.index(active.get_xid())
+		new_index = old_index + increment
+		return min(max(new_index, 0), len(stack) - 1)
+
+
 class Axis:
 	position_mask: Wnck.WindowMoveResizeMask
 	size_mask: Wnck.WindowMoveResizeMask
@@ -762,3 +709,76 @@ def is_managed(window):
 def get_active_managed_window():
 	active = Wnck.Screen.get_default().get_active_window()
 	return active if active and is_managed(active) else None
+
+
+def _window_closed(screen: Wnck.Screen, window):
+	try:
+		if window.get_xid() in monitors.handlers_by_xid:
+			window.disconnect(monitors.handlers_by_xid[window.get_xid()])
+			del monitors.handlers_by_xid[window.get_xid()]
+		if is_visible(window) and is_managed(window):
+			monitors.read_screen(screen)
+			monitors.apply()
+	except DirtyState:
+		pass  # It was just a try
+
+
+def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
+	monitors._install_present_window_handlers(screen)
+	if not is_visible(window, screen.get_active_workspace()):
+		return
+	if window.get_name() in scratchpads.names():
+		scratchpad = scratchpads.get(window.get_name())
+		primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
+		resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
+	elif is_managed(window):
+		monitors.read_screen(screen)
+		stack = monitors.get_active_stack()
+		copy = stack.copy()
+		stack.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
+
+	try:
+		with Trap():
+			windows.read_default_screen(force_update=False)
+			windows.apply_decoration_config()
+			monitors.apply()
+			monitors.persist()
+	except DirtyState:
+		pass  # It was just a try
+
+
+def _viewports_changed(scree: Wnck.Screen):
+	desktop.show_monitor(monitors.get_active_primary_monitor())
+
+
+def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
+	desktop.show_monitor(monitors.get_active_primary_monitor())
+	desktop.update()
+
+
+def read(screen: Wnck.Screen):
+	import pwm.state as state
+	windows.read(screen)
+	monitors.read(screen, state.get_workspace_config())
+
+
+def start():
+	screen = Wnck.Screen.get_default()
+	monitors.connect_to(screen)
+	windows.apply_decoration_config()
+	monitors.apply()
+	opened_handler_id = screen.connect("window-opened", _window_opened)
+	closed_handler_id = screen.connect("window-closed", _window_closed)
+	viewport_handler_id = screen.connect("viewports-changed", _viewports_changed)
+	workspace_handler_id = screen.connect("active-workspace-changed", _active_workspace_changed)
+	screen_handlers.extend([opened_handler_id, closed_handler_id, viewport_handler_id, workspace_handler_id])
+
+
+def stop():
+	for handler_id in screen_handlers:
+		Wnck.Screen.get_default().disconnect(handler_id)
+
+
+screen_handlers: List[int] = []
+windows: Windows = Windows()
+monitors: Monitors = Monitors()
