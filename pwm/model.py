@@ -15,64 +15,29 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import traceback
-
 import gi, os, re
 import pwm.messages as messages
 import pwm.state as configurations
 from pwm import decoration, state, desktop as desktop, scratchpads
 from pwm.layout import FUNCTIONS_MAP
-
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Callable
 from pwm.names import PROMPT
-from pwm.wm import gdk_window_for, monitor_work_area_for, set_geometry, resize, is_visible, \
+from pwm.wm import gdk_window_for, resize, is_visible, \
 	get_active_window, decoration_delta, UserEvent, Monitor, monitor_for, DirtyState, Trap, X_Y_W_H_GEOMETRY_MASK, \
 	is_buffer
 from pwm.decoration import DECORATION_MAP
 
 
-class Axis:
-	position_mask: Wnck.WindowMoveResizeMask
-	size_mask: Wnck.WindowMoveResizeMask
-
-	def __init__(self, position_mask, size_mask):
-		self.position_mask = position_mask
-		self.size_mask = size_mask
-
-	def position_of(self, window: Wnck.Window):
-		return window.get_geometry().xp if self is HORIZONTAL else window.get_geometry().yp
-
-
-INCREMENT = 0.1
-DECREMENT = -0.1
-CENTER = 0.5
-VERTICAL = Axis(Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
-HORIZONTAL = Axis(Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
-HORIZONTAL.perpendicular = VERTICAL
-VERTICAL.perpendicular = HORIZONTAL
-STRETCH = 1000
-
-
-def sort_line(w):
-	geometry = w.get_geometry()
-	return geometry.xp * STRETCH + geometry.yp
-
-
-def sort_column(w):
-	geometry = w.get_geometry()
-	return geometry.yp * STRETCH + geometry.xp
-
-
 class Windows:
 
 	def __init__(self):
-		self.active = Active(windows=self)
+		self.active = ActiveWindow(windows=self)
 		self.visible: List[Wnck.Window] = []
 		self.buffers: List[Wnck.Window] = []
 		self.line: List[Wnck.Window] = None
 		self.staging = False
-		self.count = 0
 
 	def read_default_screen(self, force_update=True):
 		self.read(Wnck.Screen.get_default(), force_update=force_update)
@@ -254,7 +219,7 @@ class Windows:
 		return resume
 
 
-class Active:
+class ActiveWindow:
 
 	windows: Windows = None
 
@@ -337,7 +302,7 @@ class Active:
 class Focus:
 
 	windows: Windows = None
-	active: Active = None
+	active: ActiveWindow = None
 
 	def __init__(self, windows=None, active=None):
 		self.windows = windows
@@ -396,11 +361,11 @@ class Monitors:
 	window_by_xid: Dict[int, Wnck.Window] = {}
 	handlers_by_xid: Dict[int, int] = {}
 	screen_handlers: List[int] = []
-	function_keys_well = List
+	function_keys_wheel = List
 
 	def __init__(self, windows: Windows):
 		self.windows: Windows = windows
-		self.function_keys_well = list(reversed(list(FUNCTIONS_MAP.keys())))
+		self.function_keys_wheel = list(reversed(list(FUNCTIONS_MAP.keys())))
 
 	def get_active_stack(self) -> List[int]:
 		return self.stack_for(Wnck.Screen.get_default().get_active_workspace())
@@ -618,8 +583,8 @@ class Monitors:
 	def cycle_function(self, user_event: UserEvent):
 		active = get_active_managed_window()
 		monitor: Monitor = self.monitor_of(active) if active else self.get_active_primary_monitor()
-		index = self.function_keys_well.index(monitor.function_key)
-		self._set_function(self.function_keys_well[index - 1])
+		index = self.function_keys_wheel.index(monitor.function_key)
+		self._set_function(self.function_keys_wheel[index - 1])
 
 	def _set_function(self, key):
 		active = get_active_managed_window()
@@ -756,6 +721,38 @@ class Monitors:
 				resume += ')\n'
 
 		return resume
+
+
+class Axis:
+	position_mask: Wnck.WindowMoveResizeMask
+	size_mask: Wnck.WindowMoveResizeMask
+
+	def __init__(self, position_mask, size_mask):
+		self.position_mask = position_mask
+		self.size_mask = size_mask
+
+	def position_of(self, window: Wnck.Window):
+		return window.get_geometry().xp if self is HORIZONTAL else window.get_geometry().yp
+
+
+INCREMENT = 0.1
+DECREMENT = -0.1
+CENTER = 0.5
+VERTICAL = Axis(Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
+HORIZONTAL = Axis(Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
+HORIZONTAL.perpendicular = VERTICAL
+VERTICAL.perpendicular = HORIZONTAL
+STRETCH = 1000
+
+
+def sort_line(w):
+	geometry = w.get_geometry()
+	return geometry.xp * STRETCH + geometry.yp
+
+
+def sort_column(w):
+	geometry = w.get_geometry()
+	return geometry.yp * STRETCH + geometry.xp
 
 
 def is_managed(window):
