@@ -761,4 +761,4 @@ def is_managed(window):
 
 def get_active_managed_window():
 	active = Wnck.Screen.get_default().get_active_window()
-	return active if is_managed(active) else None
+	return active if active and is_managed(active) else None
