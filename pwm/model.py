@@ -233,6 +233,31 @@ class Monitors:
 	def __init__(self):
 		self.function_keys_wheel = list(reversed(list(FUNCTIONS_MAP.keys())))
 
+	#
+	# Monitor API
+	#
+	# TODO: clean, the Monitor work is already at the class name
+	def get_active(self) -> Monitor:
+		active = get_active_managed_window()
+		return self.monitor_of(active) if active else self.get_active_primary_monitor()
+
+	def monitor_of(self, window: Wnck.Window) -> Monitor:
+		monitor: Monitor = self.get_active_primary_monitor()
+		return monitor if monitor_for(window).is_primary() else monitor.next()
+
+	def get_active_primary_monitor(self) -> Monitor:
+		return self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
+
+	def primary_monitor_for(self, workspace: Wnck.Workspace) -> Monitor:
+		if workspace.get_number() not in self.primary_monitors:
+			self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
+		return self.primary_monitors[workspace.get_number()]
+
+	#
+	# Stack API
+	#
+	# TODO: keep the 'stack' name?
+	# TODO: move to windows
 	def get_active_stack(self) -> List[int]:
 		return self.stack_for(Wnck.Screen.get_default().get_active_workspace())
 
@@ -246,23 +271,11 @@ class Monitors:
 
 	def get_active_primary_monitor_windows(self) -> List[Wnck.Window]:
 		primary_monitor = self.get_active_primary_monitor()
-		visible = self.get_active_windows_as_list()
-		return list(filter(lambda w: primary_monitor.contains(w), visible))
+		return list(filter(lambda w: primary_monitor.contains(w), self.get_active_windows_as_list()))
 
-	def get_active_primary_monitor(self) -> Monitor:
-		return self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
-
-	def monitor_of(self, window: Wnck.Window) -> Monitor:
-		current: Gdk.Monitor = monitor_for(window)
-		active_workspace: Wnck.Workspace = Wnck.Screen.get_default().get_active_workspace()
-		monitor: Monitor = self.primary_monitors[active_workspace.get_number()]
-		return monitor if current.is_primary() else monitor.next()
-
-	def primary_monitor_for(self, workspace: Wnck.Workspace) -> Monitor:
-		if workspace.get_number() not in self.primary_monitors:
-			self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
-		return self.primary_monitors[workspace.get_number()]
-
+	#
+	# State API
+	#
 	def read(self, screen: Wnck.Screen, workspace_config: Dict):
 		self.read_screen(screen)
 		try:
@@ -355,6 +368,9 @@ class Monitors:
 				monitor = monitor.next()
 		return props
 
+	#
+	# Handler config API
+	#
 	def connect_to(self, screen: Wnck.Screen):
 		self._install_present_window_handlers(screen)
 
@@ -400,15 +416,11 @@ class Monitors:
 	# TODO: based on mouse position?
 	# TODO: rename user_event
 	def cycle_function(self, user_event: UserEvent):
-		active = get_active_managed_window()
-		monitor: Monitor = self.monitor_of(active) if active else self.get_active_primary_monitor()
-		index = self.function_keys_wheel.index(monitor.function_key)
+		index = self.function_keys_wheel.index(self.get_active().function_key)
 		self._set_function(self.function_keys_wheel[index - 1])
 
 	def _set_function(self, key):
-		active = get_active_managed_window()
-		monitor: Monitor = self.monitor_of(active) if active else self.get_active_primary_monitor()
-		monitor.function_key = key
+		self.get_active().function_key = key
 		self.apply()
 		self.persist()
 		desktop.show_monitor(self.get_active_primary_monitor())
@@ -484,6 +496,7 @@ class Monitors:
 			visible = visible[split_point:]
 			split_point = len(visible)
 
+	# TODO: move to messages with the Windows version
 	def resume(self):
 		resume = ''
 		resume += '[gap] inner: {} outer: {}\n'.format(state.get_inner_gap(), state.get_outer_gap())
@@ -706,6 +719,7 @@ def is_managed(window):
 	return is_buffer(window) and window.get_name() not in scratchpads.names()
 
 
+# TODO: move to monitors?
 def get_active_managed_window():
 	active = Wnck.Screen.get_default().get_active_window()
 	return active if active and is_managed(active) else None

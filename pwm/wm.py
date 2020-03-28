@@ -40,6 +40,7 @@ def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
 		raise DirtyState(window=window) from e
 
 
+# TODO: rename to gdk_monitor_of
 def monitor_for(window: Wnck.Window) -> GdkX11.X11Monitor:
 	gdk_window: GdkX11.X11Window = gdk_window_for(window)
 	gdk_display: GdkX11.X11Display = gdk_window.get_display()
@@ -136,6 +137,7 @@ def get_height(window: Wnck.Window):
 	return gh - dh + (config.get_window_manger_border() * 2 if client_side_decoration else 0)
 
 
+# TODO: remove duplicated code
 def get_width(window: Wnck.Window):
 	dx, dy, dw, dh = decoration_delta(window)
 	with Trap():
