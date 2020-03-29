@@ -197,7 +197,6 @@ def _pre_processing():
 	model.monitors.read_screen(screen)
 
 	reading.make_transient()
-	# messages.clean_prompt()
 
 
 def _post_processing(user_event: UserEvent):
@@ -211,7 +210,6 @@ def _post_processing(user_event: UserEvent):
 
 	if reading.is_transient():
 		reading.end()
-		messages.clean()
 
 	if desktop.is_connected():
 		desktop.update()
