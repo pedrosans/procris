@@ -670,6 +670,7 @@ class Focus:
 			monitors.apply()
 			monitors.persist()
 
+	# TODO: use a standard like promote/demote ?
 	def step(self, user_event: UserEvent):
 		if get_active_managed_window():
 			stack = monitors.get_active_stack()

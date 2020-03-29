@@ -120,7 +120,7 @@ def reload(c_in):
 	applications.reload()
 	terminal.reload()
 	messages.clean()
-	reading.clean(recreate_view=True)
+	reading.reload(recreate_view=True)
 	model.windows.read_default_screen()
 	model.windows.apply_decoration_config()
 

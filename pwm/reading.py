@@ -48,6 +48,7 @@ class Reading:
 	long = False
 	command_mode = False
 	cmd_handler_ids = []
+	escape_clause_id: int = None
 
 	def __init__(self, windows: Windows):
 		self.windows = windows
@@ -62,24 +63,28 @@ class Reading:
 	# Lifecycle state API
 	#
 	def begin(self, time):
-		self.clean()
+		self.reload()
 		self.long = True
 		self.view.present_and_focus(time)
 		self.view.update()
+		self.escape_clause_id = self.view.connect("focus-out-event", self.on_focus_out)
 
 	def is_transient(self):
 		return not self.long
 
 	def make_transient(self):
+		self.remove_focus_callback()
 		self.long = False
 
 	def end(self):
+		self.remove_focus_callback()
 		self.view.hide()
+		messages.clean()
 
 	#
 	# State API
 	#
-	def clean(self, recreate_view=False):
+	def reload(self, recreate_view=False, update_view=False):
 		self.command_mode = False
 		for handler_id in self.cmd_handler_ids:
 			self.view.colon_prompt.disconnect(handler_id)
@@ -88,6 +93,13 @@ class Reading:
 		if recreate_view:
 			self.view.close()
 			self._create_and_install_view()
+		if update_view:
+			self.view.update()
+
+	def remove_focus_callback(self):
+		if self.escape_clause_id:
+			self.view.disconnect(self.escape_clause_id)
+			self.escape_clause_id = None
 
 	def set_command_mode(self):
 		self.command_mode = True
@@ -106,12 +118,14 @@ class Reading:
 	#
 	# CALLBACKS
 	#
+	def on_focus_out(self, widget, event):
+		self.end()
+
 	def _window_key_press_callback(self, widget, event):
 		ctrl = (event.state & Gdk.ModifierType.CONTROL_MASK)
 
 		if event.keyval == Gdk.KEY_Escape or (ctrl and event.keyval == Gdk.KEY_bracketleft):
 			self.end()
-			messages.clean()
 			return
 
 		if self.in_command_mode():
@@ -131,8 +145,7 @@ class Reading:
 			return False
 
 		if not self.view.colon_prompt.get_text().strip():
-			self.clean()
-			self.view.update()
+			self.reload(update_view=True)
 			return True
 
 		self.show_completions()
@@ -177,7 +190,7 @@ class Reading:
 
 		return True
 
-	def on_prompt_input(self, pane_owner, current):
+	def on_prompt_input(self, pane_owner: Gtk.Entry, current):
 		if not self.command_mode:
 			return
 
