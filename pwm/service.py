@@ -197,21 +197,21 @@ def _pre_processing():
 	model.monitors.read_screen(screen)
 
 	reading.make_transient()
+	# messages.clean_prompt()
 
 
 def _post_processing(user_event: UserEvent):
-	if messages.has_message():
-		reading.begin(user_event.time)
 
 	if model.windows.staging:
 		model.windows.commit_navigation(user_event.time)
-		reading.make_transient()
+		messages.clean()
+
+	if messages.has_message():
+		reading.begin(user_event.time)
 
 	if reading.is_transient():
 		reading.end()
 		messages.clean()
-
-	messages.clean_prompt()
 
 	if desktop.is_connected():
 		desktop.update()
