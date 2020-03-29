@@ -102,8 +102,6 @@ def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, 
 
 def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None, synchronous=False, raise_exceptions=True):
 
-	window.unmaximize()
-
 	if not w and not h:
 		geometry = window.get_geometry()
 		w = geometry.widthp

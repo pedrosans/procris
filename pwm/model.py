@@ -389,8 +389,10 @@ class Monitors:
 	#
 	# CALLBACKS
 	#
-
 	def _state_changed(self, window: Wnck.Window, changed_mask, new_state):
+		maximization = changed_mask & Wnck.WindowState.MAXIMIZED_HORIZONTALLY or changed_mask & Wnck.WindowState.MAXIMIZED_VERTICALLY
+		if maximization and new_state and self.monitor_of(window).function_key:
+			window.unmaximize()
 		if changed_mask & Wnck.WindowState.MINIMIZED and is_managed(window):
 			self.read_screen(window.get_screen())
 			stack = self.get_active_stack()
@@ -738,6 +740,8 @@ def _window_closed(screen: Wnck.Screen, window):
 
 
 def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
+	if window.is_maximized():
+		print('is maximized')
 	monitors._install_present_window_handlers(screen)
 	if not is_visible(window, screen.get_active_workspace()):
 		return
