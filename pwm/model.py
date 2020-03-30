@@ -323,16 +323,6 @@ class Monitors:
 		input = user_event.vim_command_parameter.lower()
 		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
 
-	def move_to_master(self, user_event: UserEvent):
-		active = get_active_managed_window()
-		if not active:
-			return
-		stack = self.get_active_stack()
-		old_index = stack.index(active.get_xid())
-		stack.insert(0, stack.pop(old_index))
-		apply()
-		persist()
-
 	def increase_master_area(self, user_event: UserEvent):
 		self.get_active_primary_monitor().increase_master_area(increment=user_event.parameters[0])
 		apply()
@@ -437,6 +427,16 @@ class ActiveWindow:
 		# TODO: UnboundLocalError: local variable 'opt' referenced before assignment
 		gdk_window.set_decorations(opt)
 		windows.staging = True
+
+	def move_to_master(self, user_event: UserEvent):
+		active = get_active_managed_window()
+		if not active:
+			return
+		stack = monitors.get_active_stack()
+		old_index = stack.index(active.get_xid())
+		stack.insert(0, stack.pop(old_index))
+		apply()
+		persist()
 
 
 class Focus:
