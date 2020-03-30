@@ -27,7 +27,6 @@ class LayoutIntegrationTestCase(unittest.TestCase):
 		screen = Wnck.Screen.get_default()
 
 		model.windows.read_default_screen()
-		model.monitors.read_screen(screen)
 
 		for w in screen.get_windows():
 			if w.get_name() in ['Calculator', 'Logs']:
@@ -45,22 +44,22 @@ class LayoutIntegrationTestCase(unittest.TestCase):
 	def test_read_window_in_workspace(self):
 		self.assertIn(
 			self.calculator.get_xid(),
-			model.monitors.stacks[0],
-			'calc: {} should be in: {}'.format(self.calculator.get_xid(), model.monitors.stacks[0]))
+			model.windows.stacks[0],
+			'calc: {} should be in: {}'.format(self.calculator.get_xid(), model.windows.stacks[0]))
 		self.assertIn(
 			self.logs.get_xid(),
-			model.monitors.stacks[1],
-			'logs: {} should be in: {}'.format(self.logs.get_xid(), model.monitors.stacks[1]))
+			model.windows.stacks[1],
+			'logs: {} should be in: {}'.format(self.logs.get_xid(), model.windows.stacks[1]))
 
 	def test_dont_read_window_outside_its_workspace(self):
 		self.assertNotIn(
 			self.calculator.get_xid(),
-			model.monitors.stacks[1],
-			'calc: {} should not be in: {}'.format(self.calculator.get_xid(), model.monitors.stacks[1]))
+			model.windows.stacks[1],
+			'calc: {} should not be in: {}'.format(self.calculator.get_xid(), model.windows.stacks[1]))
 		self.assertNotIn(
 			self.logs.get_xid(),
-			model.monitors.stacks[0],
-			'logs: {} should not be in: {}'.format(self.logs.get_xid(), model.monitors.stacks[0]))
+			model.windows.stacks[0],
+			'logs: {} should not be in: {}'.format(self.logs.get_xid(), model.windows.stacks[0]))
 
 
 if __name__ == '__main__':

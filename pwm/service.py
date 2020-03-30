@@ -194,7 +194,6 @@ def _pre_processing():
 	screen = Wnck.Screen.get_default()
 
 	model.windows.read(screen)
-	model.monitors.read_screen(screen)
 
 	reading.make_transient()
 

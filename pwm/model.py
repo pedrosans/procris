@@ -32,6 +32,9 @@ from pwm.decoration import DECORATION_MAP
 
 class Windows:
 
+	stacks: Dict[int, List[int]] = {}
+	window_by_xid: Dict[int, Wnck.Window] = {}
+
 	def __init__(self):
 		self.active = ActiveWindow()
 		self.visible: List[Wnck.Window] = []
@@ -46,11 +49,13 @@ class Windows:
 		del self.buffers[:]
 		del self.visible[:]
 		self.active.clean()
+		self.window_by_xid.clear()
 
 		if force_update:
 			screen.force_update()  # make sure we query X server
 
 		for wnck_window in screen.get_windows():
+			self.window_by_xid[wnck_window.get_xid()] = wnck_window
 			if wnck_window.get_pid() == os.getpid() or wnck_window.is_skip_tasklist():
 				continue
 
@@ -62,13 +67,42 @@ class Windows:
 		self.update_active()
 		self.line = sorted(self.visible, key=sort_line)
 
-	def update_active(self):
-		active_window = get_active_window(window_filter=lambda x: x in self.visible)
-		self.active.xid = active_window.get_xid() if active_window else None
+		for workspace in screen.get_workspaces():
+			primary_monitor: Monitor = monitors.primary_monitor_for(workspace)
+			self._read_workspace(screen, workspace, primary_monitor)
+
+	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace, primary_monitor):
+		stack: List[int] = self.stack_for(workspace)
+
+		# add window listed in this workspace
+		stack.extend(map(lambda w: w.get_xid(), filter(
+			lambda w: w.get_xid() not in stack and is_visible(w, workspace) and is_managed(w),
+			reversed(screen.get_windows_stacked()))))
+
+		# remove any that no longer is in this workspace
+		for outsider in filter(
+				lambda xid: xid not in self.window_by_xid or not is_visible(self.window_by_xid[xid], workspace),
+				stack.copy()):
+			stack.remove(outsider)
+
+		for i in range(Gdk.Display.get_default().get_n_monitors()):
+			gdk_monitor = Gdk.Display.get_default().get_monitor(i)
+			if gdk_monitor.is_primary():
+				primary_monitor.set_rectangle(gdk_monitor.get_workarea())
+			elif primary_monitor.next():
+				primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
+				break
+
+		copy = stack.copy()
+		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not primary_monitor.contains(self.window_by_xid[xid]) else 0))
 
 	#
 	# API
 	#
+	def update_active(self):
+		active_window = get_active_window(window_filter=lambda x: x in self.visible)
+		self.active.xid = active_window.get_xid() if active_window else None
+
 	def commit_navigation(self, event_time):
 		"""
 		Commits any staged change in the active window
@@ -76,6 +110,18 @@ class Windows:
 		if self.staging and self.active.xid and self.active.get_wnck_window():
 			self.active.get_wnck_window().activate_transient(event_time)
 		self.staging = False
+
+	# TODO: keep the 'stack' name?
+	def get_active_stack(self) -> List[int]:
+		return self.stack_for(Wnck.Screen.get_default().get_active_workspace())
+
+	def stack_for(self, workspace: Wnck.Workspace) -> List[int]:
+		if workspace.get_number() not in self.stacks:
+			self.stacks[workspace.get_number()] = []
+		return self.stacks[workspace.get_number()]
+
+	def get_active_windows_as_list(self) -> List[Wnck.Window]:
+		return list(map(lambda xid: self.window_by_xid[xid], self.get_active_stack()))
 
 	def remove(self, window, time):
 		window.close(time)
@@ -173,7 +219,7 @@ class Windows:
 		# TODO: if the first parameter remains the lib, can convert all to int
 		parameters = list(map(lambda word: int(word), user_event.vim_command_parameter.split()))
 		lib = parameters[0]
-		window = monitors.get_active_windows_as_list()[parameters[1]]
+		window = self.get_active_windows_as_list()[parameters[1]]
 		x = parameters[2]
 		y = parameters[3]
 		gdk_monitor = Gdk.Display.get_default().get_monitor_at_point(x, y)
@@ -212,69 +258,11 @@ class Windows:
 
 class Monitors:
 
-	stacks: Dict[int, List[int]] = {}
 	primary_monitors: Dict[int, Monitor] = {}
-	window_by_xid: Dict[int, Wnck.Window] = {}
 	function_keys_wheel = List
 
 	def __init__(self):
 		self.function_keys_wheel = list(reversed(list(FUNCTIONS_MAP.keys())))
-
-	#
-	# Stack API
-	#
-	# TODO: keep the 'stack' name?
-	# TODO: move to windows
-	def get_active_stack(self) -> List[int]:
-		return self.stack_for(Wnck.Screen.get_default().get_active_workspace())
-
-	def stack_for(self, workspace: Wnck.Workspace) -> List[int]:
-		if workspace.get_number() not in self.stacks:
-			self.stacks[workspace.get_number()] = []
-		return self.stacks[workspace.get_number()]
-
-	def get_active_windows_as_list(self) -> List[Wnck.Window]:
-		return list(map(lambda xid: self.window_by_xid[xid], self.get_active_stack()))
-
-	#
-	# State API
-	#
-	def read_screen(self, screen: Wnck.Screen):
-		self.window_by_xid.clear()
-		for window in screen.get_windows():
-			self.window_by_xid[window.get_xid()] = window
-
-		for workspace in screen.get_workspaces():
-			primary_monitor: Monitor = self.primary_monitor_for(workspace)
-			self._read_workspace(screen, workspace, primary_monitor)
-			self._read_workspace_windows_monitor(workspace, primary_monitor)
-
-	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace, primary_monitor):
-		stack: List[int] = self.stack_for(workspace)
-
-		# add window listed in this workspace
-		stack.extend(map(lambda w: w.get_xid(), filter(
-			lambda w: w.get_xid() not in stack and is_visible(w, workspace) and is_managed(w),
-			reversed(screen.get_windows_stacked()))))
-
-		# remove any that no longer is in this workspace
-		for outsider in filter(
-				lambda xid: xid not in self.window_by_xid or not is_visible(self.window_by_xid[xid], workspace),
-				stack.copy()):
-			stack.remove(outsider)
-
-		for i in range(Gdk.Display.get_default().get_n_monitors()):
-			gdk_monitor = Gdk.Display.get_default().get_monitor(i)
-			if gdk_monitor.is_primary():
-				primary_monitor.set_rectangle(gdk_monitor.get_workarea())
-			elif primary_monitor.next():
-				primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
-				break
-
-	def _read_workspace_windows_monitor(self, workspace: Wnck.Workspace, primary_monitor):
-		stack: List[int] = self.stack_for(workspace)
-		copy = stack.copy()
-		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not primary_monitor.contains(self.window_by_xid[xid]) else 0))
 
 	#
 	# Monitor API
@@ -303,7 +291,7 @@ class Monitors:
 		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
 		active = get_active_managed_window()
 		if promote_selected and active:
-			stack = self.get_active_stack()
+			stack = windows.get_active_stack()
 			old_index = stack.index(active.get_xid())
 			stack.insert(0, stack.pop(old_index))
 		function_key = user_event.parameters[0]
@@ -341,7 +329,7 @@ class Monitors:
 
 	def increment_master(self, user_event: UserEvent):
 		self.get_active_primary_monitor().increment_master(
-			increment=user_event.parameters[0], upper_limit=len(self.get_active_stack()))
+			increment=user_event.parameters[0], upper_limit=len(windows.get_active_stack()))
 		apply()
 		persist()
 
@@ -426,7 +414,7 @@ class ActiveWindow:
 		active = get_active_managed_window()
 		if not active:
 			return
-		stack = monitors.get_active_stack()
+		stack = windows.get_active_stack()
 		old_index = stack.index(active.get_xid())
 		stack.insert(0, stack.pop(old_index))
 		apply()
@@ -490,7 +478,7 @@ class Focus:
 		direction = user_event.parameters[0]
 		retain_focus = True if len(user_event.parameters) < 2 else user_event.parameters[1]
 
-		stack = monitors.get_active_stack()
+		stack = windows.get_active_stack()
 		old_index = stack.index(active.get_xid())
 		new_index = self._incremented_index(direction)
 
@@ -504,13 +492,13 @@ class Focus:
 	# TODO: use a standard like promote/demote ?
 	def step(self, user_event: UserEvent):
 		if get_active_managed_window():
-			stack = monitors.get_active_stack()
+			stack = windows.get_active_stack()
 			direction = user_event.parameters[0]
 			new_index = self._incremented_index(direction)
 			windows.active.change_to(stack[new_index])
 
 	def _incremented_index(self, increment):
-		stack = monitors.get_active_stack()
+		stack = windows.get_active_stack()
 		active = get_active_managed_window()
 		old_index = stack.index(active.get_xid())
 		new_index = old_index + increment
@@ -567,8 +555,8 @@ def _state_changed(window: Wnck.Window, changed_mask, new_state):
 	if maximization and new_state and monitors.monitor_of(window).function_key:
 		window.unmaximize()
 	if changed_mask & Wnck.WindowState.MINIMIZED and is_managed(window):
-		monitors.read_screen(window.get_screen())
-		stack = monitors.get_active_stack()
+		windows.read(window.get_screen(), force_update=False)
+		stack = windows.get_active_stack()
 		if is_visible(window):
 			old_index = stack.index(window.get_xid())
 			stack.insert(0, stack.pop(old_index))
@@ -582,15 +570,14 @@ def _window_closed(screen: Wnck.Screen, window):
 			window.disconnect(handlers_by_xid[window.get_xid()])
 			del handlers_by_xid[window.get_xid()]
 		if is_visible(window) and is_managed(window):
-			monitors.read_screen(screen)
+			windows.read(screen, force_update=False)
 			apply()
 	except DirtyState:
 		pass  # It was just a try
 
 
 def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
-	if window.is_maximized():
-		print('is maximized')
+	windows.read(screen, force_update=False)
 	_install_present_window_handlers(screen)
 	if not is_visible(window, screen.get_active_workspace()):
 		return
@@ -599,14 +586,12 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 		primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
 		resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
 	elif is_managed(window):
-		monitors.read_screen(screen)
-		stack = monitors.get_active_stack()
+		stack = windows.get_active_stack()
 		copy = stack.copy()
 		stack.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
 
 	try:
 		with Trap():
-			windows.read_default_screen(force_update=False)
 			windows.apply_decoration_config()
 			apply()
 			persist()
@@ -626,7 +611,6 @@ def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
 def load(screen: Wnck.Screen):
 	import pwm.state as state
 	windows.read(screen)
-	monitors.read_screen(screen)
 	try:
 		workspace_config: Dict = state.get_workspace_config()
 		read_user_config(workspace_config, screen)
@@ -643,7 +627,7 @@ def read_user_config(config_json: Dict, screen: Wnck.Screen):
 		workspace_json = config_json['workspaces'][workspace_index]
 
 		if 'stack' in workspace_json:
-			stack = monitors.stacks[workspace_index]
+			stack = windows.stacks[workspace_index]
 			copy = stack.copy()
 			stack.sort(
 				key=lambda xid:
@@ -689,21 +673,21 @@ def stop():
 
 
 def disconnect_from(screen: Wnck.Screen):
-	monitors.read_screen(screen)
+	windows.read(screen, force_update=False)
 	for xid in handlers_by_xid.keys():
-		if xid in monitors.window_by_xid:
-			monitors.window_by_xid[xid].disconnect(handlers_by_xid[xid])
+		if xid in windows.window_by_xid:
+			windows.window_by_xid[xid].disconnect(handlers_by_xid[xid])
 	for handler_id in screen_handlers:
 		screen.disconnect(handler_id)
 
 
 def persist():
 	props = {'workspaces': []}
-	for workspace_number in monitors.stacks.keys():
-		stack: List[int] = monitors.stacks[workspace_number]
+	for workspace_number in windows.stacks.keys():
+		stack: List[int] = windows.stacks[workspace_number]
 		stack_json = {}
 		for xid in stack:
-			stack_json[str(xid)] = {'name': monitors.window_by_xid[xid].get_name(), 'index': stack.index(xid)}
+			stack_json[str(xid)] = {'name': windows.window_by_xid[xid].get_name(), 'index': stack.index(xid)}
 
 		props['workspaces'].append({
 			'stack': stack_json,
@@ -722,7 +706,7 @@ def persist():
 #
 def apply(split_points: List[int] = None):
 	primary_monitor: Monitor = monitors.get_active_primary_monitor()
-	workspace_windows = monitors.get_active_windows_as_list()
+	workspace_windows = windows.get_active_windows_as_list()
 	monitor = primary_monitor
 	visible = workspace_windows
 	split_point = len(list(filter(lambda w: primary_monitor.contains(w), visible)))
@@ -772,7 +756,7 @@ def resume():
 		for i in range(Gdk.Display.get_default().get_n_monitors()):
 			m = Gdk.Display.get_default().get_monitor(i)
 			rect = m.get_workarea()
-			primary_monitor = self.primary_monitors[workspace.get_number()]
+			primary_monitor = monitors.primary_monitors[workspace.get_number()]
 			monitor: Monitor = primary_monitor if m.is_primary() else primary_monitor.next()
 
 			resume += '\tMonitor\t\t\tLayout: {}\tPrimary: {}\n'.format(
@@ -783,7 +767,7 @@ def resume():
 				monitor.wx, monitor.wy, monitor.ww, monitor.wh)
 
 			resume += '\t\t[Stack]\t\t('
-			for xid in filter(lambda _xid: monitor.contains(self.window_by_xid[_xid]), self.stacks[workspace.get_number()]):
+			for xid in filter(lambda _xid: monitor.contains(windows.window_by_xid[_xid]), windows.stacks[workspace.get_number()]):
 				resume += '{:10} '.format(xid)
 			resume += ')\n'
 
