@@ -345,7 +345,6 @@ class ActiveWindow:
 
 	def __init__(self):
 		self.xid = None
-		self.focus = Focus(self)
 
 	def get_wnck_window(self):
 		for w in windows.buffers:
@@ -448,12 +447,6 @@ class ActiveWindow:
 			apply()
 			persist()
 
-
-class Focus:
-
-	def __init__(self, active: ActiveWindow):
-		self.active = active
-
 	def move_right(self, c_in):
 		self.move(1, HORIZONTAL)
 
@@ -468,12 +461,12 @@ class Focus:
 
 	def move_to_previous(self, c_in):
 		stack = list(filter(lambda x: x in windows.visible, Wnck.Screen.get_default().get_windows_stacked()))
-		i = stack.index(self.active.get_wnck_window())
-		self.active.xid = stack[i - 1].get_xid()
+		i = stack.index(self.get_wnck_window())
+		self.xid = stack[i - 1].get_xid()
 		windows.staging = True
 
 	def move(self, increment, axis):
-		active = self.active.get_wnck_window()
+		active = self.get_wnck_window()
 
 		def key(w):
 			axis_position = axis.position_of(w)
@@ -482,21 +475,21 @@ class Focus:
 			return axis_position * STRETCH + perpendicular_distance
 
 		sorted_windows = sorted(windows.visible, key=key)
-		index = sorted_windows.index(self.active.get_wnck_window())
+		index = sorted_windows.index(self.get_wnck_window())
 		if 0 <= index + increment < len(sorted_windows):
 			index = index + increment
 			next_index = index + increment
 			while 0 <= next_index < len(sorted_windows) and axis.position_of(sorted_windows[index]) == axis.position_of(active):
 				index = next_index
 				next_index += increment
-		self.active.xid = sorted_windows[index].get_xid()
+		self.xid = sorted_windows[index].get_xid()
 		windows.staging = True
 
 	def cycle(self, c_in):
 		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
-		i = windows.line.index(self.active.get_wnck_window())
+		i = windows.line.index(self.get_wnck_window())
 		next_window = windows.line[(i + direction) % len(windows.line)]
-		self.active.xid = next_window.get_xid()
+		self.xid = next_window.get_xid()
 		windows.staging = True
 
 	def focusstack(self, user_event: UserEvent):
