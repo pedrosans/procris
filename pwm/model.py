@@ -215,7 +215,6 @@ class Monitors:
 	stacks: Dict[int, List[int]] = {}
 	primary_monitors: Dict[int, Monitor] = {}
 	window_by_xid: Dict[int, Wnck.Window] = {}
-	handlers_by_xid: Dict[int, int] = {}
 	function_keys_wheel = List
 
 	def __init__(self):
@@ -579,9 +578,9 @@ def _state_changed(window: Wnck.Window, changed_mask, new_state):
 
 def _window_closed(screen: Wnck.Screen, window):
 	try:
-		if window.get_xid() in monitors.handlers_by_xid:
-			window.disconnect(monitors.handlers_by_xid[window.get_xid()])
-			del monitors.handlers_by_xid[window.get_xid()]
+		if window.get_xid() in handlers_by_xid:
+			window.disconnect(handlers_by_xid[window.get_xid()])
+			del handlers_by_xid[window.get_xid()]
 		if is_visible(window) and is_managed(window):
 			monitors.read_screen(screen)
 			apply()
@@ -679,9 +678,9 @@ def connect_to(screen: Wnck.Screen):
 
 def _install_present_window_handlers(screen: Wnck.Screen):
 	for window in screen.get_windows():
-		if window.get_xid() not in monitors.handlers_by_xid and is_managed(window):
+		if window.get_xid() not in handlers_by_xid and is_managed(window):
 			handler_id = window.connect("state-changed", _state_changed)
-			monitors.handlers_by_xid[window.get_xid()] = handler_id
+			handlers_by_xid[window.get_xid()] = handler_id
 
 
 def stop():
@@ -691,16 +690,11 @@ def stop():
 
 def disconnect_from(screen: Wnck.Screen):
 	monitors.read_screen(screen)
-	for xid in monitors.handlers_by_xid.keys():
+	for xid in handlers_by_xid.keys():
 		if xid in monitors.window_by_xid:
-			monitors.window_by_xid[xid].disconnect(monitors.handlers_by_xid[xid])
+			monitors.window_by_xid[xid].disconnect(handlers_by_xid[xid])
 	for handler_id in screen_handlers:
 		screen.disconnect(handler_id)
-
-
-screen_handlers: List[int] = []
-windows: Windows = Windows()
-monitors: Monitors = Monitors()
 
 
 def persist():
@@ -794,3 +788,9 @@ def resume():
 			resume += ')\n'
 
 	return resume
+
+
+screen_handlers: List[int] = []
+handlers_by_xid: Dict[int, int] = {}
+windows: Windows = Windows()
+monitors: Monitors = Monitors()
