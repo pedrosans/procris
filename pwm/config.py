@@ -40,17 +40,21 @@ DEFAULTS = {
 	]
 }
 KEYS = [
-	Key('<ctrl>Return',    windows.active.move_to_master),
-	Key('<ctrl>KP_Enter',  windows.active.move_to_master),
-	Key('<ctrl>i', monitors.increment_master, parameters=[1]),
-	Key('<ctrl>d', monitors.increment_master, parameters=[-1]),
-	Key('<ctrl>l', monitors.increase_master_area, parameters=[0.05]),
-	Key('<ctrl>h', monitors.increase_master_area, parameters=[-0.05]),
-	Key('<ctrl><shift>j', windows.active.focus.swap, parameters=[1]),
-	Key('<ctrl><shift>k', windows.active.focus.swap, parameters=[-1]),
-	Key('<ctrl>t', monitors.change_function, parameters=['T']),
-	Key('<ctrl>m', monitors.change_function, parameters=['M']),
-	Key('<ctrl>f', monitors.change_function, parameters=[None]),
+	Key('<ctrl>Return',    windows.active.zoom),
+	Key('<ctrl>KP_Enter',  windows.active.zoom),
+	Key('<ctrl>j', windows.active.focus.focusstack, [1]),
+	Key('<ctrl>k', windows.active.focus.focusstack, [-1]),
+	Key('<ctrl>i', monitors.incnmaster, parameters=[1]),
+	Key('<ctrl>d', monitors.incnmaster, parameters=[-1]),
+	Key('<ctrl>l', monitors.setmfact, parameters=[0.05]),
+	Key('<ctrl>h', monitors.setmfact, parameters=[-0.05]),
+	Key('<ctrl>t', monitors.setlayout, parameters=['T']),
+	Key('<ctrl>m', monitors.setlayout, parameters=['M']),
+	Key('<ctrl>f', monitors.setlayout, parameters=[None]),
+
+	Key('<ctrl><shift>j', windows.active.swap, parameters=[1]),
+	Key('<ctrl><shift>k', windows.active.swap, parameters=[-1]),
+
 	Key('<ctrl>space', monitors.cycle_function, parameters=[None]),
 	Key('<ctrl>q', None, plexes=[
 		Key('Escape', pwm.service.escape_reading),

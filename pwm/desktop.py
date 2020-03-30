@@ -118,7 +118,7 @@ class StatusIcon:
 			event = UserEvent(time=Gtk.get_current_event_time())
 			event.parameters = [function_key]
 			import pwm.service as service
-			service.call(self.monitors.change_function, event)
+			service.call(self.monitors.setlayout, event)
 
 	def _change_decorations(self, check_menu_item: Gtk.CheckMenuItem):
 		to_remove = check_menu_item.get_active()

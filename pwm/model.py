@@ -123,6 +123,13 @@ class Windows:
 	def get_active_windows_as_list(self) -> List[Wnck.Window]:
 		return list(map(lambda xid: self.window_by_xid[xid], self.get_active_stack()))
 
+	def get_stack_index(self, increment):
+		stack = self.get_active_stack()
+		active = get_active_managed_window()
+		old_index = stack.index(active.get_xid())
+		new_index = old_index + increment
+		return min(max(new_index, 0), len(stack) - 1)
+
 	def remove(self, window, time):
 		window.close(time)
 		if window in self.visible:
@@ -287,7 +294,7 @@ class Monitors:
 	#
 	# COMMANDS
 	#
-	def change_function(self, user_event: UserEvent):
+	def setlayout(self, user_event: UserEvent):
 		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
 		active = get_active_managed_window()
 		if promote_selected and active:
@@ -322,12 +329,12 @@ class Monitors:
 		input = user_event.vim_command_parameter.lower()
 		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
 
-	def increase_master_area(self, user_event: UserEvent):
+	def setmfact(self, user_event: UserEvent):
 		self.get_active_primary_monitor().increase_master_area(increment=user_event.parameters[0])
 		apply()
 		persist()
 
-	def increment_master(self, user_event: UserEvent):
+	def incnmaster(self, user_event: UserEvent):
 		self.get_active_primary_monitor().increment_master(
 			increment=user_event.parameters[0], upper_limit=len(windows.get_active_stack()))
 		apply()
@@ -410,7 +417,7 @@ class ActiveWindow:
 		gdk_window.set_decorations(opt)
 		windows.staging = True
 
-	def move_to_master(self, user_event: UserEvent):
+	def zoom(self, user_event: UserEvent):
 		active = get_active_managed_window()
 		if not active:
 			return
@@ -419,6 +426,21 @@ class ActiveWindow:
 		stack.insert(0, stack.pop(old_index))
 		apply()
 		persist()
+
+	def swap(self, user_event: UserEvent):
+		active = get_active_managed_window()
+		if not active:
+			return
+		direction = user_event.parameters[0]
+
+		stack = windows.get_active_stack()
+		old_index = stack.index(active.get_xid())
+		new_index = windows.get_stack_index(direction)
+
+		if new_index != old_index:
+			stack.insert(new_index, stack.pop(old_index))
+			apply()
+			persist()
 
 
 class Focus:
@@ -471,38 +493,12 @@ class Focus:
 		self.active.xid = next_window.get_xid()
 		windows.staging = True
 
-	def swap(self, user_event: UserEvent):
-		active = get_active_managed_window()
-		if not active:
-			return
-		direction = user_event.parameters[0]
-		retain_focus = True if len(user_event.parameters) < 2 else user_event.parameters[1]
-
-		stack = windows.get_active_stack()
-		old_index = stack.index(active.get_xid())
-		new_index = self._incremented_index(direction)
-
-		if new_index != old_index:
-			stack.insert(new_index, stack.pop(old_index))
-			if not retain_focus:
-				windows.active.change_to(stack[old_index])
-			apply()
-			persist()
-
-	# TODO: use a standard like promote/demote ?
-	def step(self, user_event: UserEvent):
+	def focusstack(self, user_event: UserEvent):
 		if get_active_managed_window():
 			stack = windows.get_active_stack()
 			direction = user_event.parameters[0]
-			new_index = self._incremented_index(direction)
+			new_index = windows.get_stack_index(direction)
 			windows.active.change_to(stack[new_index])
-
-	def _incremented_index(self, increment):
-		stack = windows.get_active_stack()
-		active = get_active_managed_window()
-		old_index = stack.index(active.get_xid())
-		new_index = old_index + increment
-		return min(max(new_index, 0), len(stack) - 1)
 
 
 class Axis:
