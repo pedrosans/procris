@@ -447,25 +447,25 @@ class ActiveWindow:
 			apply()
 			persist()
 
-	def move_right(self, c_in):
-		self.move(1, HORIZONTAL)
+	def focus_right(self, c_in):
+		self.move_focus(1, HORIZONTAL)
 
-	def move_left(self, c_in):
-		self.move(-1, HORIZONTAL)
+	def focus_left(self, c_in):
+		self.move_focus(-1, HORIZONTAL)
 
-	def move_up(self, c_in):
-		self.move(-1, VERTICAL)
+	def focus_up(self, c_in):
+		self.move_focus(-1, VERTICAL)
 
 	def move_down(self, c_in):
-		self.move(1, VERTICAL)
+		self.move_focus(1, VERTICAL)
 
-	def move_to_previous(self, c_in):
+	def focus_previous(self, c_in):
 		stack = list(filter(lambda x: x in windows.visible, Wnck.Screen.get_default().get_windows_stacked()))
 		i = stack.index(self.get_wnck_window())
 		self.xid = stack[i - 1].get_xid()
 		windows.staging = True
 
-	def move(self, increment, axis):
+	def move_focus(self, increment, axis):
 		active = self.get_wnck_window()
 
 		def key(w):
@@ -485,7 +485,7 @@ class ActiveWindow:
 		self.xid = sorted_windows[index].get_xid()
 		windows.staging = True
 
-	def cycle(self, c_in):
+	def focus_next(self, c_in):
 		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
 		i = windows.line.index(self.get_wnck_window())
 		next_window = windows.line[(i + direction) % len(windows.line)]
