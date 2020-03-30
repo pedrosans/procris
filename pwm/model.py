@@ -17,8 +17,8 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import traceback
 import gi, os, re
 import pwm.messages as messages
-import pwm.state as configurations
-from pwm import decoration, state, desktop, scratchpads
+import pwm.state as state
+from pwm import decoration, desktop, scratchpads
 from pwm.layout import FUNCTIONS_MAP
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
@@ -89,7 +89,7 @@ class Windows:
 		self.line.remove(window)
 
 	def apply_decoration_config(self):
-		if configurations.is_remove_decorations():
+		if state.is_remove_decorations():
 			decoration.remove(self.buffers)
 		else:
 			decoration.restore(self.buffers)
@@ -315,28 +315,6 @@ class Monitors:
 		copy = stack.copy()
 		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not primary_monitor.contains(self.window_by_xid[xid]) else 0))
 
-	def persist(self):
-		state.persist_workspace(self._serialize_workspace())
-
-	def _serialize_workspace(self):
-		props = {'workspaces': []}
-		for workspace_number in self.stacks.keys():
-			stack: List[int] = self.stacks[workspace_number]
-			stack_json = {}
-			for xid in stack:
-				stack_json[str(xid)] = {'name': self.window_by_xid[xid].get_name(), 'index': stack.index(xid)}
-
-			props['workspaces'].append({
-				'stack': stack_json,
-				'monitors': []
-			})
-
-			monitor: Monitor = self.primary_monitors[workspace_number]
-			while monitor:
-				props['workspaces'][workspace_number]['monitors'].append(monitor.to_json())
-				monitor = monitor.next()
-		return props
-
 	#
 	# Handler config API
 	#
@@ -369,7 +347,7 @@ class Monitors:
 				old_index = stack.index(window.get_xid())
 				stack.insert(0, stack.pop(old_index))
 			self.apply()
-			self.persist()
+			persist()
 
 	#
 	# COMMANDS
@@ -393,7 +371,7 @@ class Monitors:
 	def _set_function(self, key):
 		self.get_active().function_key = key
 		self.apply()
-		self.persist()
+		persist()
 		desktop.show_monitor(self.get_active_primary_monitor())
 
 	def gap(self, user_event: UserEvent):
@@ -417,18 +395,18 @@ class Monitors:
 		old_index = stack.index(active.get_xid())
 		stack.insert(0, stack.pop(old_index))
 		self.apply()
-		self.persist()
+		persist()
 
 	def increase_master_area(self, user_event: UserEvent):
 		self.get_active_primary_monitor().increase_master_area(increment=user_event.parameters[0])
 		self.apply()
-		self.persist()
+		persist()
 
 	def increment_master(self, user_event: UserEvent):
 		self.get_active_primary_monitor().increment_master(
 			increment=user_event.parameters[0], upper_limit=len(self.get_active_stack()))
 		self.apply()
-		self.persist()
+		persist()
 
 	def geometry(self, user_event: UserEvent):
 		parameters = list(map(lambda word: int(word), user_event.vim_command_parameter.split()))
@@ -637,7 +615,7 @@ class Focus:
 			if not retain_focus:
 				windows.active.change_to(stack[old_index])
 			monitors.apply()
-			monitors.persist()
+			persist()
 
 	# TODO: use a standard like promote/demote ?
 	def step(self, user_event: UserEvent):
@@ -730,7 +708,7 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 			windows.read_default_screen(force_update=False)
 			windows.apply_decoration_config()
 			monitors.apply()
-			monitors.persist()
+			persist()
 	except DirtyState:
 		pass  # It was just a try
 
@@ -801,3 +779,23 @@ def stop():
 screen_handlers: List[int] = []
 windows: Windows = Windows()
 monitors: Monitors = Monitors()
+
+
+def persist():
+	props = {'workspaces': []}
+	for workspace_number in monitors.stacks.keys():
+		stack: List[int] = monitors.stacks[workspace_number]
+		stack_json = {}
+		for xid in stack:
+			stack_json[str(xid)] = {'name': monitors.window_by_xid[xid].get_name(), 'index': stack.index(xid)}
+
+		props['workspaces'].append({
+			'stack': stack_json,
+			'monitors': []
+		})
+
+		monitor: Monitor = monitors.primary_monitors[workspace_number]
+		while monitor:
+			props['workspaces'][workspace_number]['monitors'].append(monitor.to_json())
+			monitor = monitor.next()
+	state.persist_workspace(props)
