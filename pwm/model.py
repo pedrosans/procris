@@ -253,10 +253,11 @@ class Monitors:
 			self.window_by_xid[window.get_xid()] = window
 
 		for workspace in screen.get_workspaces():
-			self._read_workspace(screen, workspace)
-			self._read_workspace_windows_monitor(workspace)
+			primary_monitor: Monitor = self.primary_monitor_for(workspace)
+			self._read_workspace(screen, workspace, primary_monitor)
+			self._read_workspace_windows_monitor(workspace, primary_monitor)
 
-	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace):
+	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace, primary_monitor):
 		primary_monitor: Monitor = self.primary_monitor_for(workspace)
 		stack: List[int] = self.stack_for(workspace)
 
@@ -279,8 +280,7 @@ class Monitors:
 				primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
 				break
 
-	def _read_workspace_windows_monitor(self, workspace: Wnck.Workspace):
-		primary_monitor: Monitor = self.primary_monitor_for(workspace)
+	def _read_workspace_windows_monitor(self, workspace: Wnck.Workspace, primary_monitor):
 		stack: List[int] = self.stack_for(workspace)
 		copy = stack.copy()
 		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not primary_monitor.contains(self.window_by_xid[xid]) else 0))
@@ -632,9 +632,9 @@ def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
 def load(screen: Wnck.Screen):
 	import pwm.state as state
 	windows.read(screen)
-	workspace_config: Dict = state.get_workspace_config()
 	monitors.read_screen(screen)
 	try:
+		workspace_config: Dict = state.get_workspace_config()
 		read_user_config(workspace_config, screen)
 	except (KeyError, TypeError):
 		print('Unable to the last execution state, using default ones.')
