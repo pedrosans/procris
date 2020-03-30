@@ -191,36 +191,6 @@ class Windows:
 		else:
 			return top, below
 
-	#
-	# Internal API
-	#
-	def resume(self):
-		resume = ''
-		for wn in self.buffers:
-			gdk_w = gdk_window_for(wn)
-
-			resume += '\n'
-			resume += '[{:8}] - {}\n'.format(wn.get_xid(), wn.get_name())
-
-			x, y, w, h = wn.get_geometry()
-			resume += '\t[WNCK   ] x: {:4d} y: {:3d} w: {:7.2f} h: {:7.2f}\n'.format(x, y, w, h)
-			cx, cy, cw, ch = wn.get_client_window_geometry()
-			resume += '\t[WNCK WN] x: {:4d} y: {:3d} w: {:7.2f} h: {:7.2f} \n'.format(cx, cy, cw, ch)
-			gx, gy, gw, gh = gdk_w.get_geometry()
-			resume += '\t[GDK    ] x: {:4d} y: {:3d} w: {:7.2f} h: {:7.2f} \n'.format(gx, gy, gw, gh)
-
-			is_decorated, decorations = gdk_w.get_decorations()
-			resume += '\ttype: {:8}\t\t\tdecorated: {:5}\t\tflags: {}\n'.format(
-				gdk_w.get_type_hint().value_name.replace('GDK_WINDOW_TYPE_HINT_', '')[:8],
-				str(is_decorated), list(map(lambda n: n.replace('GDK_DECOR_', ''), decorations.value_names)))
-
-			dx, dy, dw, dh = decoration_delta(wn)
-			compensate = is_decorated and not decorations and dx >= 0 and dy >= 0
-			resume += '\tdecoration delta: {:3d} {:3d} {:3d} {:3d}\tcompensate: {:5}\n'.format(
-				dx, dy, dw, dh, str(compensate))
-
-		return resume
-
 
 class Monitors:
 
@@ -336,7 +306,7 @@ class Monitors:
 
 	def _set_function(self, key):
 		self.get_active().function_key = key
-		self.apply()
+		apply()
 		persist()
 		desktop.show_monitor(self.get_active_primary_monitor())
 
@@ -347,7 +317,7 @@ class Monitors:
 		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
 		self.get_active_primary_monitor().update_work_area()
 		windows.staging = True
-		self.apply()
+		apply()
 
 	def complete_gap_options(self, user_event: UserEvent):
 		input = user_event.vim_command_parameter.lower()
@@ -360,18 +330,18 @@ class Monitors:
 		stack = self.get_active_stack()
 		old_index = stack.index(active.get_xid())
 		stack.insert(0, stack.pop(old_index))
-		self.apply()
+		apply()
 		persist()
 
 	def increase_master_area(self, user_event: UserEvent):
 		self.get_active_primary_monitor().increase_master_area(increment=user_event.parameters[0])
-		self.apply()
+		apply()
 		persist()
 
 	def increment_master(self, user_event: UserEvent):
 		self.get_active_primary_monitor().increment_master(
 			increment=user_event.parameters[0], upper_limit=len(self.get_active_stack()))
-		self.apply()
+		apply()
 		persist()
 
 	def geometry(self, user_event: UserEvent):
@@ -390,52 +360,6 @@ class Monitors:
 				parameters[4] if len(parameters) > 4 else window.get_geometry().widthp,
 				parameters[5] if len(parameters) > 5 else window.get_geometry().heightp)
 		windows.staging = True
-
-	#
-	# COMMAND METHODS
-	#
-	def apply(self, split_points: List[int] = None):
-		primary_monitor: Monitor = self.get_active_primary_monitor()
-		workspace_windows = self.get_active_windows_as_list()
-		monitor = primary_monitor
-		visible = workspace_windows
-		split_point = len(list(filter(lambda w: primary_monitor.contains(w), visible)))
-
-		while monitor and visible:
-
-			if monitor.function_key:
-				monitor_windows: List[Wnck.Window] = visible[:split_point]
-				FUNCTIONS_MAP[monitor.function_key](monitor_windows, monitor)
-
-			monitor = monitor.next()
-			visible = visible[split_point:]
-			split_point = len(visible)
-
-	# TODO: move to messages with the Windows version
-	def resume(self):
-		resume = ''
-		resume += '[gap] inner: {} outer: {}\n'.format(state.get_inner_gap(), state.get_outer_gap())
-		for workspace in Wnck.Screen.get_default().get_workspaces():
-			resume += 'Workspace {}\n'.format(workspace.get_number())
-			for i in range(Gdk.Display.get_default().get_n_monitors()):
-				m = Gdk.Display.get_default().get_monitor(i)
-				rect = m.get_workarea()
-				primary_monitor = self.primary_monitors[workspace.get_number()]
-				monitor: Monitor = primary_monitor if m.is_primary() else primary_monitor.next()
-
-				resume += '\tMonitor\t\t\tLayout: {}\tPrimary: {}\n'.format(
-					FUNCTIONS_MAP[monitor.function_key].__name__ if monitor.function_key else None, m.is_primary())
-				resume += '\t\t[GDK]\t\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
-					rect.x, rect.y, rect.width, rect.height)
-				resume += '\t\t[pwm]\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
-					monitor.wx, monitor.wy, monitor.ww, monitor.wh)
-
-				resume += '\t\t[Stack]\t\t('
-				for xid in filter(lambda _xid: monitor.contains(self.window_by_xid[_xid]), self.stacks[workspace.get_number()]):
-					resume += '{:10} '.format(xid)
-				resume += ')\n'
-
-		return resume
 
 
 class ActiveWindow:
@@ -580,7 +504,7 @@ class Focus:
 			stack.insert(new_index, stack.pop(old_index))
 			if not retain_focus:
 				windows.active.change_to(stack[old_index])
-			monitors.apply()
+			apply()
 			persist()
 
 	# TODO: use a standard like promote/demote ?
@@ -654,7 +578,7 @@ def _state_changed(window: Wnck.Window, changed_mask, new_state):
 		if is_visible(window):
 			old_index = stack.index(window.get_xid())
 			stack.insert(0, stack.pop(old_index))
-		monitors.apply()
+		apply()
 		persist()
 
 
@@ -665,7 +589,7 @@ def _window_closed(screen: Wnck.Screen, window):
 			del monitors.handlers_by_xid[window.get_xid()]
 		if is_visible(window) and is_managed(window):
 			monitors.read_screen(screen)
-			monitors.apply()
+			apply()
 	except DirtyState:
 		pass  # It was just a try
 
@@ -673,7 +597,7 @@ def _window_closed(screen: Wnck.Screen, window):
 def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 	if window.is_maximized():
 		print('is maximized')
-	monitors._install_present_window_handlers(screen)
+	_install_present_window_handlers(screen)
 	if not is_visible(window, screen.get_active_workspace()):
 		return
 	if window.get_name() in scratchpads.names():
@@ -690,7 +614,7 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 		with Trap():
 			windows.read_default_screen(force_update=False)
 			windows.apply_decoration_config()
-			monitors.apply()
+			apply()
 			persist()
 	except DirtyState:
 		pass  # It was just a try
@@ -746,7 +670,7 @@ def start():
 	screen = Wnck.Screen.get_default()
 	connect_to(screen)
 	windows.apply_decoration_config()
-	monitors.apply()
+	apply()
 
 
 def connect_to(screen: Wnck.Screen):
@@ -802,3 +726,76 @@ def persist():
 			props['workspaces'][workspace_number]['monitors'].append(monitor.to_json())
 			monitor = monitor.next()
 	state.persist_workspace(props)
+
+
+#
+# COMMAND METHODS
+#
+def apply(split_points: List[int] = None):
+	primary_monitor: Monitor = monitors.get_active_primary_monitor()
+	workspace_windows = monitors.get_active_windows_as_list()
+	monitor = primary_monitor
+	visible = workspace_windows
+	split_point = len(list(filter(lambda w: primary_monitor.contains(w), visible)))
+
+	while monitor and visible:
+
+		if monitor.function_key:
+			monitor_windows: List[Wnck.Window] = visible[:split_point]
+			FUNCTIONS_MAP[monitor.function_key](monitor_windows, monitor)
+
+		monitor = monitor.next()
+		visible = visible[split_point:]
+		split_point = len(visible)
+
+
+#
+# Internal API
+#
+def resume():
+	resume = ''
+	for wn in self.buffers:
+		gdk_w = gdk_window_for(wn)
+
+		resume += '\n'
+		resume += '[{:8}] - {}\n'.format(wn.get_xid(), wn.get_name())
+
+		x, y, w, h = wn.get_geometry()
+		resume += '\t[WNCK   ] x: {:4d} y: {:3d} w: {:7.2f} h: {:7.2f}\n'.format(x, y, w, h)
+		cx, cy, cw, ch = wn.get_client_window_geometry()
+		resume += '\t[WNCK WN] x: {:4d} y: {:3d} w: {:7.2f} h: {:7.2f} \n'.format(cx, cy, cw, ch)
+		gx, gy, gw, gh = gdk_w.get_geometry()
+		resume += '\t[GDK    ] x: {:4d} y: {:3d} w: {:7.2f} h: {:7.2f} \n'.format(gx, gy, gw, gh)
+
+		is_decorated, decorations = gdk_w.get_decorations()
+		resume += '\ttype: {:8}\t\t\tdecorated: {:5}\t\tflags: {}\n'.format(
+			gdk_w.get_type_hint().value_name.replace('GDK_WINDOW_TYPE_HINT_', '')[:8],
+			str(is_decorated), list(map(lambda n: n.replace('GDK_DECOR_', ''), decorations.value_names)))
+
+		dx, dy, dw, dh = decoration_delta(wn)
+		compensate = is_decorated and not decorations and dx >= 0 and dy >= 0
+		resume += '\tdecoration delta: {:3d} {:3d} {:3d} {:3d}\tcompensate: {:5}\n'.format(
+			dx, dy, dw, dh, str(compensate))
+
+	resume += '[gap] inner: {} outer: {}\n'.format(state.get_inner_gap(), state.get_outer_gap())
+	for workspace in Wnck.Screen.get_default().get_workspaces():
+		resume += 'Workspace {}\n'.format(workspace.get_number())
+		for i in range(Gdk.Display.get_default().get_n_monitors()):
+			m = Gdk.Display.get_default().get_monitor(i)
+			rect = m.get_workarea()
+			primary_monitor = self.primary_monitors[workspace.get_number()]
+			monitor: Monitor = primary_monitor if m.is_primary() else primary_monitor.next()
+
+			resume += '\tMonitor\t\t\tLayout: {}\tPrimary: {}\n'.format(
+				FUNCTIONS_MAP[monitor.function_key].__name__ if monitor.function_key else None, m.is_primary())
+			resume += '\t\t[GDK]\t\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
+				rect.x, rect.y, rect.width, rect.height)
+			resume += '\t\t[pwm]\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
+				monitor.wx, monitor.wy, monitor.ww, monitor.wh)
+
+			resume += '\t\t[Stack]\t\t('
+			for xid in filter(lambda _xid: monitor.contains(self.window_by_xid[_xid]), self.stacks[workspace.get_number()]):
+				resume += '{:10} '.format(xid)
+			resume += ')\n'
+
+	return resume
