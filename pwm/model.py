@@ -316,40 +316,6 @@ class Monitors:
 		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not primary_monitor.contains(self.window_by_xid[xid]) else 0))
 
 	#
-	# Handler config API
-	#
-	def connect_to(self, screen: Wnck.Screen):
-		self._install_present_window_handlers(screen)
-
-	def _install_present_window_handlers(self, screen: Wnck.Screen):
-		for window in screen.get_windows():
-			if window.get_xid() not in self.handlers_by_xid and is_managed(window):
-				handler_id = window.connect("state-changed", self._state_changed)
-				self.handlers_by_xid[window.get_xid()] = handler_id
-
-	def disconnect_from(self, screen: Wnck.Screen):
-		self.read_screen(screen)
-		for xid in self.handlers_by_xid.keys():
-			if xid in self.window_by_xid:
-				self.window_by_xid[xid].disconnect(self.handlers_by_xid[xid])
-
-	#
-	# CALLBACKS
-	#
-	def _state_changed(self, window: Wnck.Window, changed_mask, new_state):
-		maximization = changed_mask & Wnck.WindowState.MAXIMIZED_HORIZONTALLY or changed_mask & Wnck.WindowState.MAXIMIZED_VERTICALLY
-		if maximization and new_state and self.monitor_of(window).function_key:
-			window.unmaximize()
-		if changed_mask & Wnck.WindowState.MINIMIZED and is_managed(window):
-			self.read_screen(window.get_screen())
-			stack = self.get_active_stack()
-			if is_visible(window):
-				old_index = stack.index(window.get_xid())
-				stack.insert(0, stack.pop(old_index))
-			self.apply()
-			persist()
-
-	#
 	# COMMANDS
 	#
 	def change_function(self, user_event: UserEvent):
@@ -675,6 +641,23 @@ def get_active_managed_window():
 	return active if active and is_managed(active) else None
 
 
+#
+# CALLBACKS
+#
+def _state_changed(window: Wnck.Window, changed_mask, new_state):
+	maximization = changed_mask & Wnck.WindowState.MAXIMIZED_HORIZONTALLY or changed_mask & Wnck.WindowState.MAXIMIZED_VERTICALLY
+	if maximization and new_state and monitors.monitor_of(window).function_key:
+		window.unmaximize()
+	if changed_mask & Wnck.WindowState.MINIMIZED and is_managed(window):
+		monitors.read_screen(window.get_screen())
+		stack = monitors.get_active_stack()
+		if is_visible(window):
+			old_index = stack.index(window.get_xid())
+			stack.insert(0, stack.pop(old_index))
+		monitors.apply()
+		persist()
+
+
 def _window_closed(screen: Wnck.Screen, window):
 	try:
 		if window.get_xid() in monitors.handlers_by_xid:
@@ -761,19 +744,39 @@ def read_user_config(config_json: Dict, screen: Wnck.Screen):
 
 def start():
 	screen = Wnck.Screen.get_default()
-	monitors.connect_to(screen)
+	connect_to(screen)
 	windows.apply_decoration_config()
 	monitors.apply()
+
+
+def connect_to(screen: Wnck.Screen):
 	opened_handler_id = screen.connect("window-opened", _window_opened)
 	closed_handler_id = screen.connect("window-closed", _window_closed)
 	viewport_handler_id = screen.connect("viewports-changed", _viewports_changed)
 	workspace_handler_id = screen.connect("active-workspace-changed", _active_workspace_changed)
 	screen_handlers.extend([opened_handler_id, closed_handler_id, viewport_handler_id, workspace_handler_id])
+	_install_present_window_handlers(screen)
+
+
+def _install_present_window_handlers(screen: Wnck.Screen):
+	for window in screen.get_windows():
+		if window.get_xid() not in monitors.handlers_by_xid and is_managed(window):
+			handler_id = window.connect("state-changed", _state_changed)
+			monitors.handlers_by_xid[window.get_xid()] = handler_id
 
 
 def stop():
+	screen = Wnck.Screen.get_default()
+	disconnect_from(screen)
+
+
+def disconnect_from(screen: Wnck.Screen):
+	monitors.read_screen(screen)
+	for xid in monitors.handlers_by_xid.keys():
+		if xid in monitors.window_by_xid:
+			monitors.window_by_xid[xid].disconnect(monitors.handlers_by_xid[xid])
 	for handler_id in screen_handlers:
-		Wnck.Screen.get_default().disconnect(handler_id)
+		screen.disconnect(handler_id)
 
 
 screen_handlers: List[int] = []

@@ -86,7 +86,7 @@ def stop():
 	desktop.unload()
 	listener.stop()
 	remote.release()
-	model.monitors.disconnect_from(Wnck.Screen.get_default())
+	model.stop()
 	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
 
 
