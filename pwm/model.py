@@ -419,11 +419,17 @@ class ActiveWindow:
 
 	def zoom(self, user_event: UserEvent):
 		active = get_active_managed_window()
-		if not active:
-			return
 		stack = windows.get_active_stack()
+		if not active or len(stack) < 2:
+			return
+
 		old_index = stack.index(active.get_xid())
-		stack.insert(0, stack.pop(old_index))
+		if old_index == 0:
+			stack.insert(1, stack.pop(old_index))
+		else:
+			stack.insert(0, stack.pop(old_index))
+		windows.active.xid = stack[0]
+		windows.staging = True
 		apply()
 		persist()
 
