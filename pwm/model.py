@@ -276,14 +276,6 @@ class Monitors:
 	#
 	# State API
 	#
-	def load(self, screen: Wnck.Screen, workspace_config: Dict):
-		self.read_screen(screen)
-		try:
-			self.read_user_config(workspace_config, screen)
-		except (KeyError, TypeError):
-			print('Unable to the last execution state, using default ones.')
-			traceback.print_exc()
-			traceback.print_stack()
 
 	def read_screen(self, screen: Wnck.Screen):
 		self.window_by_xid.clear()
@@ -322,29 +314,6 @@ class Monitors:
 		stack: List[int] = self.stack_for(workspace)
 		copy = stack.copy()
 		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not primary_monitor.contains(self.window_by_xid[xid]) else 0))
-
-	def read_user_config(self, config_json: Dict, screen: Wnck.Screen):
-		number_of_workspaces = len(screen.get_workspaces())
-		configured_workspaces = len(config_json['workspaces'])
-		for workspace_index in range(min(number_of_workspaces, configured_workspaces)):
-			workspace_json = config_json['workspaces'][workspace_index]
-
-			if 'stack' in workspace_json:
-				stack = self.stacks[workspace_index]
-				copy = stack.copy()
-				stack.sort(
-					key=lambda xid:
-					workspace_json['stack'][str(xid)]['index']
-					if str(xid) in workspace_json['stack']
-					else copy.index(xid))
-
-			monitor_index = 0
-			monitor: Monitor = self.primary_monitors[workspace_index]
-			while monitor:
-				if monitor_index < len(workspace_json['monitors']):
-					monitor.from_json(workspace_json['monitors'][monitor_index])
-				monitor_index += 1
-				monitor = monitor.next()
 
 	def persist(self):
 		state.persist_workspace(self._serialize_workspace())
@@ -778,7 +747,38 @@ def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
 def load(screen: Wnck.Screen):
 	import pwm.state as state
 	windows.read(screen)
-	monitors.load(screen, state.get_workspace_config())
+	workspace_config: Dict = state.get_workspace_config()
+	monitors.read_screen(screen)
+	try:
+		read_user_config(workspace_config, screen)
+	except (KeyError, TypeError):
+		print('Unable to the last execution state, using default ones.')
+		traceback.print_exc()
+		traceback.print_stack()
+
+
+def read_user_config(config_json: Dict, screen: Wnck.Screen):
+	number_of_workspaces = len(screen.get_workspaces())
+	configured_workspaces = len(config_json['workspaces'])
+	for workspace_index in range(min(number_of_workspaces, configured_workspaces)):
+		workspace_json = config_json['workspaces'][workspace_index]
+
+		if 'stack' in workspace_json:
+			stack = monitors.stacks[workspace_index]
+			copy = stack.copy()
+			stack.sort(
+				key=lambda xid:
+				workspace_json['stack'][str(xid)]['index']
+				if str(xid) in workspace_json['stack']
+				else copy.index(xid))
+
+		monitor_index = 0
+		monitor: Monitor = monitors.primary_monitors[workspace_index]
+		while monitor:
+			if monitor_index < len(workspace_json['monitors']):
+				monitor.from_json(workspace_json['monitors'][monitor_index])
+			monitor_index += 1
+			monitor = monitor.next()
 
 
 def start():
