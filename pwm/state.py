@@ -40,10 +40,10 @@ config_module: ModuleType = None
 #
 # Wherever exists in between pwm.stop() and pwm.start()
 #
-def load():
+def load(config_module_parameter: str = None):
 	global loaded_interface_config, loaded_workspace_config, loaded_decorations, config_module
 
-	config_module = read_config_module()
+	config_module = read_config_module(config_module_parameter)
 
 	interface_config = _read_json(config_file)
 	loaded_interface_config = interface_config if interface_config else config_module.DEFAULTS
@@ -100,16 +100,18 @@ def _read_json(file):
 #
 # PROGRAMMABLE CONFIG
 #
-def read_config_module():
-	try:
-		import importlib.util
-		spec = importlib.util.spec_from_file_location("module.name", get_custom_mappings_module_path())
-		user_config = importlib.util.module_from_spec(spec)
-		spec.loader.exec_module(user_config)
-		return user_config
-	except FileNotFoundError as e:
-		print(
-			'info: not possible to load custom config at: {}'.format(get_custom_mappings_module_path()))
+def read_config_module(config_module_parameter: str = None):
+
+	if 'default' != config_module_parameter:
+		try:
+			import importlib.util
+			spec = importlib.util.spec_from_file_location("module.name", get_custom_mappings_module_path())
+			user_config = importlib.util.module_from_spec(spec)
+			spec.loader.exec_module(user_config)
+			return user_config
+		except FileNotFoundError as e:
+			print(
+				'info: not possible to load custom config at: {}'.format(get_custom_mappings_module_path()))
 
 	import pwm.config as default_config
 	return default_config

@@ -40,8 +40,8 @@ DEFAULTS = {
 	]
 }
 KEYS = [
-	Key('<ctrl>Return', monitors.move_to_master),
-	Key('<ctrl>KP_Enter', monitors.move_to_master),
+	Key('<ctrl>Return',    windows.active.move_to_master),
+	Key('<ctrl>KP_Enter',  windows.active.move_to_master),
 	Key('<ctrl>i', monitors.increment_master, parameters=[1]),
 	Key('<ctrl>d', monitors.increment_master, parameters=[-1]),
 	Key('<ctrl>l', monitors.increase_master_area, parameters=[0.05]),

@@ -20,16 +20,17 @@ import argparse
 
 parser = argparse.ArgumentParser()
 commands_parser = parser.add_subparsers(help='pwm sub-commands help', dest='action')
-commands_parser.add_parser('start',	 help='Start pwm service')
+start_parser: argparse.ArgumentParser = commands_parser.add_parser('start',	 help='Start pwm service')
 commands_parser.add_parser('stop',	 help='Stop the running pwm service if any')
 commands_parser.add_parser('status', help='Show the status of pwm service')
 parser.add_argument('-c', required=False)
+start_parser.add_argument('--config-module', action='store', required=False) # , dest='config'
 
 args = parser.parse_args()
 
 if args.action == 'start':
 	import pwm.service
-	pwm.service.load()
+	pwm.service.load(config_module=args.config_module)
 	pwm.service.start()
 elif args.action == 'stop':
 	import pwm.remote as remote

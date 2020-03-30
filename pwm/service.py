@@ -40,10 +40,10 @@ from pwm.keyboard import KeyboardListener, Key
 from pwm.wm import UserEvent
 
 
-def load():
+def load(config_module: str = None):
 	applications.load()
 	terminal.load()
-	state.load()
+	state.load(config_module)
 	desktop.load()
 	_read_environment(Wnck.Screen.get_default(), state.get_config_module())
 	_configure_process()
