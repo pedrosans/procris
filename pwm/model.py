@@ -455,7 +455,7 @@ class ActiveWindow:
 	def focus_up(self, c_in):
 		self.move_focus(-1, VERTICAL)
 
-	def move_down(self, c_in):
+	def focus_down(self, c_in):
 		self.move_focus(1, VERTICAL)
 
 	def focus_previous(self, c_in):
