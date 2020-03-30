@@ -22,7 +22,7 @@ gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
 from gi.repository import Gtk, Gdk, Pango, GLib
-from pwm.model import Windows
+from pwm.model import Windows, ActiveWindow
 
 
 def create_icon_image(window: Wnck.Window, size):
@@ -34,13 +34,14 @@ def create_icon_image(window: Wnck.Window, size):
 
 class ReadingWindow(Gtk.Window):
 
-	def __init__(self, controller, windows):
+	def __init__(self, controller, windows, active_window):
 		Gtk.Window.__init__(self, title="pwm")
+		self.windows: Windows = windows
+		self.active_window: ActiveWindow = active_window
 
 		self.columns = 100
 
 		self.controller = controller
-		self.windows: Windows = windows
 		self.show_app_name = False
 
 		self.set_keep_above(True)
@@ -126,9 +127,9 @@ class ReadingWindow(Gtk.Window):
 			name = window.get_name()
 			name = ' ' + ((name[:8] + '..') if len(name) > 10 else name)
 			position = self._navigation_index(window)
-			if window is not self.windows.active:
+			if window is not self.active_window:
 				position = ' ' + position
-			active = window is self.windows.active
+			active = window is self.active_window
 			self.completions_line.add_status_icon(window, active)
 			self.completions_line.add_status_text(position, active)
 			self.completions_line.add_status_text(name, active)
@@ -167,7 +168,7 @@ class ReadingWindow(Gtk.Window):
 
 	def _navigation_index(self, window):
 		length = len(self.windows.line)
-		start_position = self.windows.line.index(self.windows.active.get_wnck_window())
+		start_position = self.windows.line.index(self.active_window.get_wnck_window())
 		multiplier = (length + self.windows.line.index(window) - start_position) % len(self.windows.line)
 		if multiplier == 0:
 			return ''

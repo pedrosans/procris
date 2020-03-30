@@ -4,6 +4,7 @@ import pwm
 
 service = pwm.service
 windows = pwm.model.windows
+active_window = pwm.model.active_window
 monitors = pwm.model.monitors
 reading = service.reading
 terminal = pwm.terminal
@@ -40,12 +41,12 @@ DEFAULTS = {
 	]
 }
 KEYS = [
-	Key('<ctrl>Return',    windows.active.zoom),
-	Key('<ctrl>KP_Enter',  windows.active.zoom),
-	Key('<ctrl>j', windows.active.focusstack, [1]),
-	Key('<ctrl>k', windows.active.focusstack, [-1]),
-	Key('<ctrl><shift>j', windows.active.pushstack, parameters=[1]),
-	Key('<ctrl><shift>k', windows.active.pushstack, parameters=[-1]),
+	Key('<ctrl>Return',    active_window.zoom),
+	Key('<ctrl>KP_Enter',  active_window.zoom),
+	Key('<ctrl>j', active_window.focusstack, [1]),
+	Key('<ctrl>k', active_window.focusstack, [-1]),
+	Key('<ctrl><shift>j', active_window.pushstack, parameters=[1]),
+	Key('<ctrl><shift>k', active_window.pushstack, parameters=[-1]),
 	Key('<ctrl>i', monitors.incnmaster, parameters=[1]),
 	Key('<ctrl>d', monitors.incnmaster, parameters=[-1]),
 	Key('<ctrl>l', monitors.setmfact, parameters=[0.05]),
@@ -58,21 +59,21 @@ KEYS = [
 	Key('<ctrl>q', None, combinations=[
 		Key('Escape', pwm.service.escape_reading),
 		Key('<shift>colon', pwm.service.show_prompt),
-		Key('<ctrl>w', windows.active.focus_next),
-		Key('<shift>w', windows.active.focus_next),
-		Key('w', windows.active.focus_next),
-		Key('q', windows.active.minimize),
-		Key('o', windows.active.only),
-		Key('<ctrl>o', windows.active.only),
-		Key('l', windows.active.focus_right),
-		Key('p', windows.active.focus_previous),
-		Key('<ctrl>l', windows.active.focus_right),
-		Key('j', windows.active.move_down),
-		Key('<ctrl>j', windows.active.move_down),
-		Key('h', windows.active.focus_left),
-		Key('<ctrl>h', windows.active.focus_left),
-		Key('k', windows.active.focus_up),
-		Key('<ctrl>k', windows.active.focus_up),
+		Key('<ctrl>w', active_window.focus_next),
+		Key('<shift>w', active_window.focus_next),
+		Key('w', active_window.focus_next),
+		Key('q', active_window.minimize),
+		Key('o', active_window.only),
+		Key('<ctrl>o', active_window.only),
+		Key('l', active_window.focus_right),
+		Key('p', active_window.focus_previous),
+		Key('<ctrl>l', active_window.focus_right),
+		Key('j', active_window.move_down),
+		Key('<ctrl>j', active_window.move_down),
+		Key('h', active_window.focus_left),
+		Key('<ctrl>h', active_window.focus_left),
+		Key('k', active_window.focus_up),
+		Key('<ctrl>k', active_window.focus_up),
 	])
 ]
 NAMES = [
@@ -81,12 +82,12 @@ NAMES = [
 	Name('buffers', windows.list, alias='ls'),
 	Name('bdelete', windows.delete, alias='bd'),
 	Name('buffer', windows.activate, alias='b', complete=windows.complete),
-	Name('centralize', windows.active.centralize, alias='ce'),
-	Name('maximize', windows.active.maximize, alias='ma'),
+	Name('centralize', active_window.centralize, alias='ce'),
+	Name('maximize', active_window.maximize, alias='ma'),
 	Name('reload', service.reload),
-	Name('decorate', windows.active.decorate, complete=decoration.complete),
+	Name('decorate', active_window.decorate, complete=decoration.complete),
 	Name('report', service.debug),
-	Name('quit', windows.active.minimize, alias='q'),
-	Name('only', windows.active.only, alias='on'),
+	Name('quit', active_window.minimize, alias='q'),
+	Name('only', active_window.only, alias='on'),
 	Name('gap', monitors.gap, complete=monitors.complete_gap_options),
 ]

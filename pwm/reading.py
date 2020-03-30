@@ -26,7 +26,7 @@ from gi.repository import Gtk, Gdk, GLib
 from pwm.view import ReadingWindow
 from pwm.names import PromptHistory
 from pwm.wm import UserEvent
-from pwm.model import Windows
+from pwm.model import Windows, ActiveWindow
 from pwm.assistant import Completion
 
 HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]
@@ -43,6 +43,7 @@ class Reading:
 
 	view: ReadingWindow = None
 	windows: Windows = None
+	active_window: ActiveWindow = None
 	completions: Completion = None
 	prompt_history: PromptHistory = PromptHistory()
 	long = False
@@ -50,13 +51,14 @@ class Reading:
 	cmd_handler_ids = []
 	escape_clause_id: int = None
 
-	def __init__(self, windows: Windows):
+	def __init__(self, windows: Windows, active_window: ActiveWindow):
 		self.windows = windows
+		self.active_window = active_window
 		self.completion = Completion(self.windows)
 		self._create_and_install_view()
 
 	def _create_and_install_view(self):
-		self.view = ReadingWindow(self, self.windows)
+		self.view = ReadingWindow(self, self.windows, self.active_window)
 		self.view.connect("key-press-event", self._window_key_press_callback)
 
 	#

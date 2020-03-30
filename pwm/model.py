@@ -36,7 +36,6 @@ class Windows:
 	window_by_xid: Dict[int, Wnck.Window] = {}
 
 	def __init__(self):
-		self.active = ActiveWindow()
 		self.visible: List[Wnck.Window] = []
 		self.buffers: List[Wnck.Window] = []
 		self.line: List[Wnck.Window] = None
@@ -48,7 +47,7 @@ class Windows:
 	def read(self, screen: Wnck.Screen, force_update=True):
 		del self.buffers[:]
 		del self.visible[:]
-		self.active.clean()
+		active_window.clean()
 		self.window_by_xid.clear()
 
 		if force_update:
@@ -64,7 +63,7 @@ class Windows:
 			if wnck_window.is_in_viewport(screen.get_active_workspace()) and not wnck_window.is_minimized():
 				self.visible.append(wnck_window)
 
-		self.active.read_screen()
+		active_window.read_screen()
 		self.line = sorted(self.visible, key=sort_line)
 
 		for workspace in screen.get_workspaces():
@@ -103,8 +102,8 @@ class Windows:
 		"""
 		Commits any staged change in the active window
 		"""
-		if self.staging and self.active.xid and self.active.get_wnck_window():
-			self.active.get_wnck_window().activate_transient(event_time)
+		if self.staging and active_window.xid and active_window.get_wnck_window():
+			active_window.get_wnck_window().activate_transient(event_time)
 		self.staging = False
 
 	# TODO: keep the 'stack' name?
@@ -176,7 +175,7 @@ class Windows:
 			buffer_number = buffer_number_match.group(2)
 			index = int(buffer_number) - 1
 			if index < len(self.buffers):
-				self.active.xid = self.buffers[index].get_xid()
+				active_window.xid = self.buffers[index].get_xid()
 				self.staging = True
 			else:
 				return messages.Message('Buffer {} does not exist'.format(buffer_number), 'error')
@@ -184,7 +183,7 @@ class Windows:
 			window_title = c_in.vim_command_parameter
 			w = self.find_by_name(window_title)
 			if w:
-				self.active.xid = w.get_xid()
+				active_window.xid = w.get_xid()
 				self.staging = True
 			else:
 				return messages.Message('No matching buffer for ' + window_title, 'error')
@@ -192,8 +191,8 @@ class Windows:
 	def delete(self, c_in):
 
 		if not c_in.vim_command_parameter:
-			if self.active.xid:
-				self.remove(self.active.get_wnck_window(), c_in.time)
+			if active_window.xid:
+				self.remove(active_window.get_wnck_window(), c_in.time)
 				self.staging = True
 				return
 			return messages.Message('There is no active window', 'error')
@@ -240,7 +239,7 @@ class Windows:
 	# COMMAND OPERATIONS
 	#
 	def get_top_two_windows(self):
-		top = self.active.get_wnck_window()
+		top = active_window.get_wnck_window()
 		below = None
 		after_top = False
 		for w in reversed(Wnck.Screen.get_default().get_windows_stacked()):
@@ -427,7 +426,7 @@ class ActiveWindow:
 			stack.insert(1, stack.pop(old_index))
 		else:
 			stack.insert(0, stack.pop(old_index))
-		windows.active.xid = stack[0]
+		active_window.xid = stack[0]
 		windows.staging = True
 		apply()
 		persist()
@@ -497,7 +496,7 @@ class ActiveWindow:
 			stack = windows.get_active_stack()
 			direction = user_event.parameters[0]
 			new_index = windows.get_stack_index(direction)
-			windows.active.change_to(stack[new_index])
+			active_window.change_to(stack[new_index])
 
 
 class Axis:
@@ -772,4 +771,5 @@ def resume():
 screen_handlers: List[int] = []
 handlers_by_xid: Dict[int, int] = {}
 windows: Windows = Windows()
+active_window = ActiveWindow()
 monitors: Monitors = Monitors()
