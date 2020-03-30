@@ -427,7 +427,7 @@ class ActiveWindow:
 		apply()
 		persist()
 
-	def swap(self, user_event: UserEvent):
+	def pushstack(self, user_event: UserEvent):
 		active = get_active_managed_window()
 		if not active:
 			return

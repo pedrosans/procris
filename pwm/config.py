@@ -44,6 +44,8 @@ KEYS = [
 	Key('<ctrl>KP_Enter',  windows.active.zoom),
 	Key('<ctrl>j', windows.active.focus.focusstack, [1]),
 	Key('<ctrl>k', windows.active.focus.focusstack, [-1]),
+	Key('<ctrl><shift>j', windows.active.pushstack, parameters=[1]),
+	Key('<ctrl><shift>k', windows.active.pushstack, parameters=[-1]),
 	Key('<ctrl>i', monitors.incnmaster, parameters=[1]),
 	Key('<ctrl>d', monitors.incnmaster, parameters=[-1]),
 	Key('<ctrl>l', monitors.setmfact, parameters=[0.05]),
@@ -51,9 +53,6 @@ KEYS = [
 	Key('<ctrl>t', monitors.setlayout, parameters=['T']),
 	Key('<ctrl>m', monitors.setlayout, parameters=['M']),
 	Key('<ctrl>f', monitors.setlayout, parameters=[None]),
-
-	Key('<ctrl><shift>j', windows.active.swap, parameters=[1]),
-	Key('<ctrl><shift>k', windows.active.swap, parameters=[-1]),
 
 	Key('<ctrl>space', monitors.cycle_function, parameters=[None]),
 	Key('<ctrl>q', None, plexes=[
