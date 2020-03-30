@@ -169,6 +169,24 @@ class Windows:
 		else:
 			return messages.Message('No matching buffer for ' + c_in.vim_command_parameter, 'error')
 
+	def geometry(self, user_event: UserEvent):
+		# TODO: if the first parameter remains the lib, can convert all to int
+		parameters = list(map(lambda word: int(word), user_event.vim_command_parameter.split()))
+		lib = parameters[0]
+		window = monitors.get_active_windows_as_list()[parameters[1]]
+		x = parameters[2]
+		y = parameters[3]
+		gdk_monitor = Gdk.Display.get_default().get_monitor_at_point(x, y)
+		if 'gdk' == lib:
+			gdk_window_for(window).move(x + gdk_monitor.get_workarea().x, y + gdk_monitor.get_workarea().y)
+		else:
+			window.set_geometry(
+				Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK,
+				x + gdk_monitor.get_workarea().x, y + gdk_monitor.get_workarea().y,
+				parameters[4] if len(parameters) > 4 else window.get_geometry().widthp,
+				parameters[5] if len(parameters) > 5 else window.get_geometry().heightp)
+		windows.staging = True
+
 	#
 	# COMMAND OPERATIONS
 	#
@@ -333,23 +351,6 @@ class Monitors:
 			increment=user_event.parameters[0], upper_limit=len(self.get_active_stack()))
 		apply()
 		persist()
-
-	def geometry(self, user_event: UserEvent):
-		parameters = list(map(lambda word: int(word), user_event.vim_command_parameter.split()))
-		lib = parameters[0]
-		window = self.get_active_windows_as_list()[parameters[1]]
-		x = parameters[2]
-		y = parameters[3]
-		gdk_monitor = Gdk.Display.get_default().get_monitor_at_point(x, y)
-		if 'gdk' == lib:
-			gdk_window_for(window).move(x + gdk_monitor.get_workarea().x, y + gdk_monitor.get_workarea().y)
-		else:
-			window.set_geometry(
-				Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK,
-				x + gdk_monitor.get_workarea().x, y + gdk_monitor.get_workarea().y,
-				parameters[4] if len(parameters) > 4 else window.get_geometry().widthp,
-				parameters[5] if len(parameters) > 5 else window.get_geometry().heightp)
-		windows.staging = True
 
 
 class ActiveWindow:
