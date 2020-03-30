@@ -64,7 +64,7 @@ class Windows:
 			if wnck_window.is_in_viewport(screen.get_active_workspace()) and not wnck_window.is_minimized():
 				self.visible.append(wnck_window)
 
-		self.update_active()
+		self.active.read_screen()
 		self.line = sorted(self.visible, key=sort_line)
 
 		for workspace in screen.get_workspaces():
@@ -99,10 +99,6 @@ class Windows:
 	#
 	# API
 	#
-	def update_active(self):
-		active_window = get_active_window(window_filter=lambda x: x in self.visible)
-		self.active.xid = active_window.get_xid() if active_window else None
-
 	def commit_navigation(self, event_time):
 		"""
 		Commits any staged change in the active window
@@ -352,6 +348,10 @@ class ActiveWindow:
 				return w
 		return None
 
+	def read_screen(self):
+		active_window = get_active_window(window_filter=lambda x: x in windows.visible)
+		self.xid = active_window.get_xid() if active_window else None
+
 	def clean(self):
 		self.xid = None
 
@@ -372,7 +372,7 @@ class ActiveWindow:
 			active_window = self.get_wnck_window()
 			active_window.minimize()
 			windows.remove_from_visible(active_window)
-			windows.update_active()
+			self.read_screen()
 			windows.staging = True
 
 	def maximize(self, c_in):

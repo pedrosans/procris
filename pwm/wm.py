@@ -71,6 +71,7 @@ def is_on_primary_monitor(window: Wnck.Window):
 	return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
 
 
+# TODO: rename to get_top_window
 def get_active_window(workspace: Wnck.Workspace = None, window_filter: Callable = None):
 	workspace = workspace if workspace else get_active_workspace()
 	for stacked in reversed(Wnck.Screen.get_default().get_windows_stacked()):
