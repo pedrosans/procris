@@ -222,26 +222,6 @@ class Monitors:
 		self.function_keys_wheel = list(reversed(list(FUNCTIONS_MAP.keys())))
 
 	#
-	# Monitor API
-	#
-	# TODO: clean, the Monitor work is already at the class name
-	def get_active(self) -> Monitor:
-		active = get_active_managed_window()
-		return self.monitor_of(active) if active else self.get_active_primary_monitor()
-
-	def monitor_of(self, window: Wnck.Window) -> Monitor:
-		monitor: Monitor = self.get_active_primary_monitor()
-		return monitor if monitor_for(window).is_primary() else monitor.next()
-
-	def get_active_primary_monitor(self) -> Monitor:
-		return self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
-
-	def primary_monitor_for(self, workspace: Wnck.Workspace) -> Monitor:
-		if workspace.get_number() not in self.primary_monitors:
-			self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
-		return self.primary_monitors[workspace.get_number()]
-
-	#
 	# Stack API
 	#
 	# TODO: keep the 'stack' name?
@@ -257,14 +237,9 @@ class Monitors:
 	def get_active_windows_as_list(self) -> List[Wnck.Window]:
 		return list(map(lambda xid: self.window_by_xid[xid], self.get_active_stack()))
 
-	def get_active_primary_monitor_windows(self) -> List[Wnck.Window]:
-		primary_monitor = self.get_active_primary_monitor()
-		return list(filter(lambda w: primary_monitor.contains(w), self.get_active_windows_as_list()))
-
 	#
 	# State API
 	#
-
 	def read_screen(self, screen: Wnck.Screen):
 		self.window_by_xid.clear()
 		for window in screen.get_windows():
@@ -276,7 +251,6 @@ class Monitors:
 			self._read_workspace_windows_monitor(workspace, primary_monitor)
 
 	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace, primary_monitor):
-		primary_monitor: Monitor = self.primary_monitor_for(workspace)
 		stack: List[int] = self.stack_for(workspace)
 
 		# add window listed in this workspace
@@ -302,6 +276,26 @@ class Monitors:
 		stack: List[int] = self.stack_for(workspace)
 		copy = stack.copy()
 		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not primary_monitor.contains(self.window_by_xid[xid]) else 0))
+
+	#
+	# Monitor API
+	#
+	# TODO: clean, the Monitor work is already at the class name
+	def get_active(self) -> Monitor:
+		active = get_active_managed_window()
+		return self.monitor_of(active) if active else self.get_active_primary_monitor()
+
+	def monitor_of(self, window: Wnck.Window) -> Monitor:
+		monitor: Monitor = self.get_active_primary_monitor()
+		return monitor if monitor_for(window).is_primary() else monitor.next()
+
+	def get_active_primary_monitor(self) -> Monitor:
+		return self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
+
+	def primary_monitor_for(self, workspace: Wnck.Workspace) -> Monitor:
+		if workspace.get_number() not in self.primary_monitors:
+			self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
+		return self.primary_monitors[workspace.get_number()]
 
 	#
 	# COMMANDS
