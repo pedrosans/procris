@@ -54,7 +54,7 @@ def _read_environment(screen: Wnck.Screen, config: ModuleType):
 		names.add(name)
 	for key in config.KEYS:
 		listener.add(key)
-	model.read(screen)
+	model.load(screen)
 
 
 def _configure_process():

@@ -276,7 +276,7 @@ class Monitors:
 	#
 	# State API
 	#
-	def read(self, screen: Wnck.Screen, workspace_config: Dict):
+	def load(self, screen: Wnck.Screen, workspace_config: Dict):
 		self.read_screen(screen)
 		try:
 			self.read_user_config(workspace_config, screen)
@@ -775,10 +775,10 @@ def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
 	desktop.update()
 
 
-def read(screen: Wnck.Screen):
+def load(screen: Wnck.Screen):
 	import pwm.state as state
 	windows.read(screen)
-	monitors.read(screen, state.get_workspace_config())
+	monitors.load(screen, state.get_workspace_config())
 
 
 def start():
