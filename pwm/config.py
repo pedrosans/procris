@@ -5,7 +5,7 @@ import pwm
 service = pwm.service
 windows = pwm.model.windows
 active_window = pwm.model.active_window
-monitors = pwm.model.monitors
+active_monitor = pwm.model.active_monitor
 reading = service.reading
 terminal = pwm.terminal
 decoration = pwm.decoration
@@ -47,15 +47,15 @@ KEYS = [
 	Key('<ctrl>k', active_window.focusstack, [-1]),
 	Key('<ctrl><shift>j', active_window.pushstack, parameters=[1]),
 	Key('<ctrl><shift>k', active_window.pushstack, parameters=[-1]),
-	Key('<ctrl>i', monitors.incnmaster, parameters=[1]),
-	Key('<ctrl>d', monitors.incnmaster, parameters=[-1]),
-	Key('<ctrl>l', monitors.setmfact, parameters=[0.05]),
-	Key('<ctrl>h', monitors.setmfact, parameters=[-0.05]),
-	Key('<ctrl>t', monitors.setlayout, parameters=['T']),
-	Key('<ctrl>m', monitors.setlayout, parameters=['M']),
-	Key('<ctrl>f', monitors.setlayout, parameters=[None]),
+	Key('<ctrl>i', active_monitor.incnmaster, parameters=[1]),
+	Key('<ctrl>d', active_monitor.incnmaster, parameters=[-1]),
+	Key('<ctrl>l', active_monitor.setmfact, parameters=[0.05]),
+	Key('<ctrl>h', active_monitor.setmfact, parameters=[-0.05]),
+	Key('<ctrl>t', active_monitor.setlayout, parameters=['T']),
+	Key('<ctrl>m', active_monitor.setlayout, parameters=['M']),
+	Key('<ctrl>f', active_monitor.setlayout, parameters=[None]),
 
-	Key('<ctrl>space', monitors.cycle_function, parameters=[None]),
+	Key('<ctrl>space', active_monitor.cycle_function, parameters=[None]),
 	Key('<ctrl>q', None, combinations=[
 		Key('Escape', pwm.service.escape_reading),
 		Key('<shift>colon', pwm.service.show_prompt),
@@ -89,5 +89,5 @@ NAMES = [
 	Name('report', service.debug),
 	Name('quit', active_window.minimize, alias='q'),
 	Name('only', active_window.only, alias='on'),
-	Name('gap', monitors.gap, complete=monitors.complete_gap_options),
+	Name('gap', active_monitor.gap, complete=active_monitor.complete_gap_options),
 ]

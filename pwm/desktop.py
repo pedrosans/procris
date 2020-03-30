@@ -20,10 +20,11 @@ class StatusIcon:
 	# Track reloading routine to stop any layout side effect when updating the UI
 	_reloading = False
 
-	def __init__(self, windows, monitors, stop_function=None):
+	def __init__(self, windows, monitors, active_monitor, stop_function=None):
 		self.stop_function = stop_function
 		self.windows = windows
 		self.monitors = monitors
+		self.active_monitor = active_monitor
 		self.menu = Gtk.Menu()
 
 		self.menu.append(self.autostart_item)
@@ -118,7 +119,7 @@ class StatusIcon:
 			event = UserEvent(time=Gtk.get_current_event_time())
 			event.parameters = [function_key]
 			import pwm.service as service
-			service.call(self.monitors.setlayout, event)
+			service.call(self.active_monitor.setlayout, event)
 
 	def _change_decorations(self, check_menu_item: Gtk.CheckMenuItem):
 		to_remove = check_menu_item.get_active()
@@ -160,7 +161,7 @@ def connect():
 	import pwm.service
 	global status_icon
 	# TODO: pass window and monitor as parameters
-	status_icon = StatusIcon(pwm.model.windows, pwm.model.monitors, stop_function=pwm.service.stop)
+	status_icon = StatusIcon(pwm.model.windows, pwm.model.monitors, pwm.model.active_monitor, stop_function=pwm.service.stop)
 	status_icon.activate()
 
 

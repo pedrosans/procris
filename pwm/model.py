@@ -286,6 +286,9 @@ class Monitors:
 			self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
 		return self.primary_monitors[workspace.get_number()]
 
+
+class ActiveMonitor:
+
 	#
 	# COMMANDS
 	#
@@ -302,21 +305,21 @@ class Monitors:
 	# TODO: based on mouse position?
 	# TODO: rename user_event
 	def cycle_function(self, user_event: UserEvent):
-		index = self.function_keys_wheel.index(self.get_active().function_key)
-		self._set_function(self.function_keys_wheel[index - 1])
+		index = monitors.function_keys_wheel.index(monitors.get_active().function_key)
+		self._set_function(monitors.function_keys_wheel[index - 1])
 
 	def _set_function(self, key):
-		self.get_active().function_key = key
+		monitors.get_active().function_key = key
 		apply()
 		persist()
-		desktop.show_monitor(self.get_active_primary_monitor())
+		desktop.show_monitor(monitors.get_active_primary_monitor())
 
 	def gap(self, user_event: UserEvent):
 		parameters = user_event.vim_command_parameter.split()
 		where = parameters[0]
 		pixels = int(parameters[1])
 		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
-		self.get_active_primary_monitor().update_work_area()
+		monitors.get_active_primary_monitor().update_work_area()
 		windows.staging = True
 		apply()
 
@@ -325,12 +328,12 @@ class Monitors:
 		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
 
 	def setmfact(self, user_event: UserEvent):
-		self.get_active_primary_monitor().increase_master_area(increment=user_event.parameters[0])
+		monitors.get_active_primary_monitor().increase_master_area(increment=user_event.parameters[0])
 		apply()
 		persist()
 
 	def incnmaster(self, user_event: UserEvent):
-		self.get_active_primary_monitor().increment_master(
+		monitors.get_active_primary_monitor().increment_master(
 			increment=user_event.parameters[0], upper_limit=len(windows.get_active_stack()))
 		apply()
 		persist()
@@ -773,3 +776,4 @@ handlers_by_xid: Dict[int, int] = {}
 windows: Windows = Windows()
 active_window = ActiveWindow()
 monitors: Monitors = Monitors()
+active_monitor: ActiveMonitor = ActiveMonitor()
