@@ -55,7 +55,7 @@ KEYS = [
 	Key('<ctrl>f', monitors.setlayout, parameters=[None]),
 
 	Key('<ctrl>space', monitors.cycle_function, parameters=[None]),
-	Key('<ctrl>q', None, plexes=[
+	Key('<ctrl>q', None, combinations=[
 		Key('Escape', pwm.service.escape_reading),
 		Key('<shift>colon', pwm.service.show_prompt),
 		Key('<ctrl>w', windows.active.focus_next),

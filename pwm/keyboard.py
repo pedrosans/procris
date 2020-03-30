@@ -70,11 +70,11 @@ def format_key_event(event: Xlib.protocol.event.KeyPress):
 
 class Key:
 
-	def __init__(self, accelerator, function, parameters=[], plexes=[]):
+	def __init__(self, accelerator, function, parameters=[], combinations=[]):
 		self.accelerator = accelerator
 		self.function = function
 		self.parameters = parameters
-		self.plexes = plexes
+		self.combinations = combinations
 
 
 class KeyboardListener:
@@ -134,8 +134,8 @@ class KeyboardListener:
 			if self.stopped:
 				raise Exception('Unable to bind: {}'.format(', '.join(key.accelerator)))
 
-		for plex in key.plexes:
-			self._bind(plex, we)
+		for combination in key.combinations:
+			self._bind(combination, we)
 
 	def stop(self):
 		self.stopped = True
