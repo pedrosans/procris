@@ -724,7 +724,7 @@ def apply(split_points: List[int] = None):
 #
 def resume():
 	resume = ''
-	for wn in self.buffers:
+	for wn in windows.buffers:
 		gdk_w = gdk_window_for(wn)
 
 		resume += '\n'

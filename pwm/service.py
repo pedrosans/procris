@@ -109,8 +109,7 @@ def escape_reading(c_in: UserEvent):
 
 
 def debug(c_in):
-	text = model.windows.resume()
-	text += model.monitors.resume()
+	text = model.resume()
 	messages.add(text=text)
 
 
