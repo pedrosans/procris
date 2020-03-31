@@ -210,3 +210,18 @@ class Reading:
 		except names.InvalidName as e:
 			messages.add_error(e.message)
 			self.begin(gtk_time)
+
+	#
+	# Commands
+	#
+	def show(self, user_event: UserEvent):
+		messages.prompt_placeholder = Gtk.accelerator_name(user_event.keyval, user_event.keymod)
+
+	def show_prompt(self, user_event: UserEvent):
+		messages.clean()
+		self.begin(user_event.time)
+		self.set_command_mode()
+		self.show_completions()
+
+	def escape(self, c_in: UserEvent):
+		messages.clean()

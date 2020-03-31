@@ -93,27 +93,11 @@ def stop():
 #
 # Commands
 #
-def show_reading(c_in):
-	messages.prompt_placeholder = Gtk.accelerator_name(c_in.keyval, c_in.keymod)
+def read_screen(user_event: UserEvent):
+	messages.add(text=model.resume())
 
 
-def show_prompt(user_event: UserEvent):
-	messages.clean()
-	reading.begin(user_event.time)
-	reading.set_command_mode()
-	reading.show_completions()
-
-
-def escape_reading(c_in: UserEvent):
-	messages.clean()
-
-
-def debug(c_in):
-	text = model.resume()
-	messages.add(text=text)
-
-
-def reload(c_in):
+def reload(user_event: UserEvent):
 	desktop.update()
 	state.reload()
 	applications.reload()
