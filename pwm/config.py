@@ -29,7 +29,7 @@ KEYS = [
 	Key('<ctrl>t',               active_monitor.setlayout,      parameters=['T']),
 	Key('<ctrl>m',               active_monitor.setlayout,      parameters=['M']),
 	Key('<ctrl>f',               active_monitor.setlayout,      parameters=[None]),
-	Key('<ctrl>space',           active_monitor.next_layout,    parameters=[None]),
+	Key('<ctrl>space',           active_monitor.setlayout),
 	Key('<ctrl>q', None, combinations=[
 		Key('Escape',       reading.escape),
 		Key('<shift>colon', reading.show_prompt),

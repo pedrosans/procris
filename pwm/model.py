@@ -299,12 +299,12 @@ class ActiveMonitor:
 			stack = windows.get_active_stack()
 			old_index = stack.index(active.get_xid())
 			stack.insert(0, stack.pop(old_index))
-		function_key = user_event.parameters[0]
+		if user_event.parameters:
+			function_key = user_event.parameters[0]
+		else:
+			index = monitors.function_keys_wheel.index(monitors.get_active().function_key)
+			function_key = monitors.function_keys_wheel[index - 1]
 		self._set_function(function_key)
-
-	def next_layout(self, user_event: UserEvent):
-		index = monitors.function_keys_wheel.index(monitors.get_active().function_key)
-		self._set_function(monitors.function_keys_wheel[index - 1])
 
 	def _set_function(self, key):
 		monitors.get_active().function_key = key
