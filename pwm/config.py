@@ -12,37 +12,12 @@ decoration = pwm.decoration
 scratchpads = pwm.scratchpads
 applications = pwm.applications
 
-pwm.state.force_defaults()
 
-DEFAULTS = {
-	'position': 'bottom',
-	'width': 800,
-	'auto_hint': True,
-	'auto_select_first_hint': False,
-	'desktop_icon': 'light',
-	'desktop_notifications': False,
-	'window_manger_border': 0,
-	'remove_decorations': False,
-	'inner_gap': 5,
-	'outer_gap': 5,
-	'workspaces': [
-		{
-			'monitors': [
-				{'nmaster': 1, 'mfact': 0.55, 'function': None},
-				{'nmaster': 1, 'mfact': 0.55, 'function': None}
-			]
-		},
-		{
-			'monitors': [
-				{'nmaster': 1, 'mfact': 0.55, 'function': None},
-				{'nmaster': 1, 'mfact': 0.55, 'function': None}
-			]
-		}
-	]
-}
 KEYS = [
 	Key('<ctrl>Return',   active_window.zoom),
 	Key('<ctrl>KP_Enter', active_window.zoom),
+	Key('<ctrl><shift>Return',    applications.spawn, parameters=['x-terminal-emulator']),
+	Key('<ctrl><shift>KP_Enter',  applications.spawn, parameters=['x-terminal-emulator']),
 	Key('<ctrl>j',        active_window.focusstack, [1]),
 	Key('<ctrl>k',        active_window.focusstack, [-1]),
 	Key('<ctrl><shift>j', active_window.pushstack, parameters=[1]),
@@ -90,3 +65,30 @@ NAMES = [
 	Name('only',        active_window.only, alias='on'),
 	Name('gap',         active_monitor.gap, complete=active_monitor.complete_gap_options),
 ]
+DEFAULTS = {
+	'position': 'bottom',
+	'width': 800,
+	'auto_hint': True,
+	'auto_select_first_hint': False,
+	'desktop_icon': 'light',
+	'desktop_notifications': False,
+	'window_manger_border': 0,
+	'remove_decorations': False,
+	'inner_gap': 5,
+	'outer_gap': 5,
+	'workspaces': [
+		{
+			'monitors': [
+				{'nmaster': 1, 'mfact': 0.55, 'function': None},
+				{'nmaster': 1, 'mfact': 0.55, 'function': None}
+			]
+		},
+		{
+			'monitors': [
+				{'nmaster': 1, 'mfact': 0.55, 'function': None},
+				{'nmaster': 1, 'mfact': 0.55, 'function': None}
+			]
+		}
+	]
+}
+pwm.state.force_defaults()

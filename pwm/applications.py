@@ -99,3 +99,15 @@ def complete(c_in: UserEvent):
 	matches = filter(lambda x: lower != x.lower(), matches)
 	return sorted(list(set(matches)), key=str.lower)
 
+
+def spawn(user_event: UserEvent):
+	display: Gdk.Display = Gdk.Display.get_default()
+	if os.fork() == 0:
+		try:
+			display.close()
+			os.setsid()
+			file = user_event.parameters[0]
+			os.execvp(file, user_event.parameters)
+		finally:
+			exit(1)
+
