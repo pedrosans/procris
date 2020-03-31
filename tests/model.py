@@ -1,22 +1,51 @@
 import unittest
-
+import pwm.model as model
+from pwm.wm import Monitor
 from unittest.mock import MagicMock
-from pwm.wm import UserEvent
-from pwm.model import Windows
-import pwm.service as service
+
+workspace = MagicMock()
+workspace.get_number = lambda: 0
+screen = MagicMock()
+screen.get_workspaces = lambda: [workspace]
+model.monitors.primary_monitors = {0: Monitor(primary=True)}
 
 
-class WindowsTestCase(unittest.TestCase):
+class ModelTestCase(unittest.TestCase):
 
-	windows: Windows = Windows()
+	def test_read_user_config(self):
+		model.read_user_config(DEFAULTS, screen)
+		primary: Monitor = model.monitors.primary_monitor_for(workspace)
+		self.assertEqual(primary.nmaster, 1)
+		self.assertEqual(primary.mfact, 0.55)
+		self.assertEqual(primary.function_key, 'T')
 
-	def setUp(self):
-		print('asdf')
 
-	def test_calls_function(self):
-		self.windows.delete(UserEvent(text='bdelete foo'))
-		# self.foo.assert_called()
-		# service.reading.end.assert_not_called()
+DEFAULTS = {
+	'position': 'bottom',
+	'width': 800,
+	'auto_hint': True,
+	'auto_select_first_hint': False,
+	'desktop_icon': 'light',
+	'desktop_notifications': False,
+	'window_manger_border': 0,
+	'remove_decorations': False,
+	'inner_gap': 5,
+	'outer_gap': 5,
+	'workspaces': [
+		{
+			'monitors': [
+				{'nmaster': 1, 'mfact': 0.55, 'function': 'T'},
+				{'nmaster': 1, 'mfact': 0.55, 'function': None}
+			]
+		},
+		{
+			'monitors': [
+				{'nmaster': 1, 'mfact': 0.55, 'function': None},
+				{'nmaster': 1, 'mfact': 0.55, 'function': None}
+			]
+		}
+	]
+}
 
 
 if __name__ == '__main__':
