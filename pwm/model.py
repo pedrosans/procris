@@ -130,7 +130,7 @@ class Windows:
 		if window in self.visible:
 			self.remove_from_visible(window)
 		self.buffers.remove(window)
-		self.update_active()
+		active_window.read_screen()
 
 	def remove_from_visible(self, window: Wnck.Window):
 		self.visible.remove(window)
