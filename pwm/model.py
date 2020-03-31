@@ -302,9 +302,7 @@ class ActiveMonitor:
 		function_key = user_event.parameters[0]
 		self._set_function(function_key)
 
-	# TODO: based on mouse position?
-	# TODO: rename user_event
-	def cycle_function(self, user_event: UserEvent):
+	def next_layout(self, user_event: UserEvent):
 		index = monitors.function_keys_wheel.index(monitors.get_active().function_key)
 		self._set_function(monitors.function_keys_wheel[index - 1])
 
