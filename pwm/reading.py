@@ -215,7 +215,10 @@ class Reading:
 	# Commands
 	#
 	def show(self, user_event: UserEvent):
-		messages.prompt_placeholder = Gtk.accelerator_name(user_event.keyval, user_event.keymod)
+		if user_event and user_event.keyval:
+			messages.prompt_placeholder = Gtk.accelerator_name(user_event.keyval, user_event.keymod)
+		else:
+			messages.prompt_placeholder = 'ESQ to close'
 
 	def show_prompt(self, user_event: UserEvent):
 		messages.clean()

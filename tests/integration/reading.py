@@ -31,7 +31,7 @@ class ReadingIntegrationTestCase(unittest.TestCase):
 		application.stop()
 
 	def test_open_close_window(self):
-		service.execute(function=service.show_prompt)
+		service.execute(function=service.reading.show_prompt)
 		time.sleep(2)
 		self.assertTrue(service.reading.in_command_mode())
 
