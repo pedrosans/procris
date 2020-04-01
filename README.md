@@ -1,215 +1,82 @@
-# ![alt text](data/icon/pwm.svg "Procris logo") Procris
+# ![alt text](data/icon/pwm.svg "pwm logo") plugable window management
 
-Procris is a desktop environment plugin that adds tiling features from mainly dwm and Vim to the desktop environment of choice.
-
-### Rationale
-
-The daily work creating, organizing, navigating between windows and panes inside Vim and Tmux carry a common logic: the prefix key + command key and the prefix key + colon, to open the command prompt. The idea behind Procris is to bring this same logic to the rest of the windows being worked with, the ones in the DE itself, thus centralizing the feature "working with windows".
-
-By doing so, Procris grabs two keys in the same way they are handled by Tmux and Vim: consuming them inside their processes; which is accomplished by both grabbing the first key at the root window event handling level and the second key at the Procris window event handling itself.
-
-Besides the Vim/Tmux logic, a set of single keys are bound to windows tiling features in dwm to add the missing master/stack/layout features DE windows.
-
-Being so, the project is an attempt to bring the most comfortable mappings and logic to work with windows inside (mainly) dwm and Vim to the desktop environment of choice in a standardized way.
+pwm is a window management tool to add tiling and navigation features
+from dwm and Vim to the window manager of choice.
+It adds the prefix key + command key combinations in addition to dwm keys,
+thus enabling a standard set of commands to navigate inside Vim, Tmux and the WM
+on top of windows tiled in master and stack areas.
 
 ### Usage
 
-Commands are bound to names and keys inside Procris mappings
-module. A command can be called from both a bound key or from the colon prompt.
-
-Keys can be simple or combined.
-Simple key straight cause the bound command to be called.
-Combined keys are composed of a
+Commands are bound to names and keys in the config module.
+Keys can be combined of
 [prefix key](https://manpages.debian.org/buster/tmux/tmux.1.en.html#KEY_BINDINGS)
-(<kbd>Ctrl</kbd> + <kbd>q</kbd> by default) followed by a
-[command key](https://manpages.debian.org/buster/tmux/tmux.1.en.html#KEY_BINDINGS).
-The prefix key starts a reading and waits for a command key or a colon key.
-By default, command keys are mapped to commands to change window focus, position, and state like 
-[CTRL-W commands](http://vimdoc.sourceforge.net/htmldoc/windows.html#windows-intro)
-or
-[window commands](http://vimdoc.sourceforge.net/htmldoc/vimindex.html#CTRL-W)
-in Vim.
-
-### Reading
-
-The prefix key causes Procris to start a reading, which is the process of to open a window
-to capture the following key. The following key can both start the colon prompt
-or, if a command key, to call a command.
-
-While inside a reading,
-commands can output messages which will be listed on top of the window.
-The reading will continue until a command is successfully called and returned
-with no message. The window will remain visible while the reading is started.
-This logic allows usages like to close a set of windows:
-
-1. start a reading using the prefix key
-2. list all windows in the workspace entering :buffers in the colon prompt
-3. pass window numbers (as listed by :buffers) as parameters to :bdelete
-
-### Layout
-
-Procris default mappings are mainly dwm key bindings for commands to change the
-layout function, increase/decrease the master area, promote/demote a window
-up/down or to the top of the stack. By default, Procris uses 
-[tiled](https://dwm.suckless.org/tutorial/) layout. The other 3 layouts:
-floating, monocle, [centeredmaster](https://dwm.suckless.org/patches/centeredmaster/)
-can be chosen either by selecting their option on the status icon on the DE
-panel or by calling their command via a bound key.
-Each layout is visually indicated by a custom icon in the DE panel:
-
-![floating](data/icon/48x48/procris.png "Procris logo") | ![floating](data/icon/48x48/procris-M.png "Procris logo")
--|-
-![floating](data/icon/48x48/procris-T.png "Procris logo") | ![floating](data/icon/48x48/procris-C.png "Procris logo")
++
+[command key](https://manpages.debian.org/buster/tmux/tmux.1.en.html#KEY_BINDINGS),
+which are by default bound to a set of
+Vim [window commands](http://vimdoc.sourceforge.net/htmldoc/vimindex.html#CTRL-W).
 
 
-### Vim
+Example:
 
-Procris borrows Vim commands and keys to manipulate buffers. A buffer
-means both an application and a window. So the bellow commands will:
+1. open the colon prompt <kbd>prefix key</kbd> + <kbd>:</kbd>
+2. list windows by entering `buffers`
+3. pass window numbers (as listed by `:buffers`) as parameters to `:bdelete` to close a set of windows
+
+or:
+
+1. <kbd>prefix key</kbd> + <kbd>o</kbd> to quit all visible windows but the active one.
+
+
+The prefix key is <kbd>Ctrl</kbd> + <kbd>q</kbd> by default. A custom config module can
+be defined at `~/.config/pwm/config.py`, being the default
+[one](pwm/config.py) meant to be a starting point. For all keys and names:
+
+```shell
+groff -mman && pwm.1 -T utf8 | less
+```
+
+### dwm stuff
+
+The usual dwm keys are bound by default.
+The layout can be selected by their option in the status icon on the DE panel (if running on a DE)
+or via a bound key or name.
+
+Each layout is visually indicated by a custom icon in the DE panel. Main layouts are bound by default:
+
+||none|monocle|tile|[centeredmaster](https://dwm.suckless.org/patches/centeredmaster/)|centeredfloatingmaster|biasedstack|[spiral](https://dwm.suckless.org/patches/fibonacci/)|dwindle|
+|---|---|--|---|---|---|---|---|---|
+|Icon| ![floating](data/icon/48x48/pwm-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-M-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-T-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-C-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm->-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-B-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-@-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-\\-dark.png "pwm logo")
+|Default key|ctrl+f|ctrl+m|ctrl+t||||||
+
+
+### Vim stuff
+
+The set of Vim names and keys to manipulate buffers, which translates to
+both application and windows inside pwm, works like:
 
 `:ls` lists current windows.
 
 `:b4` change the focus to the window number 4.
 
-`:buffer term` brings the focus to the window containing `term` in the title if any.
+`:buffer term` activate the window containing `term` in the title if any.
 
 `:bd` closes the current window.
 
-`:edit calc` launch an application containing `calc` in the name like a calculator app.
-
-
-### Commands
-
-`reading.start` <kbd>Ctrl</kbd> + <kbd>q</kbd>
-
-		Start a reading, the process of to open a window and waiting for the
-		following key, which can either be a command key or colon to open the
-		colon prompt.
-
-`layout.move_to_master` <kbd>Ctrl</kbd> + <kbd>Return</kbd>
-
-		Move focused window to the top of the stack.
-
-`layout.increment_master` <kbd>Ctrl</kbd> + <kbd>i</kbd>
-
-`layout.increment_master` <kbd>Ctrl</kbd> + <kbd>d</kbd>
-
-		Increment/decrement the number of windows in the master area.
-
-`layout.increase_master_area` <kbd>Ctrl</kbd> + <kbd>l</kbd>
-
-`layout.increase_master_area` <kbd>Ctrl</kbd> + <kbd>h</kbd>
-
-		Increment/decrement the master area.
-
-`layout.change_function` <kbd>Ctrl</kbd> + <kbd>f</kbd>
-
-		Select the floating layout.
-
-`layout.change_function` <kbd>Ctrl</kbd> + <kbd>m</kbd>
-
-		Select the monocle layout.
-
-`layout.change_function` <kbd>Ctrl</kbd> + <kbd>u</kbd>
-
-		Select the centeredmaster layout.
-
-`layout.change_function` <kbd>Ctrl</kbd> + <kbd>t</kbd>
-
-		Select the tile layout.
-
-`layout.swap_focused_with` <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>j</kbd>
-
-`layout.swap_focused_with` <kbd>Ctrl</kbd> + <kbd>Shift</kbd> + <kbd>k</kbd>
-
-		Swap the focused window with the previous/next one in the stack.
-
-`windows.focus.cycle` <kbd>prefix key</kbd> + <kbd>w</kbd>
-
-		Move focus to the window below/right of the current one
-
-`windows.focus.move_left` <kbd>prefix key</kbd> + <kbd>h</kbd>
-
-`windows.focus.move_down` <kbd>prefix key</kbd> + <kbd>j</kbd>
-
-`windows.focus.move_up` <kbd>prefix key</kbd> + <kbd>k</kbd>
-
-`windows.focus.move_right` <kbd>prefix key</kbd> + <kbd>l</kbd>
-
-		Change the focus to the window on the left/down/up/right side.
-
-`windows.active.move_left` <kbd>prefix key</kbd> + <kbd>H</kbd>
-
-`windows.active.move_down` <kbd>prefix key</kbd> + <kbd>J</kbd>
-
-`windows.active.move_up` <kbd>prefix key</kbd> + <kbd>K</kbd>
-
-`windows.active.move_right` <kbd>prefix key</kbd> + <kbd>L</kbd>
-
-		Move the current window to the far left/down/up/right part of the screen.
-
-`windows.delte` `:bd[elete] {winname}` `:bd[elete] [N]`
-
-		Close window {winname} (default: current buffer)
-
-		Close window [N] (default: current buffer) and delete it from the window list
-
-`windows.activate` `:b[uffer] {winname}` `:b[uffer] [N]`
-
-		Open window {winname}
-
-		Open window [N] from the window list
-
-`windows.list` `:buffers` `:ls`
-
-		List windows
-
-`windows.active.centralize` `:centralize` `:ce`
-
-		Centralize the active window
-
-`windows.active.only` `:only` `:on` <kbd>prefix key</kbd> + <kbd>o</kbd>
-
-		Make the active window the only one on the screen.  All other windows are minimized.
-
-`windows.active.maximize` `:maximize` `:ma`
-
-		Maximize the active window
-
-`windows.active.minimize` `:q[uit]` <kbd>prefix key</kbd> + <kbd>q</kbd>
-
-		Minimize the active window
-
-`applications.launch` `:e[dit] {appname}`
-
-		Launch {appname}
-
-`terminal.bang` `:!{cmd}`
-
-		Execute {cmd} with the shell
-
-`window.active.minimize` <kbd>prefix key</kbd> + <kbd>esq</kbd> or <kbd>prefix key</kbd> + <kbd>ctrl + [</kbd>
-
-		Quit Procris operation and close its UI
-
+`:edit calc` launches an application containing `calc` in the name like a calculator.
 
 ### Installation
 
 1. From PPA, for Ubuntu distributions
 	```bash
-	sudo add-apt-repository ppa:pedrosans/desktop
+	sudo add-apt-repository ppa:pedrosans/pwm
 	sudo apt-get update
-	sudo apt-get install procris
+	sudo apt-get install pwm
 	```
 2. Make file
 
 	```bash
 	sudo make install
-	```
-
-	Dependencies for debian/ubuntu:
-	```bash
-	sudo make dependencies
 	```
 
 	To uninstall:
@@ -220,12 +87,12 @@ means both an application and a window. So the bellow commands will:
 
 3. Manually
 
-	1. Install procris's dependencies
+	1. Install pwm's dependencies
 
 		`python3 gir1.2-gtk-3.0 python3-gi-cairo` python + gtk  
-		`python3-xdg` free desktop standards used to configure and launch procris  
+		`python3-xdg` free desktop standards used to configure and launch pwm  
 		`gir1.2-wnck-3.0 libwnck-3-0` functions to navigate X windows  
-		`gir1.2-appindicator3-0.1` used to indicate procris running on the statur bar  
+		`gir1.2-appindicator3-0.1` used to indicate pwm running on the statur bar  
 		`gir1.2-keybinder-3.0 python3-dbus` bind navigation functions to keyboard prefix + shortcuts  
 		`python3-setproctitle` used to name the running process
 		`python3-xlib,libx11-dev` used to listen the keyboard
@@ -238,7 +105,8 @@ means both an application and a window. So the bellow commands will:
 		python3-gi-cairo python3-xdg python3-dbus python3-setproctitle        \
 		python3-xlib,libx11-dev
 		```
-	2. Install procris
+
+	2. Install pwm
 		```
 		sudo ./setup.py install --record installed_files.txt
 		```
@@ -255,48 +123,30 @@ means both an application and a window. So the bellow commands will:
 		sudo update-icon-caches /usr/share/icons/*
 		```
 
-### Commmand line interface
+### Start pwm
 
-`procris start`: start Procris
+Via DE:
 
-`procris status`: show Procris process status
+`/usr/share/applications/pwm.desktop`
 
-`procris stop`: stop Procris process
+Via command line interface:
 
-`procris --help`: show command line interface help
-
-### Customization
-
-#### Mappings
-
-A custom mappings module can be provided by placing its definition in `~/.config/procris/mappings.py`.
-In the case of a custom module, it will be loaded instead of the default one. The default one at
-[procris/mappings.py](pwm/config.py) is meant to be a starting point.
+`pwm start`: start pwm
 
 #### Interface
 
-Configuration file is located at `~/.config/procris/procris.cfg` and enables:
+config module settings:
 
-Section `[interface]` | Customization options
--|-
-`list_workspaces`| if buffers command should list windows from all workspaces. Default is `true`
-`position`| `top`, `middle`, `bottom`. Default is `bottom`
-`width`| interface width in pixels or `100%` if it should span the entire screen. Default is 800
-`auto_hint` | show hints for the command as it is being typed. Default is `true`
-`auto_select_first_hint` | if the fist option offered in the hint bar should be selected automatically. Default is `true`
+Property|Description|Default
+-|-|-
+`list_workspaces`| if buffers command should list windows from all workspaces. |`true`
+`position`| colon prompt positon on the monitor `top`, `middle`, `bottom` | `bottom`
+`width`| colon prompt width in pixels or `100%` if it should span the entire screen. | 800
+`auto_hint` | show hints for the command as it is being typed. | `true`
+`auto_select_first_hint` | if the fist option offered in the hint bar should be selected automatically. | `true`
 
-`procris.cfg` example:
 
-```
-[interface]
-auto_hint = true
-position = middle
-width = 100%
-```
-
-The style can be customized by placing a custom css at `~/.config/procris/procris.css`.
-The default CSS in the module [view](pwm/view.py) is meant to be used as a reference.
-A possible customization example is:
+Font size: create and add to `~/.config/pwm/pwm.css` ( more properties in [view](pwm/view.py) module)
 
 ```css
 * {
@@ -304,17 +154,50 @@ A possible customization example is:
 }
 ```
 
-### Key grabbing
+Border around active window: create and add to `~/.config/gtk-3.0/gtk.cs`
 
-All simple key and prefix key are
-[passively grabbed](https://www.x.org/wiki/Development/Documentation/GrabProcessing/)
-by the display root window,
-so the key won't be sent to the active window and cause side effects.
-Meanwhile, command keys are consumed by Procris's window inside a reading,
-which is opened and focused every time the prefix key is issued.
-For this reason, the prefix key must be mapped to `reading.start` command.
+```css
+decoration {
+	border-radius: 0;
+}
+.fullscreen decoration,
+.tiled decoration {
+	border-radius: 0; 
+}
+.popup decoration {
+	border-radius: 0; 
+}
+.ssd decoration {
+	border-radius: 0;
+	box-shadow: 0 0 0 2px @theme_fg_color;
+}
+.ssd decoration:backdrop {
+	box-shadow: 0 0 0 2px @theme_bg_color;
+}
+.csd decoration {
+	border-radius: 0;
+	box-shadow: 0 0 0 2px @theme_fg_color;
+}
+.csd decoration:backdrop {
+	box-shadow: 0 0 0 2px @theme_bg_color;
+}
+.csd.popup decoration {
+	border-radius: 0;
+	box-shadow: 0 0 0 2px @theme_fg_color;
+}
+.csd.popup decoration:backdrop {
+	box-shadow: 0 0 0 2px @theme_bg_color;
+}
+tooltip.csd decoration {
+	border-radius: 0;
+	box-shadow: 0 0 0 2px @theme_fg_color;
+}
+tooltip.csd decoration:backdrop {
+	box-shadow: 0 0 0 2px @theme_bg_color;
+}
+```
 
-### Terminology
+Documentation note:
 
 While 'colon prompt' and 'prefix key' are terms from 
 [GNU screen](https://www.gnu.org/software/screen/manual/html_node/Commands.html)
@@ -322,5 +205,5 @@ and
 [tmux](https://manpages.debian.org/buster/tmux/tmux.1.en.html#KEY_BINDINGS),
 similar pieces are referred to as 'command prompt' and 'termwinkey'
 by also tmux and [Vim](https://vimhelp.org/options.txt.html#%27termwinkey%27)
-documentation. They share the same logic and are referred to as
-'colon prompt' and 'prefix key' inside Procris documentation and source code.
+documentations.
+They share the same logic and are 'colon prompt' and 'prefix key' on the documentation + source code.

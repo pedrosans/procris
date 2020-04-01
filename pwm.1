@@ -1,56 +1,109 @@
-.TH Procris 1 procris\-VERSION
+.TH pwm 1 pwm\-VERSION
 .SH NAME
-Procris \- tiling desktop environment plugin
+pwm \- plugable window management
 .SH SYNOPSIS
-.B procris
-.RB [start|status|stop][\-h]
+pwm
+.OP start
+.OP stop
+.OP status
+.OP -h
 .SH DESCRIPTION
-Procris is a desktop environment utility to organize windows in a stack and to operate on their focus, position, state, layout using commands bound to keys and names.
+pwm is a window management tool to add tiling and navigation features from dwm and Vim to the window manager of choice.
 .SH OPTIONS
 .TP
 .B start
-start Procris
+start pwm
 .TP
 .B stop
-stop Procris
+stop pwm
 .TP
 .B status
 status of the running instance
 .TP
 .B \-h
 print help message
-.SH USAGE
-.SS Commands
+.SH KEYS
 .TP
-.B Ctrl\-Shift\-j
-Swap the focused window with the next window
+.B 
+mod-Return
+Toogle selected and master window positions
 .TP
-.B Ctrl\-Shift\-k
-Swap the focused window with the previous window
+.B 
+mod-shift-Return
+Launch terminal emulator
 .TP
-.B Ctrl\-q
-Prefix key, opens reading window and listen to the next input.
+.B 
+mod-j
+Focus next window
 .TP
-.B prefix\-w
-Move focus to the window below/right of the current one
+.B 
+mod-k
+Focus previous window
 .TP
-.B prefix\-h
+.B 
+mod-shift-j
+Push active window to next positon
 .TP
-.B prefix\-j
+.B 
+mod-shift-k
+Push active window to previous positon
 .TP
-.B prefix\-k
+.B 
+mod-i
+Increase clients in master area.
 .TP
-.B prefix\-l
-Change the focus to the window on the left/down/up/right side.
+.B 
+mod-d
+Decrease clients in master area.
 .TP
-.B prefix\-H
+.B 
+mod-l
+Increase master area size.
 .TP
-.B prefix\-J
+.B 
+mod-h
+Decrease master area size.
 .TP
-.B prefix\-K
+.B 
+mod-t
+Set tile layout
 .TP
-.B prefix\-L
-Move the current window to the far left/down/up/right part of the screen.
+.B 
+mod-m
+Set monocle layout
+.TP
+.B 
+mod-f
+Set floating layout
+.TP
+.B 
+mod-space
+Toggle between current and previous layout
+.TP
+.B 
+prefix + shift-colon
+Open colon prompt
+.TP
+.B 
+prefix + w
+Move focus to next window based on their position
+.TP
+.B 
+prefix + p
+Move focus to previous window based on their position
+.TP
+.B 
+prefix + q
+Minimize active window
+.TP
+.B 
+prefix + o
+Minimize all windows but the active one
+.TP
+.B 
+prefix + [h|j|k|l]
+Move the focus to the window [on the left | down | up | on the right]
+.SH NAMES
 .TP
 .B :db[elete] {winname}
 Close window {winname} (default: current buffer)
@@ -70,15 +123,11 @@ List windows
 .B :ce[ntralize]
 Centralize the active window
 .TP
-.B prefix\-o
-.TP
 .B :on[ly]
 Make the active window the only one on the screen.  All other windows are minimized.
 .TP
 .B :ma[ximize]
 Maximize the active window
-.TP
-.B prefix\-q
 .TP
 .B :q[uit]
 Minimize the active window
@@ -88,14 +137,28 @@ Launch {appname}
 .TP
 .B :!{cmd}
 Execute {cmd} with the shell
+.SH FUNCTIONS
 .TP
-.B prefix\-esq
+.B applications.spawn
+Forks the process and spawn a new process
 .TP
-.B prefix\-ctrl\-[
-Quit procris operation and close its UI
+.B active_window.zoom
+Toogle selected and master window positions
+.TP
+.B active_window.only
+Minimize all other then the active window
+.TP
+.B active_window.pushstack [x]
+Push active window x positions in the stack
+.TP
+.B active_window.focus_previous
+.TP
+.B active_window.focus_next
+Move focus to the window below/right of the current one
+.TP
+.B active_window.focus_[left|down|up|right]
+Move focus to a direction, like in Vim, rather then up or down the stack
 .SH CUSTOMIZATION
-keys and command names can be customized by providing a custom mappings module in
-.B ~/.config/procris/mappigns.py
-the interface can be customized at
-.B
-~/.config/procris/procris.cfg
+.B pwm/config.py
+module is meant to be a starting point for the user's config module at
+.B ~/.config/pwm/config.py
