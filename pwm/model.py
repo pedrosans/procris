@@ -261,10 +261,6 @@ class Windows:
 class Monitors:
 
 	primary_monitors: Dict[int, Monitor] = {}
-	function_keys_wheel = List
-
-	def __init__(self):
-		self.function_keys_wheel = list(reversed(list(FUNCTIONS_MAP.keys())))
 
 	#
 	# Monitor API
@@ -289,6 +285,8 @@ class Monitors:
 
 class ActiveMonitor:
 
+	last_layout_key = None
+
 	#
 	# COMMANDS
 	#
@@ -302,12 +300,14 @@ class ActiveMonitor:
 		if user_event.parameters:
 			function_key = user_event.parameters[0]
 		else:
-			index = monitors.function_keys_wheel.index(monitors.get_active().function_key)
-			function_key = monitors.function_keys_wheel[index - 1]
+			function_key = self.last_layout_key
 		self._set_function(function_key)
 
-	def _set_function(self, key):
-		monitors.get_active().function_key = key
+	def _set_function(self, new):
+		active = monitors.get_active()
+		if active.function_key != new:
+			self.last_layout_key = active.function_key
+		active.function_key = new
 		apply()
 		persist()
 		desktop.show_monitor(monitors.get_active_primary_monitor())

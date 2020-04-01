@@ -220,6 +220,7 @@ class Monitor:
 
 	def __init__(self, primary: bool = False, nmaster: int = 1, mfact: float = 0.5, function_key: str = 'T'):
 		self.primary: bool = primary
+		# TODO: rename to layout key
 		self.function_key: str = function_key
 		self.nmaster: int = nmaster
 		self.mfact: float = mfact
