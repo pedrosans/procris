@@ -1,4 +1,10 @@
-# ![alt text](data/icon/pocoy.svg "pocoy logo") plugable window management
+# ![logo](data/icon/pocoy.svg "pocoy logo") plugable window management
+
+<div align="center">
+<a href="https://github.com/pedrosans/pocoy-media/raw/master/tile-example-01.png">
+<img src="https://github.com/pedrosans/pocoy-media/raw/master/preview.png" />
+</a>
+</div>
 
 pocoy is a window management tool to add tiling and navigation features
 from dwm and Vim to the window manager of choice.
@@ -44,10 +50,10 @@ or via a bound key or name.
 
 Each layout is visually indicated by a custom icon in the DE panel. Main layouts are bound by default:
 
-||none|monocle|tile|[centeredmaster](https://dwm.suckless.org/patches/centeredmaster/)|centeredfloatingmaster|biasedstack|[spiral](https://dwm.suckless.org/patches/fibonacci/)|dwindle|
-|---|---|--|---|---|---|---|---|---|
-|Icon| ![floating](data/icon/48x48/pocoy-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-M-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-T-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-C-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy->-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-B-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-@-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-\\-dark.png "pocoy logo")
-|Default key|ctrl+f|ctrl+m|ctrl+t||||||
+||none|monocle|tile|[centeredmaster](https://dwm.suckless.org/patches/centeredmaster/)|centeredfloatingmaster|[spiral](https://dwm.suckless.org/patches/fibonacci/)|dwindle|
+|---|--|---|---|---|---|---|---|
+|Icon| ![floating](data/icon/48x48/pocoy-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-M-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-T-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-C-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy->-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-@-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-\\-dark.png "pocoy logo")
+|Default key|ctrl+f|ctrl+m|ctrl+t|||||
 
 
 ### Vim stuff
