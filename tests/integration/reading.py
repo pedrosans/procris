@@ -2,7 +2,7 @@ import unittest
 import threading
 import time
 import warnings
-import pwm.service as service
+import pocoy.service as service
 
 
 class Application(threading.Thread):

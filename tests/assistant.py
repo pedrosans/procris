@@ -1,11 +1,11 @@
 import unittest
 
-import pwm.assistant
-import pwm.names as names
-import pwm.terminal as terminal
+import pocoy.assistant
+import pocoy.names as names
+import pocoy.terminal as terminal
 from unittest.mock import MagicMock
-from pwm.assistant import Completion
-from pwm.wm import UserEvent
+from pocoy.assistant import Completion
+from pocoy.wm import UserEvent
 
 
 class AssistantTestCase(unittest.TestCase):

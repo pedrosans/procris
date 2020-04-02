@@ -1,13 +1,13 @@
 import unittest
-import pwm.desktop
+import pocoy.desktop
 
 
 class XdgIntegrationTestCase(unittest.TestCase):
 
 	def test_load_theme(self):
-		pwm.desktop.load()
-		self.assertIsNotNone(pwm.desktop.ICON_STYLES_MAP.keys())
-		pwm.desktop.unload()
+		pocoy.desktop.load()
+		self.assertIsNotNone(pocoy.desktop.ICON_STYLES_MAP.keys())
+		pocoy.desktop.unload()
 
 
 if __name__ == '__main__':

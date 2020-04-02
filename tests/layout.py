@@ -2,16 +2,16 @@ import unittest
 from unittest.mock import MagicMock
 from unittest.mock import call
 
-import pwm.wm as wm
+import pocoy.wm as wm
 wm.set_geometry = MagicMock()
 wm.set_geometry.return_value = False
 wm.calculate_geometry_offset = lambda x: [0, 0, 0, 0]
 
-import pwm.state as state
+import pocoy.state as state
 state.get_inner_gap = lambda: 0
 state.get_outer_gap = lambda: 0
 
-import pwm.layout as layout
+import pocoy.layout as layout
 
 
 class LayoutTestCase(unittest.TestCase):

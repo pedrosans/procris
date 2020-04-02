@@ -1,12 +1,12 @@
 import unittest
 import tests.integration
-import pwm.applications as applications
-import pwm.model as model
+import pocoy.applications as applications
+import pocoy.model as model
 import gi
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from datetime import datetime
-from pwm.model import Windows, Monitors
+from pocoy.model import Windows, Monitors
 
 applications.load()
 

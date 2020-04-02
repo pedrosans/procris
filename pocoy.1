@@ -1,0 +1,164 @@
+.TH pocoy 1 pocoy\-VERSION
+.SH NAME
+pocoy \- plugable window management
+.SH SYNOPSIS
+pocoy
+.OP start
+.OP stop
+.OP status
+.OP -h
+.SH DESCRIPTION
+pocoy is a window management tool to add tiling and navigation features from dwm and Vim to the window manager of choice.
+.SH OPTIONS
+.TP
+.B start
+start pocoy
+.TP
+.B stop
+stop pocoy
+.TP
+.B status
+status of the running instance
+.TP
+.B \-h
+print help message
+.SH KEYS
+.TP
+.B 
+mod-Return
+Toogle selected and master window positions
+.TP
+.B 
+mod-shift-Return
+Launch terminal emulator
+.TP
+.B 
+mod-j
+Focus next window
+.TP
+.B 
+mod-k
+Focus previous window
+.TP
+.B 
+mod-shift-j
+Push active window to next positon
+.TP
+.B 
+mod-shift-k
+Push active window to previous positon
+.TP
+.B 
+mod-i
+Increase clients in master area.
+.TP
+.B 
+mod-d
+Decrease clients in master area.
+.TP
+.B 
+mod-l
+Increase master area size.
+.TP
+.B 
+mod-h
+Decrease master area size.
+.TP
+.B 
+mod-t
+Set tile layout
+.TP
+.B 
+mod-m
+Set monocle layout
+.TP
+.B 
+mod-f
+Set floating layout
+.TP
+.B 
+mod-space
+Toggle between current and previous layout
+.TP
+.B 
+prefix + shift-colon
+Open colon prompt
+.TP
+.B 
+prefix + w
+Move focus to next window based on their position
+.TP
+.B 
+prefix + p
+Move focus to previous window based on their position
+.TP
+.B 
+prefix + q
+Minimize active window
+.TP
+.B 
+prefix + o
+Minimize all windows but the active one
+.TP
+.B 
+prefix + [h|j|k|l]
+Move the focus to the window [on the left | down | up | on the right]
+.SH NAMES
+.TP
+.B :db[elete] {winname}
+Close window {winname} (default: current buffer)
+.TP
+.B :bd[elete] [N]
+Close window [N] (default: current buffer) and delete it from the window list
+.TP
+.B :b[uffer] {winname}
+Open window {winname}
+.TP
+.B :b[uffer] [N]
+Open window [N] from the window list
+.TP
+.B :buffers :ls
+List windows
+.TP
+.B :ce[ntralize]
+Centralize the active window
+.TP
+.B :on[ly]
+Make the active window the only one on the screen.  All other windows are minimized.
+.TP
+.B :ma[ximize]
+Maximize the active window
+.TP
+.B :q[uit]
+Minimize the active window
+.TP
+.B :e[dit] {appname}
+Launch {appname}
+.TP
+.B :!{cmd}
+Execute {cmd} with the shell
+.SH FUNCTIONS
+.TP
+.B applications.spawn
+Forks the process and spawn a new process
+.TP
+.B active_window.zoom
+Toogle selected and master window positions
+.TP
+.B active_window.only
+Minimize all other then the active window
+.TP
+.B active_window.pushstack [x]
+Push active window x positions in the stack
+.TP
+.B active_window.focus_previous
+.TP
+.B active_window.focus_next
+Move focus to the window below/right of the current one
+.TP
+.B active_window.focus_[left|down|up|right]
+Move focus to a direction, like in Vim, rather then up or down the stack
+.SH CUSTOMIZATION
+.B pocoy/config.py
+module is meant to be a starting point for the user's config module at
+.B ~/.config/pocoy/config.py

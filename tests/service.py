@@ -1,8 +1,8 @@
 import unittest
 
 from unittest.mock import MagicMock
-from pwm.wm import UserEvent
-import pwm.service as service
+from pocoy.wm import UserEvent
+import pocoy.service as service
 
 
 class ServiceTestCase(unittest.TestCase):

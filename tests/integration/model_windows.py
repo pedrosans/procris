@@ -3,16 +3,16 @@ import threading
 import time
 import warnings
 import gi
-import pwm.model
+import pocoy.model
 from tests.integration import run_on_main_loop_and_wait
 gi.require_version('Wnck', '3.0')
 gi.require_version('Gtk', '3.0')
 from gi.repository import Wnck, GLib, Gtk, Gdk
 from subprocess import Popen
-from pwm.model import Windows, ActiveWindow
+from pocoy.model import Windows, ActiveWindow
 
-windows: Windows = pwm.model.windows
-active_window: ActiveWindow = pwm.model.active_window
+windows: Windows = pocoy.model.windows
+active_window: ActiveWindow = pocoy.model.active_window
 
 
 class ServiceIntegrationTestCase(unittest.TestCase):

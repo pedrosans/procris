@@ -1,4 +1,4 @@
-import pwm.applications as applications
+import pocoy.applications as applications
 import unittest
 
 applications.load()

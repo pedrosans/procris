@@ -1,5 +1,5 @@
 import unittest
-from pwm.wm import UserEvent
+from pocoy.wm import UserEvent
 
 
 class CommandInputTestCase(unittest.TestCase):

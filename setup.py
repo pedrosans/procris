@@ -1,15 +1,11 @@
 #!/usr/bin/env python3
 from distutils.core import setup
 
-from pwm.desktop import ICON_STYLES_MAP
-from pwm.layout import FUNCTIONS_MAP
-
-FUNCTION_KEYS = FUNCTIONS_MAP
-ICON_STYLE_KEYS = ICON_STYLES_MAP
-
+ICON_STYLE_KEYS = ['dark', 'light']
+FUNCTION_KEYS = [None, 'M', 'T', 'C', '>', 'B', '@', '\\']
 icons = [
-	('/usr/share/icons/hicolor/symbolic', ['data/icon/pwm.svg']),
-	('/usr/share/icons/hicolor/scalable/apps', ['data/icon/pwm.svg']),
+	('/usr/share/icons/hicolor/symbolic', ['data/icon/pocoy.svg']),
+	('/usr/share/icons/hicolor/scalable/apps', ['data/icon/pocoy.svg']),
 ]
 
 for size in (16, 48, 96, 256):
@@ -19,22 +15,22 @@ for size in (16, 48, 96, 256):
 			name_segment = '-{}'.format(name)
 			icons.append((
 				'/usr/share/icons/hicolor/{}x{}/apps'.format(size, size),
-				['data/icon/{}x{}/pwm{}{}.png'.format(size, size, function_segment, name_segment)]))
+				['data/icon/{}x{}/pocoy{}{}.png'.format(size, size, function_segment, name_segment)]))
 
 setup(
-	name='pwm',
-	version='0.3',
-	description='Plugable window management',
+	name='pocoy',
+	version='0.1',
+	description='plugable window management',
 	author='Pedro Santos',
 	author_email='pedrosans@gmail.com',
-	url='https://github.com/pedrosans/pwm',
+	url='https://github.com/pedrosans/pocoy',
 	classifiers=['License :: GPL3'],
-	packages=['pwm'],
-	scripts=['bin/pwm', 'bin/pwm-msg'],
+	packages=['pocoy'],
+	scripts=['bin/pocoy', 'bin/pocoy-msg'],
 	data_files=
 	[
-		('/usr/share/bash-completion/completions/', ['data/completion/pwm']),
-		('/usr/share/applications/', ['data/pwm.desktop']),
-		('/usr/share/man/man1/', ['pwm.1.gz']),
+		('/usr/share/bash-completion/completions/', ['data/completion/pocoy']),
+		('/usr/share/applications/', ['data/pocoy.desktop']),
+		('/usr/share/man/man1/', ['data/pocoy.1.gz']),
 	] + icons,
 )

@@ -1,6 +1,6 @@
-# ![alt text](data/icon/pwm.svg "pwm logo") plugable window management
+# ![alt text](data/icon/pocoy.svg "pocoy logo") plugable window management
 
-pwm is a window management tool to add tiling and navigation features
+pocoy is a window management tool to add tiling and navigation features
 from dwm and Vim to the window manager of choice.
 It adds the prefix key + command key combinations in addition to dwm keys,
 thus enabling a standard set of commands to navigate inside Vim, Tmux and the WM
@@ -29,11 +29,11 @@ or:
 
 
 The prefix key is <kbd>Ctrl</kbd> + <kbd>q</kbd> by default. A custom config module can
-be defined at `~/.config/pwm/config.py`, being the default
-[one](pwm/config.py) meant to be a starting point. For all keys and names:
+be defined at `~/.config/pocoy/config.py`, being the default
+[one](pocoy/config.py) meant to be a starting point. For all keys and names:
 
 ```shell
-groff -mman && pwm.1 -T utf8 | less
+groff -mman && pocoy.1 -T utf8 | less
 ```
 
 ### dwm stuff
@@ -46,14 +46,14 @@ Each layout is visually indicated by a custom icon in the DE panel. Main layouts
 
 ||none|monocle|tile|[centeredmaster](https://dwm.suckless.org/patches/centeredmaster/)|centeredfloatingmaster|biasedstack|[spiral](https://dwm.suckless.org/patches/fibonacci/)|dwindle|
 |---|---|--|---|---|---|---|---|---|
-|Icon| ![floating](data/icon/48x48/pwm-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-M-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-T-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-C-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm->-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-B-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-@-dark.png "pwm logo") | ![floating](data/icon/48x48/pwm-\\-dark.png "pwm logo")
+|Icon| ![floating](data/icon/48x48/pocoy-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-M-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-T-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-C-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy->-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-B-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-@-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-\\-dark.png "pocoy logo")
 |Default key|ctrl+f|ctrl+m|ctrl+t||||||
 
 
 ### Vim stuff
 
 The set of Vim names and keys to manipulate buffers, which translates to
-both application and windows inside pwm, works like:
+both application and windows inside pocoy, works like:
 
 `:ls` lists current windows.
 
@@ -69,9 +69,9 @@ both application and windows inside pwm, works like:
 
 1. From PPA, for Ubuntu distributions
 	```bash
-	sudo add-apt-repository ppa:pedrosans/pwm
+	sudo add-apt-repository ppa:pedrosans/pocoy
 	sudo apt-get update
-	sudo apt-get install pwm
+	sudo apt-get install pocoy
 	```
 2. Make file
 
@@ -87,12 +87,12 @@ both application and windows inside pwm, works like:
 
 3. Manually
 
-	1. Install pwm's dependencies
+	1. Install pocoy's dependencies
 
 		`python3 gir1.2-gtk-3.0 python3-gi-cairo` python + gtk  
-		`python3-xdg` free desktop standards used to configure and launch pwm  
+		`python3-xdg` free desktop standards used to configure and launch pocoy  
 		`gir1.2-wnck-3.0 libwnck-3-0` functions to navigate X windows  
-		`gir1.2-appindicator3-0.1` used to indicate pwm running on the statur bar  
+		`gir1.2-appindicator3-0.1` used to indicate pocoy running on the statur bar  
 		`gir1.2-keybinder-3.0 python3-dbus` bind navigation functions to keyboard prefix + shortcuts  
 		`python3-setproctitle` used to name the running process
 		`python3-xlib,libx11-dev` used to listen the keyboard
@@ -106,7 +106,7 @@ both application and windows inside pwm, works like:
 		python3-xlib,libx11-dev
 		```
 
-	2. Install pwm
+	2. Install pocoy
 		```
 		sudo ./setup.py install --record installed_files.txt
 		```
@@ -123,15 +123,15 @@ both application and windows inside pwm, works like:
 		sudo update-icon-caches /usr/share/icons/*
 		```
 
-### Start pwm
+### Start pocoy
 
 Via DE:
 
-`/usr/share/applications/pwm.desktop`
+`/usr/share/applications/pocoy.desktop`
 
 Via command line interface:
 
-`pwm start`: start pwm
+`pocoy start`: start pocoy
 
 #### Interface
 
@@ -146,7 +146,7 @@ Property|Description|Default
 `auto_select_first_hint` | if the fist option offered in the hint bar should be selected automatically. | `true`
 
 
-Font size: create and add to `~/.config/pwm/pwm.css` ( more properties in [view](pwm/view.py) module)
+Font size: create and add to `~/.config/pocoy/pocoy.css` ( more properties in [view](pocoy/view.py) module)
 
 ```css
 * {

@@ -1,7 +1,7 @@
 import unittest
 from datetime import datetime
-from pwm.model import Windows
-import pwm.terminal as terminal
+from pocoy.model import Windows
+import pocoy.terminal as terminal
 
 import tests.integration
 terminal.load()

@@ -1,6 +1,6 @@
 import unittest
-import pwm.terminal as terminal
-from pwm.wm import UserEvent
+import pocoy.terminal as terminal
+from pocoy.wm import UserEvent
 
 
 class TerminalTestCase(unittest.TestCase):

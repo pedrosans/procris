@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""
+Copyright 2017 Pedro Santos <pedrosans@gmail.com>
+
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
+
+import argparse
+
+parser = argparse.ArgumentParser()
+commands_parser = parser.add_subparsers(help='pocoy sub-commands help', dest='action')
+start_parser: argparse.ArgumentParser = commands_parser.add_parser('start',	 help='Start pocoy service')
+commands_parser.add_parser('stop',	 help='Stop the running pocoy service if any')
+commands_parser.add_parser('status', help='Show the status of pocoy service')
+parser.add_argument('-c', required=False)
+start_parser.add_argument('--config-module', action='store', required=False) # , dest='config'
+
+args = parser.parse_args()
+
+if args.action == 'start':
+	import pocoy.service
+	pocoy.service.load(config_module=args.config_module)
+	pocoy.service.start()
+elif args.action == 'stop':
+	import pocoy.remote as remote
+	proxy = remote.get_proxy()
+	if proxy:
+		proxy.stop_running_instance()
+		print("Remote instance were stopped")
+	else:
+		print("pocoy is not running")
+elif args.action == 'status':
+	import pocoy.remote as remote
+	proxy = remote.get_proxy()
+	if proxy:
+		print("Active, pid: " + proxy.get_running_instance_id())
+	else:
+		print("Inactive")
+elif args.c:
+	import pocoy.service
+	import pocoy.wm as wm
+	import pocoy.names as names
+	pocoy.service.load()
+	c_in = wm.UserEvent(text=args.c)
+	function = names.match(c_in).function
+	pocoy.service.call(function, c_in)
+	pocoy.service.messages.print_to_console()
+else:
+	parser.print_help()
