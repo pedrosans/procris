@@ -71,7 +71,7 @@ def _configure_process():
 def start():
 
 	if remote.get_proxy():
-		print("pocoy is already running, pid: " + remote.get_proxy().get_running_instance_id())
+		print("pocoy is already running")
 		quit()
 
 	remote.export(ipc_handler=message, stop=stop)
