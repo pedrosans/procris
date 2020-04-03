@@ -113,14 +113,20 @@ def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None, synchronou
 	window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
 
 	if synchronous:
-		countdown = 10000
-		while countdown > 0:
-			countdown -= 1
-			e = Gdk.Display.get_default().get_event()
-			if e:
-				if e.get_event_type() == CONFIGURE_EVENT_TYPE and e.get_window().get_xid() == window.get_xid():
-					Gdk.Display.get_default().sync()
-					return True
+		return wait_configure_event(window.get_xid())
+
+	return False
+
+
+def wait_configure_event(xid):
+	countdown = 10000
+	while countdown > 0:
+		countdown -= 1
+		e = Gdk.Display.get_default().get_event()
+		if e:
+			if e.get_event_type() == CONFIGURE_EVENT_TYPE and e.get_window().get_xid() == xid:
+				Gdk.Display.get_default().sync()
+				return True
 	return False
 
 
