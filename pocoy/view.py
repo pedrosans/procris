@@ -18,6 +18,8 @@ import gi, io
 import pocoy.messages as messages
 import pocoy.state as configurations
 import pocoy.names as names
+from pocoy.wm import get_top_two_windows
+
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
@@ -305,7 +307,7 @@ class BufferName(messages.Message):
 		self.window = window
 		self.index = 1 + windows.buffers.index(self.window)
 		self.flags = ''
-		top, below = windows.get_top_two_windows()
+		top, below = get_top_two_windows(windows.visible)
 		if self.window is top:
 			self.flags += '%a'
 		elif self.window is below:

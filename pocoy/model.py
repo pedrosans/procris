@@ -245,28 +245,6 @@ class Windows:
 				parameters[5] if len(parameters) > 5 else window.get_geometry().heightp)
 		windows.staging = True
 
-	#
-	# COMMAND OPERATIONS
-	#
-	def get_top_two_windows(self):
-		top = active_window.get_wnck_window()
-		below = None
-		after_top = False
-		for w in reversed(Wnck.Screen.get_default().get_windows_stacked()):
-			if w in self.visible and after_top:
-				below = w
-				break
-			if w is top:
-				after_top = True
-		return top, below
-
-	def get_left_right_top_windows(self):
-		top, below = self.get_top_two_windows()
-		if top and below and below.get_geometry().xp < top.get_geometry().xp:
-			return below, top
-		else:
-			return top, below
-
 
 class Monitors:
 

@@ -80,6 +80,19 @@ def get_active_window(workspace: Wnck.Workspace = None, window_filter: Callable 
 	return None
 
 
+def get_top_two_windows(visible):
+	top = get_active_window(window_filter=is_buffer)
+	below = None
+	after_top = False
+	for w in reversed(Wnck.Screen.get_default().get_windows_stacked()):
+		if w in visible and after_top:
+			below = w
+			break
+		if w is top:
+			after_top = True
+	return top, below
+
+
 def get_active_workspace() -> Wnck.Workspace:
 	return Wnck.Screen.get_default().get_active_workspace()
 
