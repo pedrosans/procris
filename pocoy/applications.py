@@ -38,24 +38,47 @@ SPAWN_FLAGS = GLib.SpawnFlags.STDOUT_TO_DEV_NULL | GLib.SpawnFlags.STDERR_TO_DEV
 DESKTOP_STARTUP_ID = "DESKTOP_STARTUP_ID"
 
 
-def launch(c_in: UserEvent):
-	launch_name(name=c_in.vim_command_parameter, timestamp=c_in.time)
+def spawn(user_event: UserEvent):
+	display: Gdk.Display = Gdk.Display.get_default()
+	if os.fork() == 0:
+		try:
+			display.close()
+			os.setsid()
+			file = user_event.parameters[0]
+			os.execvp(file, user_event.parameters)
+		finally:
+			exit(1)
 
 
-# https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11AppLaunchContext.html
-# https://lazka.github.io/pgi-docs/Gio-2.0/classes/DesktopAppInfo.html
-def launch_name(name: str = None, timestamp: int = None, desktop: int = -1):
+def launch(user_event: UserEvent):
+	name = user_event.vim_command_parameter
+	app_info = info_for(name)
+	launch_app(app_info=app_info, timestamp=user_event.time)
+
+
+def launch_from_filename(user_event: UserEvent):
+	name = user_event.parameters[0]
+	app_info = info_for(name)
+	launch_app(app_info=app_info, timestamp=user_event.time)
+
+
+def launch_from_commandline(user_event: UserEvent):
+	cmd = user_event.parameters[0]
+	# app_info = Gio.DesktopAppInfo.create_from_commandline(cmd, None, Gio.AppInfoCreateFlags.NONE)
+	app_info = Gio.DesktopAppInfo.create_from_commandline(cmd, None, Gio.AppInfoCreateFlags.SUPPORTS_STARTUP_NOTIFICATION)
+	launch_app(app_info)
+
+
+spawn.skip_event_processing = False
+launch_from_filename.skip_event_processing = False
+launch_from_commandline.skip_event_processing = False
+
+
+def launch_app(app_info, timestamp: int = None, desktop: int = -1):
 	if not timestamp:
 		timestamp = datetime.now().microsecond
 
-	if name not in NAME_MAP.keys():
-		return Message('No matching application for ' + name, 'error')
-
-	if not name or not name.strip() or name not in NAME_MAP.keys():
-		return Message('Missing application name', 'error')
-
 	try:
-		app_info = Gio.DesktopAppInfo.new_from_filename(LOCATION_MAP[name])
 		display: Gdk.Display = Gdk.Display.get_default()
 		context: GdkX11.X11AppLaunchContext = display.get_app_launch_context()
 		context.setenv(DESKTOP_STARTUP_ID, context.get_startup_notify_id(app_info, []))
@@ -64,7 +87,7 @@ def launch_name(name: str = None, timestamp: int = None, desktop: int = -1):
 		context.set_screen(display.get_default_screen())
 		app_info.launch_uris_as_manager([], context, SPAWN_FLAGS, USER_SETUP, USER_SETUP_DATA, pid_callback)
 	except GLib.GError as exc:
-		return Message('Error launching ' + name, 'error')
+		return Message('Error launching ' + app_info, 'error')
 
 
 def pid_callback(app_info: Gio.DesktopAppInfo, pid: int):
@@ -100,14 +123,14 @@ def complete(c_in: UserEvent):
 	return sorted(list(set(matches)), key=str.lower)
 
 
-def spawn(user_event: UserEvent):
-	display: Gdk.Display = Gdk.Display.get_default()
-	if os.fork() == 0:
-		try:
-			display.close()
-			os.setsid()
-			file = user_event.parameters[0]
-			os.execvp(file, user_event.parameters)
-		finally:
-			exit(1)
+# https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11AppLaunchContext.html
+# https://lazka.github.io/pgi-docs/Gio-2.0/classes/DesktopAppInfo.html
+def info_for(name: str) -> Gio.DesktopAppInfo:
 
+	if name not in NAME_MAP.keys():
+		return Message('No matching application for ' + name, 'error')
+
+	if not name or not name.strip() or name not in NAME_MAP.keys():
+		return Message('Missing application name', 'error')
+
+	return Gio.DesktopAppInfo.new_from_filename(LOCATION_MAP[name])

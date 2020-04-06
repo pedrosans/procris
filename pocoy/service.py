@@ -118,6 +118,10 @@ def keyboard_listener(key: Key, x_key_event, multiplier=1):
 	user_event = UserEvent(
 		time=x_key_event.time, parameters=key.parameters, keyval=x_key_event.keyval, keymod=x_key_event.keymod)
 
+	if hasattr(key.function, 'skip_event_processing') and key.function.skip_event_processing:
+		key.function(user_event)
+		return
+
 	_execute_inside_main_loop(key.function, user_event, multiplier)
 
 

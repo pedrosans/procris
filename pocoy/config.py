@@ -16,6 +16,8 @@ applications = pocoy.applications
 KEYS = [
 	Key('<ctrl>Return',          active_window.zoom),
 	Key('<ctrl>KP_Enter',        active_window.zoom),
+	Key('<ctrl><shift>Return',   applications.spawn,  parameters=['x-terminal-emulator']),
+	Key('<ctrl><shift>KP_Enter', applications.spawn,  parameters=['x-terminal-emulator']),
 	Key('<ctrl><shift>c',        active_window.killclient),
 	Key('<ctrl>j',               active_window.focusstack,      parameters=[1]),
 	Key('<ctrl>k',               active_window.focusstack,      parameters=[-1]),
