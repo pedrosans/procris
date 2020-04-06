@@ -19,10 +19,11 @@ import gi, os, re
 import pocoy.messages as messages
 import pocoy.state as state
 from pocoy import decoration, desktop, scratchpads
-from pocoy.layout import FUNCTIONS_MAP
+from pocoy.layout import FUNCTIONS_MAP, apply
+
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
-from typing import List, Dict, Callable
+from typing import List, Dict
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
 	get_active_window, decoration_delta, UserEvent, Monitor, monitor_for, DirtyState, Trap, X_Y_W_H_GEOMETRY_MASK, \
@@ -313,7 +314,7 @@ class ActiveMonitor:
 		if active.function_key != new:
 			self.last_layout_key = active.function_key
 		active.function_key = new
-		apply()
+		apply(monitors, windows)
 		persist()
 		desktop.show_monitor(monitors.get_active_primary_monitor())
 
@@ -324,7 +325,7 @@ class ActiveMonitor:
 		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
 		monitors.get_active_primary_monitor().update_work_area()
 		windows.staging = True
-		apply()
+		apply(monitors, windows)
 
 	def complete_gap_options(self, user_event: UserEvent):
 		input = user_event.vim_command_parameter.lower()
@@ -332,13 +333,13 @@ class ActiveMonitor:
 
 	def setmfact(self, user_event: UserEvent):
 		monitors.get_active_primary_monitor().increase_master_area(increment=user_event.parameters[0])
-		apply()
+		apply(monitors, windows)
 		persist()
 
 	def incnmaster(self, user_event: UserEvent):
 		monitors.get_active_primary_monitor().increment_master(
 			increment=user_event.parameters[0], upper_limit=len(windows.get_active_stack()))
-		apply()
+		apply(monitors, windows)
 		persist()
 
 
@@ -434,7 +435,7 @@ class ActiveWindow:
 			stack.insert(0, stack.pop(old_index))
 		active_window.xid = stack[0]
 		windows.staging = True
-		apply()
+		apply(monitors, windows)
 		persist()
 
 	def pushstack(self, user_event: UserEvent):
@@ -449,7 +450,7 @@ class ActiveWindow:
 
 		if new_index != old_index:
 			stack.insert(new_index, stack.pop(old_index))
-			apply()
+			apply(monitors, windows)
 			persist()
 
 	def killclient(self, user_event: UserEvent):
@@ -460,7 +461,7 @@ class ActiveWindow:
 			windows.remove(active_window, user_event.time)
 			self.xid = stack[min(index, len(stack) - 1)]
 			windows.staging = True
-			apply()
+			apply(monitors, windows)
 			persist()
 
 	def focus_right(self, c_in):
@@ -571,7 +572,7 @@ def _state_changed(window: Wnck.Window, changed_mask, new_state):
 		if is_visible(window):
 			old_index = stack.index(window.get_xid())
 			stack.insert(0, stack.pop(old_index))
-		apply()
+		apply(monitors, windows)
 		persist()
 
 
@@ -582,7 +583,7 @@ def _window_closed(screen: Wnck.Screen, window):
 			del handlers_by_xid[window.get_xid()]
 		if is_visible(window) and is_managed(window):
 			windows.read(screen, force_update=False)
-			apply()
+			apply(monitors, windows)
 	except DirtyState:
 		pass  # It was just a try
 
@@ -604,7 +605,7 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 	try:
 		with Trap():
 			windows.apply_decoration_config()
-			apply()
+			apply(monitors, windows)
 			persist()
 	except DirtyState:
 		pass  # It was just a try
@@ -659,7 +660,7 @@ def start():
 	screen = Wnck.Screen.get_default()
 	connect_to(screen)
 	windows.apply_decoration_config()
-	apply()
+	apply(monitors, windows)
 
 
 def connect_to(screen: Wnck.Screen):
@@ -710,27 +711,6 @@ def persist():
 			props['workspaces'][workspace_number]['monitors'].append(monitor.to_json())
 			monitor = monitor.next()
 	state.persist_workspace(props)
-
-
-#
-# COMMAND METHODS
-#
-def apply(split_points: List[int] = None):
-	primary_monitor: Monitor = monitors.get_active_primary_monitor()
-	workspace_windows = windows.get_active_windows_as_list()
-	monitor = primary_monitor
-	visible = workspace_windows
-	split_point = len(list(filter(lambda w: primary_monitor.contains(w), visible)))
-
-	while monitor and visible:
-
-		if monitor.function_key:
-			monitor_windows: List[Wnck.Window] = visible[:split_point]
-			FUNCTIONS_MAP[monitor.function_key](monitor_windows, monitor)
-
-		monitor = monitor.next()
-		visible = visible[split_point:]
-		split_point = len(visible)
 
 
 #

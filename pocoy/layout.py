@@ -268,3 +268,21 @@ FUNCTIONS_MAP = {
 	'C': centeredmaster, '>': centeredfloatingmaster, 'B': biasedstack,
 	'@': spiral, '\\': dwindle
 }
+
+
+def apply(monitors, windows, split_points: List[int] = None):
+	primary_monitor: Monitor = monitors.get_active_primary_monitor()
+	workspace_windows = windows.get_active_windows_as_list()
+	monitor = primary_monitor
+	visible = workspace_windows
+	split_point = len(list(filter(lambda w: primary_monitor.contains(w), visible)))
+
+	while monitor and visible:
+
+		if monitor.function_key:
+			monitor_windows: List[Wnck.Window] = visible[:split_point]
+			FUNCTIONS_MAP[monitor.function_key](monitor_windows, monitor)
+
+		monitor = monitor.next()
+		visible = visible[split_point:]
+		split_point = len(visible)
