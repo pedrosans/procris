@@ -23,7 +23,7 @@ gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 from datetime import datetime
 from typing import Callable
-from pocoy import state
+from pocoy import state, scratchpads
 
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH | Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
 CONFIGURE_EVENT_TYPE = Gdk.EventType.CONFIGURE
@@ -82,6 +82,15 @@ def get_active_window(workspace: Wnck.Workspace = None, window_filter: Callable 
 
 def get_active_workspace() -> Wnck.Workspace:
 	return Wnck.Screen.get_default().get_active_workspace()
+
+
+def is_managed(window):
+	return is_buffer(window) and window.get_name() not in scratchpads.names()
+
+
+def get_active_managed_window():
+	active = Wnck.Screen.get_default().get_active_window()
+	return active if active and is_managed(active) else None
 
 
 def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, h=0):

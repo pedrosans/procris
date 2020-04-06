@@ -20,7 +20,7 @@ import gi
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Callable
-from pocoy.wm import is_visible
+import pocoy.wm
 
 
 class Scratchpad:
@@ -68,7 +68,7 @@ def toggle(c_in):
 	if matching:
 		if len(matching) > 1:
 			return 'scratchpad name matches more than one window title'
-		if is_visible(matching[0], workspace=Wnck.Screen.get_default().get_active_workspace()):
+		if pocoy.wm.is_visible(matching[0], workspace=Wnck.Screen.get_default().get_active_workspace()):
 			matching[0].minimize()
 		else:
 			matching[0].activate_transient(c_in.time)

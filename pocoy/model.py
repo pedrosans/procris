@@ -18,17 +18,16 @@ import traceback
 import gi, os, re
 import pocoy.messages as messages
 import pocoy.state as state
-from pocoy import decoration, desktop, scratchpads
-from pocoy.layout import FUNCTIONS_MAP, apply
-
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
 	get_active_window, decoration_delta, UserEvent, Monitor, monitor_for, DirtyState, Trap, X_Y_W_H_GEOMETRY_MASK, \
-	is_buffer
+	is_managed, get_active_managed_window
 from pocoy.decoration import DECORATION_MAP
+from pocoy import decoration, desktop, scratchpads
+from pocoy.layout import FUNCTIONS_MAP, apply
 
 
 class Windows:
@@ -65,6 +64,11 @@ class Windows:
 				self.visible.append(wnck_window)
 
 		active_window.read_screen()
+
+		def sort_line(w):
+			geometry = w.get_geometry()
+			return geometry.xp * STRETCH + geometry.yp
+
 		self.line = sorted(self.visible, key=sort_line)
 
 		for workspace in screen.get_workspaces():
@@ -529,36 +533,6 @@ class Axis:
 		return window.get_geometry().xp if self is HORIZONTAL else window.get_geometry().yp
 
 
-INCREMENT = 0.1
-DECREMENT = -0.1
-CENTER = 0.5
-VERTICAL = Axis(Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
-HORIZONTAL = Axis(Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
-HORIZONTAL.perpendicular = VERTICAL
-VERTICAL.perpendicular = HORIZONTAL
-STRETCH = 1000
-
-
-def sort_line(w):
-	geometry = w.get_geometry()
-	return geometry.xp * STRETCH + geometry.yp
-
-
-def sort_column(w):
-	geometry = w.get_geometry()
-	return geometry.yp * STRETCH + geometry.xp
-
-
-def is_managed(window):
-	return is_buffer(window) and window.get_name() not in scratchpads.names()
-
-
-# TODO: move to monitors?
-def get_active_managed_window():
-	active = Wnck.Screen.get_default().get_active_window()
-	return active if active and is_managed(active) else None
-
-
 #
 # CALLBACKS
 #
@@ -765,6 +739,14 @@ def resume():
 	return resume
 
 
+INCREMENT = 0.1
+DECREMENT = -0.1
+CENTER = 0.5
+VERTICAL = Axis(Wnck.WindowMoveResizeMask.Y, Wnck.WindowMoveResizeMask.HEIGHT)
+HORIZONTAL = Axis(Wnck.WindowMoveResizeMask.X, Wnck.WindowMoveResizeMask.WIDTH)
+HORIZONTAL.perpendicular = VERTICAL
+VERTICAL.perpendicular = HORIZONTAL
+STRETCH = 1000
 screen_handlers: List[int] = []
 handlers_by_xid: Dict[int, int] = {}
 windows: Windows = Windows()
