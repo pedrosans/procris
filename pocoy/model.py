@@ -14,16 +14,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import traceback
-from functools import reduce
-
-import gi, os, re
+import traceback, gi, os, re
 import pocoy.messages as messages
 import pocoy.state as state
 import pocoy.wm as wm
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk, Gtk
 from typing import List, Dict
+from functools import reduce
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
 	get_active_window, decoration_delta, UserEvent, Monitor, monitor_for, DirtyState, Trap, X_Y_W_H_GEOMETRY_MASK, \

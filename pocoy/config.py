@@ -52,7 +52,7 @@ KEYS = [
 	])
 ]
 NAMES = [
-	Name('edit',        applications.launch, alias='e', complete=applications.complete),
+	Name('edit',        applications.launch_from_name, alias='e', complete=applications.complete),
 	Name('!',           terminal.bang, complete=terminal.complete),
 	Name('buffers',     windows.list, alias='ls'),
 	Name('bdelete',     windows.delete, alias='bd'),

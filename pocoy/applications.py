@@ -50,14 +50,8 @@ def spawn(user_event: UserEvent):
 			exit(1)
 
 
-def launch(user_event: UserEvent):
-	name = user_event.vim_command_parameter
-	app_info = info_for(name)
-	launch_app(app_info=app_info, timestamp=user_event.time)
-
-
-def launch_from_filename(user_event: UserEvent):
-	name = user_event.parameters[0]
+def launch_from_name(user_event: UserEvent):
+	name = user_event.vim_command_parameter if user_event.vim_command_parameter else user_event.parameters[0]
 	app_info = info_for(name)
 	launch_app(app_info=app_info, timestamp=user_event.time)
 
@@ -69,7 +63,7 @@ def launch_from_commandline(user_event: UserEvent):
 
 
 spawn.skip_event_processing = False
-launch_from_filename.skip_event_processing = False
+launch_from_name.skip_event_processing = False
 launch_from_commandline.skip_event_processing = False
 
 

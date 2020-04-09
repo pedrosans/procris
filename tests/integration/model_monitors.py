@@ -6,14 +6,15 @@ import gi
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from datetime import datetime
-from pocoy.model import Windows, Monitors
 
 applications.load()
 
 
 def launch_setup_apps():
-	applications.launch_name(name='Calculator', desktop=0, timestamp=datetime.now().microsecond)
-	applications.launch_name(name='Logs', desktop=1, timestamp=datetime.now().microsecond)
+	calculator = applications.info_for('Calculator')
+	logs = applications.info_for('Logs')
+	applications.launch_app(app_info=calculator, desktop=0, timestamp=datetime.now().microsecond)
+	applications.launch_app(app_info=logs, desktop=1, timestamp=datetime.now().microsecond)
 
 
 class LayoutIntegrationTestCase(unittest.TestCase):
