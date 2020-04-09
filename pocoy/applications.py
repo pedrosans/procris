@@ -64,8 +64,7 @@ def launch_from_filename(user_event: UserEvent):
 
 def launch_from_commandline(user_event: UserEvent):
 	cmd = user_event.parameters[0]
-	# app_info = Gio.DesktopAppInfo.create_from_commandline(cmd, None, Gio.AppInfoCreateFlags.NONE)
-	app_info = Gio.DesktopAppInfo.create_from_commandline(cmd, None, Gio.AppInfoCreateFlags.SUPPORTS_STARTUP_NOTIFICATION)
+	app_info = Gio.DesktopAppInfo.create_from_commandline(cmd, None, Gio.AppInfoCreateFlags.NONE)
 	launch_app(app_info)
 
 
@@ -85,7 +84,7 @@ def launch_app(app_info, timestamp: int = None, desktop: int = -1):
 		context.set_timestamp(timestamp)
 		context.set_desktop(desktop)
 		context.set_screen(display.get_default_screen())
-		app_info.launch_uris_as_manager([], context, SPAWN_FLAGS, USER_SETUP, USER_SETUP_DATA, pid_callback)
+		app_info.launch_uris_as_manager([], context, SPAWN_FLAGS, USER_SETUP, USER_SETUP_DATA, None)
 	except GLib.GError as exc:
 		return Message('Error launching ' + app_info, 'error')
 

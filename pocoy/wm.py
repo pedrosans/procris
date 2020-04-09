@@ -25,8 +25,10 @@ from datetime import datetime
 from typing import Callable
 from pocoy import state, scratchpads
 
+
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH | Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
-CONFIGURE_EVENT_TYPE = Gdk.EventType.CONFIGURE
+geometry_cache = {}
+adjustment_cache = {}
 
 
 # https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Display.html
@@ -132,24 +134,35 @@ def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None, synchronou
 
 	xo, yo, wo, ho = calculate_geometry_offset(window)
 	x, y, w, h = x + xo, y + yo, w + wo, h + ho
+	x, y, w, h = int(x), int(y), int(w), int(h)
+	geometry_cache[window.get_xid()] = (x, y, w, h)
+	adjustment_cache[window.get_xid()] = False
 	window.set_geometry(Wnck.WindowGravity.STATIC, X_Y_W_H_GEOMETRY_MASK, x, y, w, h)
 
 	if synchronous:
-		return wait_configure_event(window.get_xid())
+		synchronized = wait_configure_event(
+			window.get_xid(), Gdk.EventType.CONFIGURE, Gdk.Display.get_default())
+		return synchronized
 
 	return False
 
 
-def wait_configure_event(xid):
-	countdown = 10000
-	while countdown > 0:
-		countdown -= 1
-		e = Gdk.Display.get_default().get_event()
-		if e:
-			if e.get_event_type() == CONFIGURE_EVENT_TYPE and e.get_window().get_xid() == xid:
-				Gdk.Display.get_default().sync()
-				return True
-	return False
+def wait_configure_event(xid, type, display: Gdk.Display):
+	limit = 1000
+	queue = []
+	try:
+		while limit > 0:
+			limit -= 1
+			e = display.get_event()
+			if e:
+				queue.append(e)
+				if e.get_event_type() == type and e.get_window().get_xid() == xid:
+					return True
+		return False
+	finally:
+		for e in queue:
+			e.put()
+		del queue[:]
 
 
 def get_height(window: Wnck.Window):

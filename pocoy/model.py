@@ -15,11 +15,14 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import traceback
+from functools import reduce
+
 import gi, os, re
 import pocoy.messages as messages
 import pocoy.state as state
+import pocoy.wm as wm
 gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck, Gdk
+from gi.repository import Wnck, Gdk, Gtk
 from typing import List, Dict
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
@@ -541,6 +544,7 @@ def _window_closed(screen: Wnck.Screen, window):
 
 
 def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
+	gdk_window_for(window).flush()
 	windows.read(screen, force_update=False)
 	_install_present_window_handlers(screen)
 	if not is_visible(window, screen.get_active_workspace()):
@@ -553,14 +557,13 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 		stack = windows.get_active_stack()
 		copy = stack.copy()
 		stack.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
-
 	try:
 		with Trap():
-			windows.apply_decoration_config()
 			apply(monitors, windows)
-			persist()
+			windows.apply_decoration_config()
 	except DirtyState:
 		pass  # It was just a try
+	persist()
 
 
 def _viewports_changed(scree: Wnck.Screen):
@@ -622,6 +625,28 @@ def connect_to(screen: Wnck.Screen):
 	workspace_handler_id = screen.connect("active-workspace-changed", _active_workspace_changed)
 	screen_handlers.extend([opened_handler_id, closed_handler_id, viewport_handler_id, workspace_handler_id])
 	_install_present_window_handlers(screen)
+	Gdk.Event.handler_set(handle_x_event)
+
+
+def handle_x_event(event: Gdk.Event):
+	Gtk.main_do_event(event)
+	if event.get_event_type() == Gdk.EventType.PROPERTY_NOTIFY:
+		w = event.window
+		xid = w.get_xid()
+		if xid in wm.geometry_cache and xid in windows.window_by_xid:
+			ww: Wnck.Window = windows.window_by_xid[xid]
+			g: Gdk.Rectangle = ww.get_geometry()
+			c = wm.geometry_cache[xid]
+			delta = reduce(lambda x, y: x + y, map(lambda i: abs(g[i] - c[i]), range(4)))
+			if not wm.adjustment_cache[xid] and (
+				event.property.atom.name() in ('_GTK_FRAME_EXTENTS', '_NET_FRAME_EXTENTS')
+				and delta > 30):
+				try:
+					wm.set_geometry(ww, x=c[0], y=c[1], w=c[2], h=c[3])
+				except DirtyState:
+					pass  # just a try
+				wm.adjustment_cache[xid] = True
+				# print('adjusting {} to {}. Original: {}'.format(xid, c, g))
 
 
 def _install_present_window_handlers(screen: Wnck.Screen):
