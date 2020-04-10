@@ -29,6 +29,7 @@ import pocoy.terminal as terminal
 import pocoy.remote as remote
 import pocoy.desktop as desktop
 import pocoy.model as model
+import pocoy.controller as controller
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gtk, GLib
@@ -76,6 +77,7 @@ def start():
 
 	remote.export(ipc_handler=message, stop=stop)
 	model.start()
+	controller.connect_to(Wnck.Screen.get_default())
 	listener.start()
 	desktop.connect()
 	Gtk.main()
@@ -86,7 +88,7 @@ def stop():
 	desktop.unload()
 	listener.stop()
 	remote.release()
-	model.stop()
+	controller.disconnect_from(Wnck.Screen.get_default())
 	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
 
 
