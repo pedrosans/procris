@@ -259,15 +259,11 @@ class Monitors:
 	#
 	def get_active(self) -> Monitor:
 		active = get_active_managed_window()
-		return self.monitor_of(active) if active else self.get_active_primary_monitor()
+		return self.monitor_of(active) if active else self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
 
 	def monitor_of(self, window: Wnck.Window) -> Monitor:
-		monitor: Monitor = self.get_active_primary_monitor()
+		monitor: Monitor = self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
 		return monitor if monitor_for(window).is_primary() else monitor.next()
-
-	# TODO: remove
-	def get_active_primary_monitor(self) -> Monitor:
-		return self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
 
 	def primary_monitor_for(self, workspace: Wnck.Workspace) -> Monitor:
 		if workspace.get_number() not in self.primary_monitors:
@@ -310,7 +306,7 @@ class ActiveMonitor:
 		where = parameters[0]
 		pixels = int(parameters[1])
 		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
-		monitors.get_active_primary_monitor().update_work_area()
+		monitors.get_active().update_work_area()
 		windows.staging = True
 		apply(monitors, windows)
 
@@ -319,12 +315,12 @@ class ActiveMonitor:
 		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
 
 	def setmfact(self, user_event: UserEvent):
-		monitors.get_active_primary_monitor().increase_master_area(increment=user_event.parameters[0])
+		monitors.get_active().increase_master_area(increment=user_event.parameters[0])
 		apply(monitors, windows)
 		persist()
 
 	def incnmaster(self, user_event: UserEvent):
-		monitors.get_active_primary_monitor().increment_master(
+		monitors.get_active().increment_master(
 			increment=user_event.parameters[0], upper_limit=len(windows.get_active_stack()))
 		apply(monitors, windows)
 		persist()
