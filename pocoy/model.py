@@ -54,6 +54,8 @@ class Windows:
 		if force_update:
 			screen.force_update()  # make sure we query X server
 
+		monitors.read(screen)
+
 		for wnck_window in screen.get_windows():
 			self.window_by_xid[wnck_window.get_xid()] = wnck_window
 			if wnck_window.get_pid() == os.getpid() or wnck_window.is_skip_tasklist():
@@ -73,10 +75,9 @@ class Windows:
 		self.line = sorted(self.visible, key=sort_line)
 
 		for workspace in screen.get_workspaces():
-			primary_monitor: Monitor = monitors.primary_monitor_for(workspace)
-			self._read_workspace(screen, workspace, primary_monitor)
+			self._read_workspace(screen, workspace)
 
-	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace, primary_monitor):
+	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace):
 		stack: List[int] = self.stack_for(workspace)
 
 		# add window listed in this workspace
@@ -90,15 +91,8 @@ class Windows:
 				stack.copy()):
 			stack.remove(outsider)
 
-		for i in range(Gdk.Display.get_default().get_n_monitors()):
-			gdk_monitor = Gdk.Display.get_default().get_monitor(i)
-			if gdk_monitor.is_primary():
-				primary_monitor.set_rectangle(gdk_monitor.get_workarea())
-			elif primary_monitor.next():
-				primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
-				break
-
 		copy = stack.copy()
+		primary_monitor = monitors.primary_monitor_for(workspace)
 		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not primary_monitor.contains(self.window_by_xid[xid]) else 0))
 
 	#
@@ -251,6 +245,17 @@ class Monitors:
 
 	primary_monitors: Dict[int, Monitor] = {}
 
+	def read(self, screen: Wnck.Screen):
+		for workspace in screen.get_workspaces():
+			primary_monitor: Monitor = self.primary_monitor_for(workspace)
+			for i in range(Gdk.Display.get_default().get_n_monitors()):
+				gdk_monitor = Gdk.Display.get_default().get_monitor(i)
+				if gdk_monitor.is_primary():
+					primary_monitor.set_rectangle(gdk_monitor.get_workarea())
+				elif primary_monitor.next():
+					primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
+					break
+
 	#
 	# Monitor API
 	#
@@ -263,6 +268,7 @@ class Monitors:
 		monitor: Monitor = self.get_active_primary_monitor()
 		return monitor if monitor_for(window).is_primary() else monitor.next()
 
+	# TODO: remove
 	def get_active_primary_monitor(self) -> Monitor:
 		return self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
 
