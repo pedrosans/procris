@@ -1,23 +1,42 @@
-from functools import reduce
-from typing import List, Dict
+"""
+Copyright 2017 Pedro Santos
 
+This program is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+This program is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with this program.  If not, see <https://www.gnu.org/licenses/>.
+"""
 import gi
-import pocoy.model as model
-from pocoy import wm, scratchpads, desktop
+from pocoy import wm, scratchpads
 from pocoy.layout import apply
-
-gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck, Gdk, Gtk
 from pocoy.wm import DirtyState, is_managed, is_visible, gdk_window_for, Trap, resize
-
-windows = model.windows
-monitors = model.monitors
+from functools import reduce
+from typing import List, Dict, Callable
+from gi.repository import Wnck, Gdk, Gtk
+gi.require_version('Wnck', '3.0')
 
 screen_handlers: List[int] = []
 handlers_by_xid: Dict[int, int] = {}
+layout_change_callbacks: [Callable] = []
 
 
-def connect_to(screen: Wnck.Screen):
+def notify_layout_change():
+	for callback in layout_change_callbacks:
+		callback()
+
+
+def connect_to(screen: Wnck.Screen, model):
+	global windows, monitors
+	windows = model.windows
+	monitors = model.monitors
 	opened_handler_id = screen.connect("window-opened", _window_opened)
 	closed_handler_id = screen.connect("window-closed", _window_closed)
 	viewport_handler_id = screen.connect("viewports-changed", _viewports_changed)
@@ -77,7 +96,7 @@ def _state_changed(window: Wnck.Window, changed_mask, new_state):
 			old_index = stack.index(window.get_xid())
 			stack.insert(0, stack.pop(old_index))
 		apply(monitors, windows)
-		model.persist()
+		notify_layout_change()
 
 
 def _window_closed(screen: Wnck.Screen, window):
@@ -106,7 +125,7 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 		stack = windows.get_active_stack()
 		copy = stack.copy()
 		stack.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
-		model.persist()
+		notify_layout_change()
 	try:
 		with Trap():
 			windows.apply_decoration_config()
@@ -116,9 +135,8 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 
 
 def _viewports_changed(scree: Wnck.Screen):
-	desktop.show_monitor(monitors.get_active_primary_monitor())
+	notify_layout_change()
 
 
 def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
-	desktop.show_monitor(monitors.get_active_primary_monitor())
-	desktop.update()
+	notify_layout_change()

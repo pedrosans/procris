@@ -25,7 +25,7 @@ from pocoy.wm import gdk_window_for, resize, is_visible, \
 	get_active_window, decoration_delta, UserEvent, Monitor, monitor_for, X_Y_W_H_GEOMETRY_MASK, \
 	is_managed, get_active_managed_window
 from pocoy.decoration import DECORATION_MAP
-from pocoy import decoration, desktop, scratchpads
+from pocoy import decoration, desktop
 from pocoy.layout import FUNCTIONS_MAP, apply
 
 
@@ -257,7 +257,6 @@ class Monitors:
 	#
 	# Monitor API
 	#
-	# TODO: clean, the Monitor work is already at the class name
 	def get_active(self) -> Monitor:
 		active = get_active_managed_window()
 		return self.monitor_of(active) if active else self.get_active_primary_monitor()
@@ -302,8 +301,9 @@ class ActiveMonitor:
 			self.last_layout_key = active.function_key
 		active.function_key = new
 		apply(monitors, windows)
-		persist()
-		desktop.show_monitor(monitors.get_active_primary_monitor())
+
+		import pocoy.controller as controller
+		controller.notify_layout_change()
 
 	def gap(self, user_event: UserEvent):
 		parameters = user_event.vim_command_parameter.split()

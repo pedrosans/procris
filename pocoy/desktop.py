@@ -157,6 +157,12 @@ def load():
 		print('**********************************************************************************')
 
 
+def on_layout_changed():
+	if state.is_desktop_notifications():
+		import pocoy.model as model
+		show_monitor(model.monitors.get_active())
+
+
 def connect():
 	import pocoy.service
 	global status_icon
@@ -194,7 +200,5 @@ def show_monitor(monitor: Monitor):
 
 
 def show(summary: str = 'pocoy', body: str = None, icon: str = 'pocoy'):
-	if not state.is_desktop_notifications():
-		return
 	notification.update(summary, body, icon)
 	notification.show()
