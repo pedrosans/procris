@@ -561,13 +561,13 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 		stack = windows.get_active_stack()
 		copy = stack.copy()
 		stack.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
+		persist()
 	try:
 		with Trap():
-			apply(monitors, windows)
 			windows.apply_decoration_config()
+			apply(monitors, windows)
 	except DirtyState:
 		pass  # It was just a try
-	persist()
 
 
 def _viewports_changed(scree: Wnck.Screen):
