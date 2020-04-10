@@ -39,22 +39,24 @@ def disconnect_from(screen: Wnck.Screen):
 def handle_x_event(event: Gdk.Event):
 	Gtk.main_do_event(event)
 	if event.get_event_type() == Gdk.EventType.PROPERTY_NOTIFY:
-		w = event.window
-		xid = w.get_xid()
-		if xid in wm.geometry_cache and xid in windows.window_by_xid:
+		xid = event.window.get_xid()
+		if (
+				xid in wm.geometry_cache and xid in windows.window_by_xid and not wm.adjustment_cache[xid]
+				and event.property.atom.name() in ('_GTK_FRAME_EXTENTS', '_NET_FRAME_EXTENTS')
+		):
+			event.window.flush()
 			ww: Wnck.Window = windows.window_by_xid[xid]
 			g: Gdk.Rectangle = ww.get_geometry()
 			c = wm.geometry_cache[xid]
 			delta = reduce(lambda x, y: x + y, map(lambda i: abs(g[i] - c[i]), range(4)))
-			if not wm.adjustment_cache[xid] and (
-					event.property.atom.name() in ('_GTK_FRAME_EXTENTS', '_NET_FRAME_EXTENTS')
-					and delta > 30):
-				try:
-					wm.set_geometry(ww, x=c[0], y=c[1], w=c[2], h=c[3])
-				except DirtyState:
-					pass  # just a try
-				wm.adjustment_cache[xid] = True
-			# print('adjusting {} to {}. Original: {}'.format(xid, c, g))
+			# print('{} - because {} move from {} to {}'.format(xid, delta, g, c))
+			if delta <= 30:
+				return
+			try:
+				wm.set_geometry(ww, x=c[0], y=c[1], w=c[2], h=c[3])
+			except DirtyState:
+				pass  # just a try
+			wm.adjustment_cache[xid] = True
 
 
 def _install_present_window_handlers(screen: Wnck.Screen):
