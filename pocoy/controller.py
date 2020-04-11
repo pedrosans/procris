@@ -26,6 +26,8 @@ gi.require_version('Wnck', '3.0')
 screen_handlers: List[int] = []
 handlers_by_xid: Dict[int, int] = {}
 layout_change_callbacks: [Callable] = []
+mapped = set()
+configured = set()
 
 
 def notify_layout_change():
@@ -57,7 +59,10 @@ def disconnect_from(screen: Wnck.Screen):
 
 def handle_x_event(event: Gdk.Event):
 	Gtk.main_do_event(event)
-	if event.get_event_type() == Gdk.EventType.PROPERTY_NOTIFY:
+	event_type = event.get_event_type()
+	if event_type in (Gdk.EventType.MAP, Gdk.EventType.CONFIGURE):
+		(configured if event_type == Gdk.EventType.CONFIGURE else mapped).add(event.window.get_xid())
+	elif event_type == Gdk.EventType.PROPERTY_NOTIFY:
 		xid = event.window.get_xid()
 		if (
 				xid in wm.geometry_cache and xid in windows.window_by_xid and not wm.adjustment_cache[xid]
@@ -68,9 +73,11 @@ def handle_x_event(event: Gdk.Event):
 			g: Gdk.Rectangle = ww.get_geometry()
 			c = wm.geometry_cache[xid]
 			delta = reduce(lambda x, y: x + y, map(lambda i: abs(g[i] - c[i]), range(4)))
-			# print('{} - because {} move from {} to {}'.format(xid, delta, g, c))
-			if delta <= 30:
+			if delta <= 30 or xid not in mapped or xid not in configured:
 				return
+			mapped.remove(xid)
+			configured.remove(xid)
+			# print('{} - because {} move from {} to {}'.format(xid, delta, g, c))
 			try:
 				wm.set_geometry(ww, x=c[0], y=c[1], w=c[2], h=c[3])
 			except DirtyState:
@@ -128,8 +135,8 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 		notify_layout_change()
 	try:
 		with Trap():
-			windows.apply_decoration_config()
 			apply(monitors, windows)
+			windows.apply_decoration_config()
 	except DirtyState:
 		pass  # It was just a try
 
