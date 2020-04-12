@@ -29,13 +29,20 @@ from pocoy import decoration, desktop
 from pocoy.layout import FUNCTIONS_MAP, apply
 
 
+def statefull(function):
+	def read_screen_before(self, user_event: UserEvent):
+		screen = Wnck.Screen.get_default()
+		windows.read(screen)
+		function(self, user_event)
+	return read_screen_before
+
+
 def persistent(function):
-	def read_screen_decorator(self, user_event: UserEvent):
-		windows.read_default_screen()
+	def notify_changes_after(self, user_event: UserEvent):
 		function(self, user_event)
 		import pocoy.controller as controller
 		controller.notify_layout_change()
-	return read_screen_decorator
+	return notify_changes_after
 
 
 class Windows:
@@ -171,9 +178,11 @@ class Windows:
 	#
 	# COMMANDS
 	#
+	@statefull
 	def decorate(self, user_event: UserEvent):
 		self.apply_decoration_config()
 
+	@statefull
 	def list(self, user_event: UserEvent):
 		if user_event.text:
 			messages.add(messages.Message(PROMPT + user_event.text, 'info'))
@@ -181,7 +190,8 @@ class Windows:
 		for window in self.buffers:
 			messages.add(BufferName(window, self))
 
-	def activate(self, c_in):
+	@statefull
+	def activate(self, user_event: UserEvent):
 		buffer_number_match = re.match(r'^\s*(buffer|b)\s*([0-9]+)\s*$', c_in.text)
 		if buffer_number_match:
 			buffer_number = buffer_number_match.group(2)
@@ -191,8 +201,8 @@ class Windows:
 				self.staging = True
 			else:
 				return messages.Message('Buffer {} does not exist'.format(buffer_number), 'error')
-		elif c_in.vim_command_parameter:
-			window_title = c_in.vim_command_parameter
+		elif user_event.vim_command_parameter:
+			window_title = user_event.vim_command_parameter
 			w = self.find_by_name(window_title)
 			if w:
 				active_window.xid = w.get_xid()
@@ -200,6 +210,7 @@ class Windows:
 			else:
 				return messages.Message('No matching buffer for ' + window_title, 'error')
 
+	@statefull
 	def delete(self, c_in):
 
 		if not c_in.vim_command_parameter:
@@ -229,6 +240,7 @@ class Windows:
 		else:
 			return messages.Message('No matching buffer for ' + c_in.vim_command_parameter, 'error')
 
+	@statefull
 	def geometry(self, user_event: UserEvent):
 		# TODO: if the first parameter remains the lib, can convert all to int
 		parameters = list(map(lambda word: int(word), user_event.vim_command_parameter.split()))
@@ -286,6 +298,7 @@ class ActiveMonitor:
 	#
 	# COMMANDS
 	#
+	@statefull
 	@persistent
 	def setlayout(self, user_event: UserEvent):
 		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
@@ -307,6 +320,7 @@ class ActiveMonitor:
 		active.function_key = new
 		apply(monitors, windows)
 
+	@statefull
 	def gap(self, user_event: UserEvent):
 		parameters = user_event.vim_command_parameter.split()
 		where = parameters[0]
@@ -320,11 +334,13 @@ class ActiveMonitor:
 		input = user_event.vim_command_parameter.lower()
 		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
 
+	@statefull
 	@persistent
 	def setmfact(self, user_event: UserEvent):
 		monitors.get_active().increase_master_area(increment=user_event.parameters[0])
 		apply(monitors, windows)
 
+	@statefull
 	@persistent
 	def incnmaster(self, user_event: UserEvent):
 		monitors.get_active().increment_master(
@@ -355,6 +371,7 @@ class ActiveWindow:
 			self.xid = xid
 			windows.staging = True
 
+	@statefull
 	def only(self, c_in):
 		for w in windows.visible.copy():
 			if self.xid != w.get_xid():
@@ -362,6 +379,7 @@ class ActiveWindow:
 				windows.remove_from_visible(w)
 		windows.staging = True
 
+	@statefull
 	def minimize(self, c_in):
 		if self.xid:
 			active_window = self.get_wnck_window()
@@ -370,20 +388,25 @@ class ActiveWindow:
 			self.read_screen()
 			windows.staging = True
 
+	@statefull
 	def maximize(self, c_in):
 		if self.xid:
 			self.get_wnck_window().maximize()
 			windows.staging = True
 
+	@statefull
 	def move_right(self, c_in):
 		self._snap_active_window(HORIZONTAL, 0.5)
 
+	@statefull
 	def move_left(self, c_in):
 		self._snap_active_window(HORIZONTAL, 0)
 
+	@statefull
 	def move_up(self, c_in):
 		self._snap_active_window(VERTICAL, 0)
 
+	@statefull
 	def move_down(self, c_in):
 		self._snap_active_window(VERTICAL, 0.5)
 
@@ -397,20 +420,21 @@ class ActiveWindow:
 			resize(window, l=0, t=position, w=1, h=proportion)
 		windows.staging = True
 
+	@statefull
 	def centralize(self, c_in):
 		resize(self.get_wnck_window(), l=0.1, t=0.1, w=0.8, h=0.8)
 		windows.staging = True
 
-	# TODO: apply layout
+	@statefull
 	def decorate(self, c_in):
 		decoration_parameter = c_in.vim_command_parameter
 		if decoration_parameter in DECORATION_MAP.keys():
 			opt = DECORATION_MAP[decoration_parameter]
 		gdk_window = gdk_window_for(self.get_wnck_window())
-		# TODO: UnboundLocalError: local variable 'opt' referenced before assignment
 		gdk_window.set_decorations(opt)
 		windows.staging = True
 
+	@statefull
 	@persistent
 	def zoom(self, user_event: UserEvent):
 		active = get_active_managed_window()
@@ -427,6 +451,7 @@ class ActiveWindow:
 		windows.staging = True
 		apply(monitors, windows)
 
+	@statefull
 	@persistent
 	def pushstack(self, user_event: UserEvent):
 		active = get_active_managed_window()
@@ -442,6 +467,7 @@ class ActiveWindow:
 			stack.insert(new_index, stack.pop(old_index))
 			apply(monitors, windows)
 
+	@statefull
 	@persistent
 	def killclient(self, user_event: UserEvent):
 		active_window = self.get_wnck_window()
@@ -453,18 +479,23 @@ class ActiveWindow:
 			windows.staging = True
 			apply(monitors, windows)
 
+	@statefull
 	def focus_right(self, c_in):
 		self.move_focus(1, HORIZONTAL)
 
+	@statefull
 	def focus_left(self, c_in):
 		self.move_focus(-1, HORIZONTAL)
 
+	@statefull
 	def focus_up(self, c_in):
 		self.move_focus(-1, VERTICAL)
 
+	@statefull
 	def focus_down(self, c_in):
 		self.move_focus(1, VERTICAL)
 
+	@statefull
 	def focus_previous(self, c_in):
 		stack = list(filter(lambda x: x in windows.visible, Wnck.Screen.get_default().get_windows_stacked()))
 		i = stack.index(self.get_wnck_window())
@@ -491,6 +522,7 @@ class ActiveWindow:
 		self.xid = sorted_windows[index].get_xid()
 		windows.staging = True
 
+	@statefull
 	def focus_next(self, c_in):
 		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
 		i = windows.line.index(self.get_wnck_window())
@@ -498,6 +530,7 @@ class ActiveWindow:
 		self.xid = next_window.get_xid()
 		windows.staging = True
 
+	@statefull
 	def focusstack(self, user_event: UserEvent):
 		if get_active_managed_window():
 			stack = windows.get_active_stack()

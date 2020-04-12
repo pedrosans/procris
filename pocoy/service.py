@@ -181,9 +181,6 @@ def call(function, user_event: UserEvent, multiplier=1):
 
 
 def _pre_processing():
-	screen = Wnck.Screen.get_default()
-
-	model.windows.read(screen)
 
 	reading.make_transient()
 
