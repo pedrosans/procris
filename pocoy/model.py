@@ -29,6 +29,15 @@ from pocoy import decoration, desktop
 from pocoy.layout import FUNCTIONS_MAP, apply
 
 
+def persistent(function):
+	def read_screen_decorator(self, user_event: UserEvent):
+		windows.read_default_screen()
+		function(self, user_event)
+		import pocoy.controller as controller
+		controller.notify_layout_change()
+	return read_screen_decorator
+
+
 class Windows:
 
 	stacks: Dict[int, List[int]] = {}
@@ -277,6 +286,7 @@ class ActiveMonitor:
 	#
 	# COMMANDS
 	#
+	@persistent
 	def setlayout(self, user_event: UserEvent):
 		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
 		active = get_active_managed_window()
@@ -297,9 +307,6 @@ class ActiveMonitor:
 		active.function_key = new
 		apply(monitors, windows)
 
-		import pocoy.controller as controller
-		controller.notify_layout_change()
-
 	def gap(self, user_event: UserEvent):
 		parameters = user_event.vim_command_parameter.split()
 		where = parameters[0]
@@ -313,16 +320,16 @@ class ActiveMonitor:
 		input = user_event.vim_command_parameter.lower()
 		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
 
+	@persistent
 	def setmfact(self, user_event: UserEvent):
 		monitors.get_active().increase_master_area(increment=user_event.parameters[0])
 		apply(monitors, windows)
-		persist()
 
+	@persistent
 	def incnmaster(self, user_event: UserEvent):
 		monitors.get_active().increment_master(
 			increment=user_event.parameters[0], upper_limit=len(windows.get_active_stack()))
 		apply(monitors, windows)
-		persist()
 
 
 class ActiveWindow:
@@ -404,6 +411,7 @@ class ActiveWindow:
 		gdk_window.set_decorations(opt)
 		windows.staging = True
 
+	@persistent
 	def zoom(self, user_event: UserEvent):
 		active = get_active_managed_window()
 		stack = windows.get_active_stack()
@@ -418,8 +426,8 @@ class ActiveWindow:
 		active_window.xid = stack[0]
 		windows.staging = True
 		apply(monitors, windows)
-		persist()
 
+	@persistent
 	def pushstack(self, user_event: UserEvent):
 		active = get_active_managed_window()
 		if not active:
@@ -433,8 +441,8 @@ class ActiveWindow:
 		if new_index != old_index:
 			stack.insert(new_index, stack.pop(old_index))
 			apply(monitors, windows)
-			persist()
 
+	@persistent
 	def killclient(self, user_event: UserEvent):
 		active_window = self.get_wnck_window()
 		if active_window:
@@ -444,7 +452,6 @@ class ActiveWindow:
 			self.xid = stack[min(index, len(stack) - 1)]
 			windows.staging = True
 			apply(monitors, windows)
-			persist()
 
 	def focus_right(self, c_in):
 		self.move_focus(1, HORIZONTAL)
