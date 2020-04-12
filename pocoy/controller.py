@@ -23,73 +23,28 @@ from typing import List, Dict, Callable
 from gi.repository import Wnck, Gdk, Gtk
 gi.require_version('Wnck', '3.0')
 
-screen_handlers: List[int] = []
-handlers_by_xid: Dict[int, int] = {}
-layout_change_callbacks: [Callable] = []
-mapped = set()
-configured = set()
 
-
-def notify_layout_change():
-	for callback in layout_change_callbacks:
-		callback()
-
-
-def connect_to(screen: Wnck.Screen, model):
-	global windows, monitors
-	windows = model.windows
-	monitors = model.monitors
-	opened_handler_id = screen.connect("window-opened", _window_opened)
-	closed_handler_id = screen.connect("window-closed", _window_closed)
-	viewport_handler_id = screen.connect("viewports-changed", _viewports_changed)
-	workspace_handler_id = screen.connect("active-workspace-changed", _active_workspace_changed)
-	screen_handlers.extend([opened_handler_id, closed_handler_id, viewport_handler_id, workspace_handler_id])
-	_install_present_window_handlers(screen)
-	Gdk.Event.handler_set(handle_x_event)
-
-
-def disconnect_from(screen: Wnck.Screen):
+def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
+	gdk_window_for(window).flush()
 	windows.read(screen, force_update=False)
-	for xid in handlers_by_xid.keys():
-		if xid in windows.window_by_xid:
-			windows.window_by_xid[xid].disconnect(handlers_by_xid[xid])
-	for handler_id in screen_handlers:
-		screen.disconnect(handler_id)
-
-
-def handle_x_event(event: Gdk.Event):
-	Gtk.main_do_event(event)
-	event_type = event.get_event_type()
-	if event_type in (Gdk.EventType.MAP, Gdk.EventType.CONFIGURE):
-		(configured if event_type == Gdk.EventType.CONFIGURE else mapped).add(event.window.get_xid())
-	elif event_type == Gdk.EventType.PROPERTY_NOTIFY:
-		xid = event.window.get_xid()
-		if (
-				xid in wm.geometry_cache and xid in windows.window_by_xid and not wm.adjustment_cache[xid]
-				and event.property.atom.name() in ('_GTK_FRAME_EXTENTS', '_NET_FRAME_EXTENTS')
-		):
-			event.window.flush()
-			ww: Wnck.Window = windows.window_by_xid[xid]
-			g: Gdk.Rectangle = ww.get_geometry()
-			c = wm.geometry_cache[xid]
-			delta = reduce(lambda x, y: x + y, map(lambda i: abs(g[i] - c[i]), range(4)))
-			if delta <= 30 or xid not in mapped or xid not in configured:
-				return
-			mapped.remove(xid)
-			configured.remove(xid)
-			# print('{} - because {} move from {} to {}'.format(xid, delta, g, c))
-			try:
-				wm.set_geometry(ww, x=c[0], y=c[1], w=c[2], h=c[3])
-			except DirtyState:
-				pass  # just a try
-			wm.adjustment_cache[xid] = True
-
-
-def _install_present_window_handlers(screen: Wnck.Screen):
-	for window in screen.get_windows():
-		if window.get_xid() not in handlers_by_xid and is_managed(window):
-			handler_id = window.connect("state-changed", _state_changed)
-			handlers_by_xid[window.get_xid()] = handler_id
+	_install_present_window_handlers(screen)
+	if not is_visible(window, screen.get_active_workspace()):
+		return
+	if window.get_name() in scratchpads.names():
+		scratchpad = scratchpads.get(window.get_name())
+		primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
+		resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
+	elif is_managed(window):
+		stack = windows.get_active_stack()
+		copy = stack.copy()
+		stack.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
+		notify_layout_change()
+	try:
+		with Trap():
+			apply(monitors, windows)
+			windows.apply_decoration_config()
+	except DirtyState:
+		pass  # It was just a try
 
 
 def _state_changed(window: Wnck.Window, changed_mask, new_state):
@@ -118,32 +73,78 @@ def _window_closed(screen: Wnck.Screen, window):
 		pass  # It was just a try
 
 
-def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
-	gdk_window_for(window).flush()
-	windows.read(screen, force_update=False)
-	_install_present_window_handlers(screen)
-	if not is_visible(window, screen.get_active_workspace()):
-		return
-	if window.get_name() in scratchpads.names():
-		scratchpad = scratchpads.get(window.get_name())
-		primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
-		resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
-	elif is_managed(window):
-		stack = windows.get_active_stack()
-		copy = stack.copy()
-		stack.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
-		notify_layout_change()
-	try:
-		with Trap():
-			apply(monitors, windows)
-			windows.apply_decoration_config()
-	except DirtyState:
-		pass  # It was just a try
-
-
 def _viewports_changed(scree: Wnck.Screen):
 	notify_layout_change()
 
 
 def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
 	notify_layout_change()
+
+
+def _handle_x_event(event: Gdk.Event):
+	Gtk.main_do_event(event)
+	event_type = event.get_event_type()
+	if event_type in (Gdk.EventType.MAP, Gdk.EventType.CONFIGURE):
+		(configured if event_type == Gdk.EventType.CONFIGURE else mapped).add(event.window.get_xid())
+	elif event_type == Gdk.EventType.PROPERTY_NOTIFY:
+		xid = event.window.get_xid()
+		if (
+				xid in wm.geometry_cache and xid in windows.window_by_xid and not wm.adjustment_cache[xid]
+				and event.property.atom.name() in ('_GTK_FRAME_EXTENTS', '_NET_FRAME_EXTENTS')
+		):
+			event.window.flush()
+			ww: Wnck.Window = windows.window_by_xid[xid]
+			g: Gdk.Rectangle = ww.get_geometry()
+			c = wm.geometry_cache[xid]
+			delta = reduce(lambda x, y: x + y, map(lambda i: abs(g[i] - c[i]), range(4)))
+			if delta <= 30 or xid not in mapped or xid not in configured:
+				return
+			mapped.remove(xid)
+			configured.remove(xid)
+			# print('{} - because {} move from {} to {}'.format(xid, delta, g, c))
+			try:
+				wm.set_geometry(ww, x=c[0], y=c[1], w=c[2], h=c[3])
+			except DirtyState:
+				pass  # just a try
+			wm.adjustment_cache[xid] = True
+
+
+def notify_layout_change():
+	for callback in layout_change_callbacks:
+		callback()
+
+
+def connect_to(screen: Wnck.Screen, model):
+	global windows, monitors
+	windows = model.windows
+	monitors = model.monitors
+	opened_handler_id = screen.connect("window-opened", _window_opened)
+	closed_handler_id = screen.connect("window-closed", _window_closed)
+	viewport_handler_id = screen.connect("viewports-changed", _viewports_changed)
+	workspace_handler_id = screen.connect("active-workspace-changed", _active_workspace_changed)
+	screen_handlers.extend([opened_handler_id, closed_handler_id, viewport_handler_id, workspace_handler_id])
+	_install_present_window_handlers(screen)
+	Gdk.Event.handler_set(_handle_x_event)
+
+
+def _install_present_window_handlers(screen: Wnck.Screen):
+	for window in screen.get_windows():
+		if window.get_xid() not in handlers_by_xid and is_managed(window):
+			handler_id = window.connect("state-changed", _state_changed)
+			handlers_by_xid[window.get_xid()] = handler_id
+
+
+def disconnect_from(screen: Wnck.Screen):
+	windows.read(screen, force_update=False)
+	for xid in handlers_by_xid.keys():
+		if xid in windows.window_by_xid:
+			windows.window_by_xid[xid].disconnect(handlers_by_xid[xid])
+	for handler_id in screen_handlers:
+		screen.disconnect(handler_id)
+
+
+screen_handlers: List[int] = []
+handlers_by_xid: Dict[int, int] = {}
+layout_change_callbacks: [Callable] = []
+mapped = set()
+configured = set()
