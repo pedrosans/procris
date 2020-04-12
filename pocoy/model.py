@@ -278,10 +278,11 @@ class Monitors:
 	#
 	# Monitor API
 	#
-	def get_active(self) -> Monitor:
-		active: Wnck.Window = get_active_managed_window()
+	def get_active(self, window: Wnck.Window = None) -> Monitor:
+		if not window:
+			window = get_active_managed_window()
 		monitor: Monitor = self.get_primary(Wnck.Screen.get_default().get_active_workspace())
-		return monitor if not active or monitor_for(active).is_primary() else monitor.next()
+		return monitor if not window or monitor_for(window).is_primary() else monitor.next()
 
 	def get_primary(self, workspace: Wnck.Workspace = None) -> Monitor:
 		if not workspace:
