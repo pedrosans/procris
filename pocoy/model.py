@@ -90,7 +90,7 @@ class Windows:
 			stack.remove(outsider)
 
 		copy = stack.copy()
-		primary_monitor = monitors.primary_monitor_for(workspace)
+		primary_monitor = monitors.get_primary(workspace)
 		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not primary_monitor.contains(self.window_by_xid[xid]) else 0))
 
 	#
@@ -245,7 +245,7 @@ class Monitors:
 
 	def read(self, screen: Wnck.Screen):
 		for workspace in screen.get_workspaces():
-			primary_monitor: Monitor = self.primary_monitor_for(workspace)
+			primary_monitor: Monitor = self.get_primary(workspace)
 			for i in range(Gdk.Display.get_default().get_n_monitors()):
 				gdk_monitor = Gdk.Display.get_default().get_monitor(i)
 				if gdk_monitor.is_primary():
@@ -258,14 +258,13 @@ class Monitors:
 	# Monitor API
 	#
 	def get_active(self) -> Monitor:
-		active = get_active_managed_window()
-		return self.monitor_of(active) if active else self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
+		active: Wnck.Window = get_active_managed_window()
+		monitor: Monitor = self.get_primary(Wnck.Screen.get_default().get_active_workspace())
+		return monitor if not active or monitor_for(active).is_primary() else monitor.next()
 
-	def monitor_of(self, window: Wnck.Window) -> Monitor:
-		monitor: Monitor = self.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
-		return monitor if monitor_for(window).is_primary() else monitor.next()
-
-	def primary_monitor_for(self, workspace: Wnck.Workspace) -> Monitor:
+	def get_primary(self, workspace: Wnck.Workspace = None) -> Monitor:
+		if not workspace:
+			workspace = Wnck.Screen.get_default().get_active_workspace()
 		if workspace.get_number() not in self.primary_monitors:
 			self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
 		return self.primary_monitors[workspace.get_number()]

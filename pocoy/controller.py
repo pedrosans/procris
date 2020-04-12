@@ -94,7 +94,7 @@ def _install_present_window_handlers(screen: Wnck.Screen):
 
 def _state_changed(window: Wnck.Window, changed_mask, new_state):
 	maximization = changed_mask & Wnck.WindowState.MAXIMIZED_HORIZONTALLY or changed_mask & Wnck.WindowState.MAXIMIZED_VERTICALLY
-	if maximization and new_state and monitors.monitor_of(window).function_key:
+	if maximization and new_state and monitors.get_active(window).function_key:
 		window.unmaximize()
 	if changed_mask & Wnck.WindowState.MINIMIZED and is_managed(window):
 		windows.read(window.get_screen(), force_update=False)

@@ -14,7 +14,7 @@ class ModelTestCase(unittest.TestCase):
 
 	def test_read_user_config(self):
 		model.read_user_config(DEFAULTS, screen)
-		primary: Monitor = model.monitors.primary_monitor_for(workspace)
+		primary: Monitor = model.monitors.get_primary(workspace)
 		self.assertEqual(primary.nmaster, 1)
 		self.assertEqual(primary.mfact, 0.55)
 		self.assertEqual(primary.function_key, 'T')

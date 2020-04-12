@@ -271,11 +271,12 @@ FUNCTIONS_MAP = {
 
 
 def apply(monitors, windows, split_points: List[int] = None):
-	primary_monitor: Monitor = monitors.primary_monitor_for(Wnck.Screen.get_default().get_active_workspace())
+	primary_monitor: Monitor = monitors.get_primary(Wnck.Screen.get_default().get_active_workspace())
 	workspace_windows = windows.get_active_windows_as_list()
 	monitor = primary_monitor
 	visible = workspace_windows
-	split_point = len(list(filter(lambda w: primary_monitor.contains(w), visible)))
+	split_point = len(workspace_windows)
+	# split_point = len(list(filter(lambda w: primary_monitor.contains(w), visible)))
 
 	while monitor and visible:
 

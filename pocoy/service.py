@@ -80,7 +80,6 @@ def start():
 	controller.connect_to(screen=Wnck.Screen.get_default(), model=model)
 	listener.start()
 	desktop.connect()
-	controller.layout_change_callbacks.append(desktop.on_layout_changed)
 	controller.layout_change_callbacks.append(model.persist)
 	Gtk.main()
 	print("Ending pocoy service, pid: {}".format(os.getpid()))

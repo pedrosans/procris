@@ -1,6 +1,10 @@
+import queue
+from threading import Thread
+
 import pocoy.layout
 import pocoy.state as state
 import xdg.IconTheme
+import os
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
@@ -135,6 +139,10 @@ ICONNAME = 'pocoy'
 ICON_STYLES_MAP = {'dark': "Dark icon", 'light': "Light icon"}
 status_icon: StatusIcon = None
 notification: Notify.Notification = None
+PRIMARY_WORKSPACE_LAYOUT =    {'path': '/tmp/primary_workspace_layout'   , 'monitor': 'primary', 'id': 'function'  , 'queue': queue.Queue()}
+PRIMARY_WORKSPACE_NMASTER =   {'path': '/tmp/primary_workspace_nmaster'  , 'monitor': 'primary', 'id': 'nmaster'   , 'queue': queue.Queue()}
+SECONDARY_WORKSPACE_LAYOUT =  {'path': '/tmp/secondary_workspace_layout' , 'monitor': 'secondary', 'id': 'function', 'queue': queue.Queue()}
+SECONDARY_WORKSPACE_NMASTER = {'path': '/tmp/secondary_workspace_nmaster', 'monitor': 'secondary', 'id': 'nmaster' , 'queue': queue.Queue()}
 
 
 # https://lazka.github.io/pgi-docs/Notify-0.7/classes/Notification.html
@@ -157,18 +165,53 @@ def load():
 		print('**********************************************************************************')
 
 
-def on_layout_changed():
-	if state.is_desktop_notifications():
-		import pocoy.model as model
-		show_monitor(model.monitors.get_active())
-
-
 def connect():
 	import pocoy.service
 	global status_icon
 	# TODO: pass window and monitor as parameters
 	status_icon = StatusIcon(pocoy.model.windows, pocoy.model.monitors, pocoy.model.active_monitor, stop_function=pocoy.service.stop)
 	status_icon.activate()
+	import pocoy.controller as controller
+	controller.layout_change_callbacks.append(on_layout_changed)
+	start_pipes()
+
+
+def on_layout_changed():
+	import pocoy.model as model
+	monitors = model.monitors
+	if state.is_desktop_notifications():
+		show_monitor(model.monitors.get_active())
+
+	primary = monitors.get_primary()
+	serialized = {'primary': primary.to_json()}
+	if primary.next():
+		serialized['secondary'] = primary.next().to_json()
+
+	for pipe in (
+			PRIMARY_WORKSPACE_LAYOUT, PRIMARY_WORKSPACE_NMASTER,
+			SECONDARY_WORKSPACE_LAYOUT, SECONDARY_WORKSPACE_NMASTER):
+		pipe['queue'].put(serialized)
+
+
+def start_pipes():
+	for pipe in (
+			PRIMARY_WORKSPACE_LAYOUT, PRIMARY_WORKSPACE_NMASTER,
+			SECONDARY_WORKSPACE_LAYOUT, SECONDARY_WORKSPACE_NMASTER):
+		if not os.path.exists(pipe['path']):
+			os.mkfifo(pipe['path'])
+		t = Thread(target=pipe_property_writing(pipe), daemon=True)
+		t.start()
+
+
+def pipe_property_writing(workspace_properties):
+	def pipe_writing_service():
+		while True:
+			serialized = workspace_properties['queue'].get()
+			with open(workspace_properties['path'], 'w') as f:
+				prop = serialized[workspace_properties['monitor']][workspace_properties['id']]
+				f.write(str(prop) + '\n')
+				f.flush()
+	return pipe_writing_service
 
 
 def is_connected():
