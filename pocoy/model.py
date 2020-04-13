@@ -254,186 +254,6 @@ class Windows:
 		windows.staging = True
 
 
-# https://valadoc.org/gdk-3.0/Gdk.Monitor.html
-class Monitor:
-
-	def __init__(self, primary: bool = False, nmaster: int = 1, mfact: float = 0.5, function_key: str = 'T'):
-		self.primary: bool = primary
-		# TODO: rename to layout key
-		self.function_key: str = function_key
-		self.nmaster: int = nmaster
-		self.mfact: float = mfact
-		self.wx = self.wy = self.ww = self.wh = None
-		self.visible_area: Gdk.Rectangle = None
-		self.stack: List[int] = []
-		self.pointer: Monitor = None
-
-	def index(self, xid: int, increment: int = 0):
-		old_index = self.stack.index(xid)
-		new_index = old_index + increment
-		return min(max(new_index, 0), len(self.stack) - 1)
-
-	def apply(self):
-		from pocoy.layout import FUNCTIONS_MAP
-		if self.function_key:
-			monitor_windows: List[Wnck.Window] = list(map(lambda xid: windows.window_by_xid[xid], self.stack))
-			FUNCTIONS_MAP[self.function_key](monitor_windows, self)
-
-	def set_rectangle(self, rectangle: Gdk.Rectangle):
-		self.visible_area = rectangle
-		self.update_work_area()
-
-	def update_work_area(self):
-		outer_gap = state.get_outer_gap()
-		self.wx = self.visible_area.x + outer_gap
-		self.wy = self.visible_area.y + outer_gap
-		self.ww = self.visible_area.width - outer_gap * 2
-		self.wh = self.visible_area.height - outer_gap * 2
-
-	def increase_master_area(self, increment: float = None):
-		self.mfact += increment
-		self.mfact = max(0.1, self.mfact)
-		self.mfact = min(0.9, self.mfact)
-
-	def increment_master(self, increment=None, upper_limit=None):
-		self.nmaster += increment
-		self.nmaster = max(0, self.nmaster)
-		self.nmaster = min(upper_limit, self.nmaster)
-
-	def contains(self, window: Wnck.Window):
-		rect = self.visible_area
-		xp, yp, widthp, heightp = window.get_geometry()
-		return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
-
-	def from_json(self, json):
-		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
-		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
-		self.function_key = json['function'] if 'function' in json else self.function_key
-
-	def to_json(self):
-		return {
-			'nmaster': self.nmaster,
-			'mfact': self.mfact,
-			'function': self.function_key
-		}
-
-	def print(self):
-		print('monitor: {} {} {} {}'.format(self.wx, self.wy, self.ww, self.wh))
-
-	def next(self):
-		n_monitors = Gdk.Display.get_default().get_n_monitors()
-
-		if n_monitors > 2:
-			print('BETA VERSION WARN: no support for more than 2 monitors yet.')
-		# While it seams easy to implement, there is no thought on
-		# how the configuration would look like to assign a position for
-		# each monitor on the stack.
-		# For now, the Gdk flag does the job for since the second monitor
-		# plainly is the one not flagged as primary.
-
-		if n_monitors == 2 and self.primary:
-			if not self.pointer:
-				self.pointer = Monitor(nmaster=0, primary=False)
-			return self.pointer
-		else:
-			return None
-
-
-class Monitors:
-
-	primary_monitors: Dict[int, Monitor] = {}
-
-	def read(self, screen: Wnck.Screen):
-		for workspace in screen.get_workspaces():
-			primary_monitor: Monitor = self.get_primary(workspace)
-			for i in range(Gdk.Display.get_default().get_n_monitors()):
-				gdk_monitor = Gdk.Display.get_default().get_monitor(i)
-				if gdk_monitor.is_primary():
-					primary_monitor.set_rectangle(gdk_monitor.get_workarea())
-				elif primary_monitor.next():
-					primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
-					break
-
-	#
-	# Monitor API
-	#
-	def get_active(self, window: Wnck.Window = None) -> Monitor:
-		if not window:
-			window = get_active_managed_window()
-		monitor: Monitor = self.get_primary(Wnck.Screen.get_default().get_active_workspace())
-		return monitor if not window or monitor_for(window).is_primary() else monitor.next()
-
-	def get_primary(self, workspace: Wnck.Workspace = None) -> Monitor:
-		if not workspace:
-			workspace = Wnck.Screen.get_default().get_active_workspace()
-		if workspace.get_number() not in self.primary_monitors:
-			self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
-		return self.primary_monitors[workspace.get_number()]
-
-
-class ActiveMonitor:
-
-	last_layout_key = None
-
-	#
-	# COMMANDS
-	#
-	@statefull
-	@persistent
-	def setlayout(self, user_event: UserEvent):
-		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
-		active = get_active_managed_window()
-		if promote_selected and active:
-			stack = windows.get_active_stack()
-			old_index = stack.index(active.get_xid())
-			stack.insert(0, stack.pop(old_index))
-		if user_event.parameters:
-			function_key = user_event.parameters[0]
-		else:
-			function_key = self.last_layout_key
-		self._set_function(function_key)
-
-	def _set_function(self, new):
-		active = monitors.get_active()
-		if active.function_key != new:
-			self.last_layout_key = active.function_key
-		active.function_key = new
-		active.apply()
-
-	@statefull
-	def gap(self, user_event: UserEvent):
-		parameters = user_event.vim_command_parameter.split()
-		where = parameters[0]
-		pixels = int(parameters[1])
-		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
-		monitor = monitors.get_active()
-		while monitor:
-			monitors.get_active().update_work_area()
-			# TODO: remove staging logic
-			windows.staging = True
-			monitor.apply()
-			monitor = monitor.next()
-
-	def complete_gap_options(self, user_event: UserEvent):
-		input = user_event.vim_command_parameter.lower()
-		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
-
-	@statefull
-	@persistent
-	def setmfact(self, user_event: UserEvent):
-		monitor = monitors.get_active()
-		monitor.increase_master_area(increment=user_event.parameters[0])
-		monitor.apply()
-
-	@statefull
-	@persistent
-	def incnmaster(self, user_event: UserEvent):
-		monitor = monitors.get_active()
-		monitor.increment_master(
-			increment=user_event.parameters[0], upper_limit=len(windows.get_active_stack()))
-		monitor.apply()
-
-
 class ActiveWindow:
 
 	def __init__(self):
@@ -627,6 +447,186 @@ class ActiveWindow:
 		next_window = windows.line[(i + direction) % len(windows.line)]
 		self.xid = next_window.get_xid()
 		windows.staging = True
+
+
+# https://valadoc.org/gdk-3.0/Gdk.Monitor.html
+class Monitor:
+
+	def __init__(self, primary: bool = False, nmaster: int = 1, mfact: float = 0.5, function_key: str = 'T'):
+		self.primary: bool = primary
+		# TODO: rename to layout key
+		self.function_key: str = function_key
+		self.nmaster: int = nmaster
+		self.mfact: float = mfact
+		self.wx = self.wy = self.ww = self.wh = None
+		self.visible_area: Gdk.Rectangle = None
+		self.stack: List[int] = []
+		self.pointer: Monitor = None
+
+	def index(self, xid: int, increment: int = 0):
+		old_index = self.stack.index(xid)
+		new_index = old_index + increment
+		return min(max(new_index, 0), len(self.stack) - 1)
+
+	def apply(self):
+		from pocoy.layout import FUNCTIONS_MAP
+		if self.function_key:
+			monitor_windows: List[Wnck.Window] = list(map(lambda xid: windows.window_by_xid[xid], self.stack))
+			FUNCTIONS_MAP[self.function_key](monitor_windows, self)
+
+	def set_rectangle(self, rectangle: Gdk.Rectangle):
+		self.visible_area = rectangle
+		self.update_work_area()
+
+	def update_work_area(self):
+		outer_gap = state.get_outer_gap()
+		self.wx = self.visible_area.x + outer_gap
+		self.wy = self.visible_area.y + outer_gap
+		self.ww = self.visible_area.width - outer_gap * 2
+		self.wh = self.visible_area.height - outer_gap * 2
+
+	def increase_master_area(self, increment: float = None):
+		self.mfact += increment
+		self.mfact = max(0.1, self.mfact)
+		self.mfact = min(0.9, self.mfact)
+
+	def increment_master(self, increment=None, upper_limit=None):
+		self.nmaster += increment
+		self.nmaster = max(0, self.nmaster)
+		self.nmaster = min(upper_limit, self.nmaster)
+
+	def contains(self, window: Wnck.Window):
+		rect = self.visible_area
+		xp, yp, widthp, heightp = window.get_geometry()
+		return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
+
+	def from_json(self, json):
+		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
+		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
+		self.function_key = json['function'] if 'function' in json else self.function_key
+
+	def to_json(self):
+		return {
+			'nmaster': self.nmaster,
+			'mfact': self.mfact,
+			'function': self.function_key
+		}
+
+	def print(self):
+		print('monitor: {} {} {} {}'.format(self.wx, self.wy, self.ww, self.wh))
+
+	def next(self):
+		n_monitors = Gdk.Display.get_default().get_n_monitors()
+
+		if n_monitors > 2:
+			print('BETA VERSION WARN: no support for more than 2 monitors yet.')
+		# While it seams easy to implement, there is no thought on
+		# how the configuration would look like to assign a position for
+		# each monitor on the stack.
+		# For now, the Gdk flag does the job for since the second monitor
+		# plainly is the one not flagged as primary.
+
+		if n_monitors == 2 and self.primary:
+			if not self.pointer:
+				self.pointer = Monitor(nmaster=0, primary=False)
+			return self.pointer
+		else:
+			return None
+
+
+class Monitors:
+
+	primary_monitors: Dict[int, Monitor] = {}
+
+	def read(self, screen: Wnck.Screen):
+		for workspace in screen.get_workspaces():
+			primary_monitor: Monitor = self.get_primary(workspace)
+			for i in range(Gdk.Display.get_default().get_n_monitors()):
+				gdk_monitor = Gdk.Display.get_default().get_monitor(i)
+				if gdk_monitor.is_primary():
+					primary_monitor.set_rectangle(gdk_monitor.get_workarea())
+				elif primary_monitor.next():
+					primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
+					break
+
+	#
+	# Monitor API
+	#
+	def get_active(self, window: Wnck.Window = None) -> Monitor:
+		if not window:
+			window = get_active_managed_window()
+		monitor: Monitor = self.get_primary(Wnck.Screen.get_default().get_active_workspace())
+		return monitor if not window or monitor_for(window).is_primary() else monitor.next()
+
+	def get_primary(self, workspace: Wnck.Workspace = None) -> Monitor:
+		if not workspace:
+			workspace = Wnck.Screen.get_default().get_active_workspace()
+		if workspace.get_number() not in self.primary_monitors:
+			self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
+		return self.primary_monitors[workspace.get_number()]
+
+
+class ActiveMonitor:
+
+	last_layout_key = None
+
+	#
+	# COMMANDS
+	#
+	@statefull
+	@persistent
+	def setlayout(self, user_event: UserEvent):
+		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
+		active = get_active_managed_window()
+		if promote_selected and active:
+			stack = windows.get_active_stack()
+			old_index = stack.index(active.get_xid())
+			stack.insert(0, stack.pop(old_index))
+		if user_event.parameters:
+			function_key = user_event.parameters[0]
+		else:
+			function_key = self.last_layout_key
+		self._set_function(function_key)
+
+	def _set_function(self, new):
+		active = monitors.get_active()
+		if active.function_key != new:
+			self.last_layout_key = active.function_key
+		active.function_key = new
+		active.apply()
+
+	@statefull
+	def gap(self, user_event: UserEvent):
+		parameters = user_event.vim_command_parameter.split()
+		where = parameters[0]
+		pixels = int(parameters[1])
+		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
+		monitor = monitors.get_active()
+		while monitor:
+			monitors.get_active().update_work_area()
+			# TODO: remove staging logic
+			windows.staging = True
+			monitor.apply()
+			monitor = monitor.next()
+
+	def complete_gap_options(self, user_event: UserEvent):
+		input = user_event.vim_command_parameter.lower()
+		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
+
+	@statefull
+	@persistent
+	def setmfact(self, user_event: UserEvent):
+		monitor = monitors.get_active()
+		monitor.increase_master_area(increment=user_event.parameters[0])
+		monitor.apply()
+
+	@statefull
+	@persistent
+	def incnmaster(self, user_event: UserEvent):
+		monitor = monitors.get_active()
+		monitor.increment_master(
+			increment=user_event.parameters[0], upper_limit=len(windows.get_active_stack()))
+		monitor.apply()
 
 
 class Axis:
