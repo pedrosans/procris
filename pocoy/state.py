@@ -48,10 +48,21 @@ def load(config_module_parameter: str = None):
 	interface_config = _read_json(config_file)
 	loaded_interface_config = interface_config if interface_config else config_module.DEFAULTS
 
-	workspace_config = _read_json(workspace_file)
-	loaded_workspace_config = workspace_config if workspace_config else config_module.DEFAULTS
+	loaded_workspace_config = _read_json(workspace_file)
+	set_defaults(config_module.DEFAULTS, loaded_workspace_config)
 
 	loaded_decorations = _read_json(decorations_file)
+
+
+def set_defaults(origin, destination):
+	for key in origin.keys():
+		if key not in destination:
+			destination[key] = origin[key]
+		elif not destination[key] and origin[key]:
+			if isinstance(destination[key], type({})):
+				set_defaults(origin[key], destination[key])
+			elif isinstance(destination[key], type([])):
+				destination[key] = origin[key]
 
 
 def reload():
