@@ -20,7 +20,8 @@ gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
 from typing import List
 from pocoy import state
-from pocoy.wm import set_geometry, resize, get_height, Monitor, get_width
+from pocoy.wm import set_geometry, resize, get_height, get_width
+from pocoy.model import Monitor
 
 
 #

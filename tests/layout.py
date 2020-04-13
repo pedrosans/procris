@@ -2,6 +2,7 @@ import unittest
 from unittest.mock import MagicMock
 from unittest.mock import call
 
+import pocoy.model
 import pocoy.wm as wm
 wm.set_geometry = MagicMock()
 wm.set_geometry.return_value = False
@@ -17,7 +18,7 @@ import pocoy.layout as layout
 class LayoutTestCase(unittest.TestCase):
 
 	def setUp(self):
-		self.monitor = layout.Monitor(nmaster=1, mfact=0.5)
+		self.monitor = pocoy.model.Monitor(nmaster=1, mfact=0.5)
 		self.monitor.ww = 800
 		self.monitor.wh = 550
 		self.monitor.wx = 0

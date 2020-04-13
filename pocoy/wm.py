@@ -22,8 +22,8 @@ import pocoy.state as config
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 from datetime import datetime
-from typing import Callable, List
-from pocoy import state, scratchpads
+from typing import Callable
+from pocoy import scratchpads
 
 
 X_Y_W_H_GEOMETRY_MASK = Wnck.WindowMoveResizeMask.HEIGHT | Wnck.WindowMoveResizeMask.WIDTH | Wnck.WindowMoveResizeMask.X | Wnck.WindowMoveResizeMask.Y
@@ -261,80 +261,6 @@ class Trap:
 		error: int = self.display.error_trap_pop()
 		if error:
 			raise DirtyState(message='X11 Error code {}'.format(error)) from exception
-
-
-# https://valadoc.org/gdk-3.0/Gdk.Monitor.html
-class Monitor:
-
-	def __init__(self, primary: bool = False, nmaster: int = 1, mfact: float = 0.5, function_key: str = 'T'):
-		self.primary: bool = primary
-		# TODO: rename to layout key
-		self.function_key: str = function_key
-		self.nmaster: int = nmaster
-		self.mfact: float = mfact
-		self.wx = self.wy = self.ww = self.wh = None
-		self.visible_area: Gdk.Rectangle = None
-		self.stack: List[int] = []
-		self.pointer: Monitor = None
-
-	def set_rectangle(self, rectangle: Gdk.Rectangle):
-		self.visible_area = rectangle
-		self.update_work_area()
-
-	def update_work_area(self):
-		outer_gap = state.get_outer_gap()
-		self.wx = self.visible_area.x + outer_gap
-		self.wy = self.visible_area.y + outer_gap
-		self.ww = self.visible_area.width - outer_gap * 2
-		self.wh = self.visible_area.height - outer_gap * 2
-
-	def increase_master_area(self, increment: float = None):
-		self.mfact += increment
-		self.mfact = max(0.1, self.mfact)
-		self.mfact = min(0.9, self.mfact)
-
-	def increment_master(self, increment=None, upper_limit=None):
-		self.nmaster += increment
-		self.nmaster = max(0, self.nmaster)
-		self.nmaster = min(upper_limit, self.nmaster)
-
-	def contains(self, window: Wnck.Window):
-		rect = self.visible_area
-		xp, yp, widthp, heightp = window.get_geometry()
-		return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
-
-	def from_json(self, json):
-		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
-		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
-		self.function_key = json['function'] if 'function' in json else self.function_key
-
-	def to_json(self):
-		return {
-			'nmaster': self.nmaster,
-			'mfact': self.mfact,
-			'function': self.function_key
-		}
-
-	def print(self):
-		print('monitor: {} {} {} {}'.format(self.wx, self.wy, self.ww, self.wh))
-
-	def next(self):
-		n_monitors = Gdk.Display.get_default().get_n_monitors()
-
-		if n_monitors > 2:
-			print('BETA VERSION WARN: no support for more than 2 monitors yet.')
-		# While it seams easy to implement, there is no thought on
-		# how the configuration would look like to assign a position for
-		# each monitor on the stack.
-		# For now, the Gdk flag does the job for since the second monitor
-		# plainly is the one not flagged as primary.
-
-		if n_monitors == 2 and self.primary:
-			if not self.pointer:
-				self.pointer = Monitor(nmaster=0, primary=False)
-			return self.pointer
-		else:
-			return None
 
 
 class UserEvent:

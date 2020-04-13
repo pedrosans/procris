@@ -1,6 +1,6 @@
 import unittest
 import pocoy.model as model
-from pocoy.wm import Monitor
+from pocoy.model import Monitor
 from unittest.mock import MagicMock
 
 workspace = MagicMock()

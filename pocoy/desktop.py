@@ -11,7 +11,8 @@ gi.require_version('AppIndicator3', '0.1')
 gi.require_version('Notify', '0.7')
 from gi.repository import Notify, Gtk, GLib, GdkPixbuf, AppIndicator3
 from pocoy import state as configurations
-from pocoy.wm import get_active_workspace, UserEvent, Monitor
+from pocoy.wm import get_active_workspace, UserEvent
+from pocoy.model import Monitor
 
 
 class StatusIcon:

@@ -19,14 +19,13 @@ import pocoy.messages as messages
 import pocoy.state as state
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk, Gtk
-from typing import List, Dict
+from typing import List, Dict, Callable
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
-	get_active_window, decoration_delta, UserEvent, Monitor, monitor_for, X_Y_W_H_GEOMETRY_MASK, \
+	get_active_window, decoration_delta, UserEvent, monitor_for, X_Y_W_H_GEOMETRY_MASK, \
 	is_managed, get_active_managed_window
 from pocoy.decoration import DECORATION_MAP
-from pocoy import decoration, desktop
-from pocoy.layout import FUNCTIONS_MAP, apply
+from pocoy import decoration, state
 
 
 def statefull(function):
@@ -137,13 +136,6 @@ class Windows:
 
 	def get_active_windows_as_list(self) -> List[Wnck.Window]:
 		return list(map(lambda xid: self.window_by_xid[xid], self.get_active_stack()))
-
-	def get_stack_index(self, increment):
-		stack = self.get_active_stack()
-		active = get_active_managed_window()
-		old_index = stack.index(active.get_xid())
-		new_index = old_index + increment
-		return min(max(new_index, 0), len(stack) - 1)
 
 	# TODO: does need to clean stacked xid???
 	def remove(self, window, time):
@@ -262,6 +254,91 @@ class Windows:
 		windows.staging = True
 
 
+# https://valadoc.org/gdk-3.0/Gdk.Monitor.html
+class Monitor:
+
+	def __init__(self, primary: bool = False, nmaster: int = 1, mfact: float = 0.5, function_key: str = 'T'):
+		self.primary: bool = primary
+		# TODO: rename to layout key
+		self.function_key: str = function_key
+		self.nmaster: int = nmaster
+		self.mfact: float = mfact
+		self.wx = self.wy = self.ww = self.wh = None
+		self.visible_area: Gdk.Rectangle = None
+		self.stack: List[int] = []
+		self.pointer: Monitor = None
+
+	def index(self, xid: int, increment: int = 0):
+		old_index = self.stack.index(xid)
+		new_index = old_index + increment
+		return min(max(new_index, 0), len(self.stack) - 1)
+
+	def apply(self):
+		from pocoy.layout import FUNCTIONS_MAP
+		if self.function_key:
+			monitor_windows: List[Wnck.Window] = list(map(lambda xid: windows.window_by_xid[xid], self.stack))
+			FUNCTIONS_MAP[self.function_key](monitor_windows, self)
+
+	def set_rectangle(self, rectangle: Gdk.Rectangle):
+		self.visible_area = rectangle
+		self.update_work_area()
+
+	def update_work_area(self):
+		outer_gap = state.get_outer_gap()
+		self.wx = self.visible_area.x + outer_gap
+		self.wy = self.visible_area.y + outer_gap
+		self.ww = self.visible_area.width - outer_gap * 2
+		self.wh = self.visible_area.height - outer_gap * 2
+
+	def increase_master_area(self, increment: float = None):
+		self.mfact += increment
+		self.mfact = max(0.1, self.mfact)
+		self.mfact = min(0.9, self.mfact)
+
+	def increment_master(self, increment=None, upper_limit=None):
+		self.nmaster += increment
+		self.nmaster = max(0, self.nmaster)
+		self.nmaster = min(upper_limit, self.nmaster)
+
+	def contains(self, window: Wnck.Window):
+		rect = self.visible_area
+		xp, yp, widthp, heightp = window.get_geometry()
+		return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
+
+	def from_json(self, json):
+		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
+		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
+		self.function_key = json['function'] if 'function' in json else self.function_key
+
+	def to_json(self):
+		return {
+			'nmaster': self.nmaster,
+			'mfact': self.mfact,
+			'function': self.function_key
+		}
+
+	def print(self):
+		print('monitor: {} {} {} {}'.format(self.wx, self.wy, self.ww, self.wh))
+
+	def next(self):
+		n_monitors = Gdk.Display.get_default().get_n_monitors()
+
+		if n_monitors > 2:
+			print('BETA VERSION WARN: no support for more than 2 monitors yet.')
+		# While it seams easy to implement, there is no thought on
+		# how the configuration would look like to assign a position for
+		# each monitor on the stack.
+		# For now, the Gdk flag does the job for since the second monitor
+		# plainly is the one not flagged as primary.
+
+		if n_monitors == 2 and self.primary:
+			if not self.pointer:
+				self.pointer = Monitor(nmaster=0, primary=False)
+			return self.pointer
+		else:
+			return None
+
+
 class Monitors:
 
 	primary_monitors: Dict[int, Monitor] = {}
@@ -321,7 +398,7 @@ class ActiveMonitor:
 		if active.function_key != new:
 			self.last_layout_key = active.function_key
 		active.function_key = new
-		apply(monitors, windows)
+		active.apply()
 
 	@statefull
 	def gap(self, user_event: UserEvent):
@@ -329,9 +406,13 @@ class ActiveMonitor:
 		where = parameters[0]
 		pixels = int(parameters[1])
 		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
-		monitors.get_active().update_work_area()
-		windows.staging = True
-		apply(monitors, windows)
+		monitor = monitors.get_active()
+		while monitor:
+			monitors.get_active().update_work_area()
+			# TODO: remove staging logic
+			windows.staging = True
+			monitor.apply()
+			monitor = monitor.next()
 
 	def complete_gap_options(self, user_event: UserEvent):
 		input = user_event.vim_command_parameter.lower()
@@ -340,15 +421,17 @@ class ActiveMonitor:
 	@statefull
 	@persistent
 	def setmfact(self, user_event: UserEvent):
-		monitors.get_active().increase_master_area(increment=user_event.parameters[0])
-		apply(monitors, windows)
+		monitor = monitors.get_active()
+		monitor.increase_master_area(increment=user_event.parameters[0])
+		monitor.apply()
 
 	@statefull
 	@persistent
 	def incnmaster(self, user_event: UserEvent):
-		monitors.get_active().increment_master(
+		monitor = monitors.get_active()
+		monitor.increment_master(
 			increment=user_event.parameters[0], upper_limit=len(windows.get_active_stack()))
-		apply(monitors, windows)
+		monitor.apply()
 
 
 class ActiveWindow:
@@ -453,7 +536,7 @@ class ActiveWindow:
 			stack.insert(0, stack.pop(old_index))
 		active_window.xid = stack[0]
 		windows.staging = True
-		apply(monitors, windows)
+		monitor.apply()
 
 	@statefull
 	@persistent
@@ -462,26 +545,37 @@ class ActiveWindow:
 		if not active:
 			return
 		direction = user_event.parameters[0]
-
-		stack = windows.get_active_stack()
-		old_index = stack.index(active.get_xid())
-		new_index = windows.get_stack_index(direction)
+		monitor = monitors.get_active()
+		old_index = monitor.index(active.get_xid())
+		new_index = monitor.index(active.get_xid(), direction)
 
 		if new_index != old_index:
+			stack = monitor.stack
 			stack.insert(new_index, stack.pop(old_index))
-			apply(monitors, windows)
+			monitor.apply()
+
+	@statefull
+	def focusstack(self, user_event: UserEvent):
+		active = get_active_managed_window()
+		if not active:
+			return
+		direction = user_event.parameters[0]
+		monitor = monitors.get_active()
+		new_index = monitor.index(active.get_xid(), direction)
+		active_window.change_to(monitor.stack[new_index])
 
 	@statefull
 	@persistent
 	def killclient(self, user_event: UserEvent):
 		active_window = self.get_wnck_window()
 		if active_window:
-			stack = windows.get_active_stack()
+			monitor = monitors.get_active()
+			stack = monitor.stack
 			index = stack.index(get_active_managed_window().get_xid())
 			windows.remove(active_window, user_event.time)
 			self.xid = stack[min(index, len(stack) - 1)]
 			windows.staging = True
-			apply(monitors, windows)
+			monitor.apply()
 
 	@statefull
 	def focus_right(self, c_in):
@@ -534,14 +628,6 @@ class ActiveWindow:
 		self.xid = next_window.get_xid()
 		windows.staging = True
 
-	@statefull
-	def focusstack(self, user_event: UserEvent):
-		if get_active_managed_window():
-			stack = windows.get_active_stack()
-			direction = user_event.parameters[0]
-			new_index = windows.get_stack_index(direction)
-			active_window.change_to(stack[new_index])
-
 
 class Axis:
 	position_mask: Wnck.WindowMoveResizeMask
@@ -593,7 +679,10 @@ def read_user_config(config_json: Dict, screen: Wnck.Screen):
 
 def start():
 	windows.apply_decoration_config()
-	apply(monitors, windows)
+	monitor = monitors.get_primary()
+	while monitor:
+		monitor.apply()
+		monitor = monitor.next()
 
 
 def persist():
@@ -620,6 +709,7 @@ def persist():
 # Internal API
 #
 def resume():
+	from pocoy.layout import FUNCTIONS_MAP
 	resume = ''
 	for wn in windows.buffers:
 		gdk_w = gdk_window_for(wn)
