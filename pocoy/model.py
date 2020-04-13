@@ -161,10 +161,10 @@ class Windows:
 	def find_by_name(self, name):
 		return next((w for w in self.buffers if name.lower().strip() in w.get_name().lower()), None)
 
-	def complete(self, c_in: UserEvent):
-		if not c_in.vim_command_spacer:
+	def complete(self, user_event: UserEvent):
+		if not user_event.vim_command_spacer:
 			return None
-		name = c_in.vim_command_parameter
+		name = user_event.vim_command_parameter
 		names = map(lambda x: x.get_name().strip(), self.buffers)
 		filtered = filter(lambda x: name.lower().strip() in x.lower(), names)
 		return list(filtered)
@@ -186,7 +186,7 @@ class Windows:
 
 	@statefull
 	def activate(self, user_event: UserEvent):
-		buffer_number_match = re.match(r'^\s*(buffer|b)\s*([0-9]+)\s*$', c_in.text)
+		buffer_number_match = re.match(r'^\s*(buffer|b)\s*([0-9]+)\s*$', user_event.text)
 		if buffer_number_match:
 			buffer_number = buffer_number_match.group(2)
 			index = int(buffer_number) - 1
@@ -205,34 +205,34 @@ class Windows:
 				return messages.Message('No matching buffer for ' + window_title, 'error')
 
 	@statefull
-	def delete(self, c_in):
+	def delete(self, user_event: UserEvent):
 
-		if not c_in.vim_command_parameter:
+		if not user_event.vim_command_parameter:
 			if active_window.xid:
-				self.remove(active_window.get_wnck_window(), c_in.time)
+				self.remove(active_window.get_wnck_window(), user_event.time)
 				self.staging = True
 				return
 			return messages.Message('There is no active window', 'error')
 
-		if re.match(r'^([0-9]+\s*)+$', c_in.vim_command_parameter):
+		if re.match(r'^([0-9]+\s*)+$', user_event.vim_command_parameter):
 			to_delete = []
-			for number in re.findall(r'\d+', c_in.vim_command_parameter):
+			for number in re.findall(r'\d+', user_event.vim_command_parameter):
 				index = int(number) - 1
 				if index < len(self.buffers):
 					to_delete.append(self.buffers[index])
 				else:
 					return messages.Message('No buffers were deleted', 'error')
 			for window in to_delete:
-				self.remove(window, c_in.time)
+				self.remove(window, user_event.time)
 			self.staging = True if to_delete else False
 			return
 
-		w = self.find_by_name(c_in.vim_command_parameter)
+		w = self.find_by_name(user_event.vim_command_parameter)
 		if w:
-			self.remove(w, c_in.time)
+			self.remove(w, user_event.time)
 			self.staging = True
 		else:
-			return messages.Message('No matching buffer for ' + c_in.vim_command_parameter, 'error')
+			return messages.Message('No matching buffer for ' + user_event.vim_command_parameter, 'error')
 
 	@statefull
 	def geometry(self, user_event: UserEvent):
@@ -278,7 +278,7 @@ class ActiveWindow:
 			windows.staging = True
 
 	@statefull
-	def only(self, c_in):
+	def only(self, user_event: UserEvent):
 		for w in windows.visible.copy():
 			if self.xid != w.get_xid():
 				w.minimize()
@@ -286,7 +286,7 @@ class ActiveWindow:
 		windows.staging = True
 
 	@statefull
-	def minimize(self, c_in):
+	def minimize(self, user_event: UserEvent):
 		if self.xid:
 			active_window = self.get_wnck_window()
 			active_window.minimize()
@@ -295,25 +295,25 @@ class ActiveWindow:
 			windows.staging = True
 
 	@statefull
-	def maximize(self, c_in):
+	def maximize(self, user_event: UserEvent):
 		if self.xid:
 			self.get_wnck_window().maximize()
 			windows.staging = True
 
 	@statefull
-	def move_right(self, c_in):
+	def move_right(self, user_event: UserEvent):
 		self._snap_active_window(HORIZONTAL, 0.5)
 
 	@statefull
-	def move_left(self, c_in):
+	def move_left(self, user_event: UserEvent):
 		self._snap_active_window(HORIZONTAL, 0)
 
 	@statefull
-	def move_up(self, c_in):
+	def move_up(self, user_event: UserEvent):
 		self._snap_active_window(VERTICAL, 0)
 
 	@statefull
-	def move_down(self, c_in):
+	def move_down(self, user_event: UserEvent):
 		self._snap_active_window(VERTICAL, 0.5)
 
 	def _snap_active_window(self, axis, position):
@@ -327,13 +327,13 @@ class ActiveWindow:
 		windows.staging = True
 
 	@statefull
-	def centralize(self, c_in):
+	def centralize(self, user_event: UserEvent):
 		resize(self.get_wnck_window(), l=0.1, t=0.1, w=0.8, h=0.8)
 		windows.staging = True
 
 	@statefull
-	def decorate(self, c_in):
-		decoration_parameter = c_in.vim_command_parameter
+	def decorate(self, user_event: UserEvent):
+		decoration_parameter = user_event.vim_command_parameter
 		if decoration_parameter in DECORATION_MAP.keys():
 			opt = DECORATION_MAP[decoration_parameter]
 		gdk_window = gdk_window_for(self.get_wnck_window())
@@ -398,23 +398,23 @@ class ActiveWindow:
 			monitor.apply()
 
 	@statefull
-	def focus_right(self, c_in):
+	def focus_right(self, user_event: UserEvent):
 		self.move_focus(1, HORIZONTAL)
 
 	@statefull
-	def focus_left(self, c_in):
+	def focus_left(self, user_event: UserEvent):
 		self.move_focus(-1, HORIZONTAL)
 
 	@statefull
-	def focus_up(self, c_in):
+	def focus_up(self, user_event: UserEvent):
 		self.move_focus(-1, VERTICAL)
 
 	@statefull
-	def focus_down(self, c_in):
+	def focus_down(self, user_event: UserEvent):
 		self.move_focus(1, VERTICAL)
 
 	@statefull
-	def focus_previous(self, c_in):
+	def focus_previous(self, user_event: UserEvent):
 		stack = list(filter(lambda x: x in windows.visible, Wnck.Screen.get_default().get_windows_stacked()))
 		i = stack.index(self.get_wnck_window())
 		self.xid = stack[i - 1].get_xid()
@@ -441,8 +441,8 @@ class ActiveWindow:
 		windows.staging = True
 
 	@statefull
-	def focus_next(self, c_in):
-		direction = 1 if not c_in or Gdk.keyval_name(c_in.keyval).islower() else -1
+	def focus_next(self, user_event: UserEvent):
+		direction = 1 if not user_event or Gdk.keyval_name(user_event.keyval).islower() else -1
 		i = windows.line.index(self.get_wnck_window())
 		next_window = windows.line[(i + direction) % len(windows.line)]
 		self.xid = next_window.get_xid()
