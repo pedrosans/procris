@@ -506,10 +506,16 @@ class Monitor:
 		self.function_key = json['function'] if 'function' in json else self.function_key
 
 	def to_json(self):
+		stack = self.stack
+		stack_json = {}
+		for xid in stack:
+			stack_json[str(xid)] = {
+				'name': windows.window_by_xid[xid].get_name(), 'index': stack.index(xid)}
 		return {
 			'nmaster': self.nmaster,
 			'mfact': self.mfact,
-			'function': self.function_key
+			'function': self.function_key,
+			'stack': stack_json
 		}
 
 	def print(self):
@@ -686,22 +692,18 @@ def start():
 
 
 def persist():
-	props = {'workspaces': []}
-	for workspace_number in ():
-		stack: List[int] = windows.stacks[workspace_number]
-		stack_json = {}
-		for xid in stack:
-			stack_json[str(xid)] = {'name': windows.window_by_xid[xid].get_name(), 'index': stack.index(xid)}
+	screen = Wnck.Screen.get_default()
+	workspaces: List[Dict] = []
+	props = {'workspaces': workspaces}
 
-		props['workspaces'].append({
-			'stack': stack_json,
-			'monitors': []
-		})
-
-		monitor: Monitor = monitors.primary_monitors[workspace_number]
+	for workspace in screen.get_workspaces():
+		workspace_json = {'monitors': []}
+		workspaces.append(workspace_json)
+		monitor = monitors.get_primary(workspace)
 		while monitor:
-			props['workspaces'][workspace_number]['monitors'].append(monitor.to_json())
+			workspace_json['monitors'].append(monitor.to_json())
 			monitor = monitor.next()
+
 	state.persist_workspace(props)
 
 
