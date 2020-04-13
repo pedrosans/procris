@@ -47,7 +47,6 @@ def persistent(function):
 
 class Windows:
 
-	stacks: Dict[int, List[int]] = {}
 	window_by_xid: Dict[int, Wnck.Window] = {}
 
 	def __init__(self):
@@ -89,25 +88,34 @@ class Windows:
 		self.line = sorted(self.visible, key=sort_line)
 
 		for workspace in screen.get_workspaces():
+			monitor = monitors.get_primary(workspace)
+			while monitor:
+				stack = monitor.stack
+				monitor = monitor.next()
+
+		for workspace in screen.get_workspaces():
 			self._read_workspace(screen, workspace)
 
 	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace):
-		stack: List[int] = self.stack_for(workspace)
+		for i in range(Gdk.Display.get_default().get_n_monitors()):
+			gdk_monitor = Gdk.Display.get_default().get_monitor(i)
+			self._read_workspace_monitor(screen, workspace, gdk_monitor)
 
-		# add window listed in this workspace
-		stack.extend(map(lambda w: w.get_xid(), filter(
-			lambda w: w.get_xid() not in stack and is_visible(w, workspace) and is_managed(w),
-			reversed(screen.get_windows_stacked()))))
+	def _read_workspace_monitor(self, screen: Wnck.Screen, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
+		primary = monitors.get_primary(workspace)
+		monitor = primary if gdk_monitor.is_primary() else primary.next()
+		stack = monitor.stack
 
-		# remove any that no longer is in this workspace
-		for outsider in filter(
-				lambda xid: xid not in self.window_by_xid or not is_visible(self.window_by_xid[xid], workspace),
-				stack.copy()):
-			stack.remove(outsider)
+		def monitor_filter(w):
+			return w.get_xid() not in stack and is_visible(w, workspace, gdk_monitor) and is_managed(w)
 
-		copy = stack.copy()
-		primary_monitor = monitors.get_primary(workspace)
-		stack.sort(key=lambda xid: copy.index(xid) + (10000 if not primary_monitor.contains(self.window_by_xid[xid]) else 0))
+		for old in filter(lambda xid: xid not in self.window_by_xid, stack.copy()):
+			stack.remove(old)
+
+		for outside in filter(lambda xid: not is_visible(self.window_by_xid[xid], workspace, gdk_monitor), stack.copy()):
+			stack.remove(outside)
+
+		stack.extend(map(lambda w: w.get_xid(), filter(monitor_filter, reversed(screen.get_windows_stacked()))))
 
 	#
 	# API
@@ -125,9 +133,7 @@ class Windows:
 		return self.stack_for(Wnck.Screen.get_default().get_active_workspace())
 
 	def stack_for(self, workspace: Wnck.Workspace) -> List[int]:
-		if workspace.get_number() not in self.stacks:
-			self.stacks[workspace.get_number()] = []
-		return self.stacks[workspace.get_number()]
+		return monitors.get_primary(workspace).stack
 
 	def get_active_windows_as_list(self) -> List[Wnck.Window]:
 		return list(map(lambda xid: self.window_by_xid[xid], self.get_active_stack()))
@@ -139,16 +145,12 @@ class Windows:
 		new_index = old_index + increment
 		return min(max(new_index, 0), len(stack) - 1)
 
+	# TODO: does need to clean stacked xid???
 	def remove(self, window, time):
 		window.close(time)
 		if window in self.visible:
 			self.remove_from_visible(window)
 		self.buffers.remove(window)
-		for stack_key in self.stacks.keys():
-			xid = window.get_xid()
-			stack = self.stacks[stack_key]
-			if xid in stack:
-				stack.remove(xid)
 		active_window.read_screen()
 
 	def remove_from_visible(self, window: Wnck.Window):
@@ -439,7 +441,8 @@ class ActiveWindow:
 	@persistent
 	def zoom(self, user_event: UserEvent):
 		active = get_active_managed_window()
-		stack = windows.get_active_stack()
+		monitor = monitors.get_active(active)
+		stack = monitor.stack
 		if not active or len(stack) < 2:
 			return
 
@@ -570,7 +573,7 @@ def read_user_config(config_json: Dict, screen: Wnck.Screen):
 	for workspace_index in range(min(number_of_workspaces, configured_workspaces)):
 		workspace_json = config_json['workspaces'][workspace_index]
 
-		if 'stack' in workspace_json:
+		if False and 'stack' in workspace_json:
 			stack = windows.stacks[workspace_index]
 			copy = stack.copy()
 			stack.sort(
@@ -595,7 +598,7 @@ def start():
 
 def persist():
 	props = {'workspaces': []}
-	for workspace_number in windows.stacks.keys():
+	for workspace_number in ():
 		stack: List[int] = windows.stacks[workspace_number]
 		stack_json = {}
 		for xid in stack:

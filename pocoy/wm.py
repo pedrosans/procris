@@ -22,7 +22,7 @@ import pocoy.state as config
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 from datetime import datetime
-from typing import Callable
+from typing import Callable, List
 from pocoy import state, scratchpads
 
 
@@ -58,19 +58,26 @@ def is_buffer(window: Wnck.Window) -> bool:
 	return window.get_pid() != os.getpid() and not window.is_skip_tasklist()
 
 
-def is_visible(window: Wnck.Window, workspace: Wnck.Workspace = None) -> bool:
+# TODO: rename to visible_in
+def is_visible(window: Wnck.Window, workspace: Wnck.Workspace = None, monitor: Gdk.Monitor = None) -> bool:
 	workspace = workspace if workspace else Wnck.Screen.get_default().get_active_workspace()
 	return (
 			is_buffer(window)
 			and not window.is_minimized()
 			and window.is_in_viewport(workspace)
-			and window.is_visible_on_workspace(workspace))
+			and window.is_visible_on_workspace(workspace)
+			and (not monitor or intersect(window, monitor))
+	)
+
+
+def intersect(window: Wnck.Window, monitor: Gdk.Monitor):
+	rect = monitor.get_workarea()
+	xp, yp, widthp, heightp = window.get_geometry()
+	return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
 
 
 def is_on_primary_monitor(window: Wnck.Window):
-	rect = Gdk.Display.get_default().get_primary_monitor().get_workarea()
-	xp, yp, widthp, heightp = window.get_geometry()
-	return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
+	return intersect(window, Gdk.Display.get_default().get_primary_monitor())
 
 
 # TODO: rename to get_top_window
@@ -267,6 +274,7 @@ class Monitor:
 		self.mfact: float = mfact
 		self.wx = self.wy = self.ww = self.wh = None
 		self.visible_area: Gdk.Rectangle = None
+		self.stack: List[int] = []
 		self.pointer: Monitor = None
 
 	def set_rectangle(self, rectangle: Gdk.Rectangle):
