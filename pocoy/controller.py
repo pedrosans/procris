@@ -16,7 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi
 from pocoy import wm, scratchpads
-from pocoy.layout import apply
 from pocoy.wm import DirtyState, is_managed, is_visible, gdk_window_for, Trap, resize
 from functools import reduce
 from typing import List, Dict, Callable
@@ -28,23 +27,22 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 	gdk_window_for(window).flush()
 	windows.read(screen, force_update=False)
 	_install_present_window_handlers(screen)
-	if not is_visible(window, screen.get_active_workspace()):
-		return
 	if window.get_name() in scratchpads.names():
 		scratchpad = scratchpads.get(window.get_name())
 		primary = Gdk.Display.get_default().get_primary_monitor().get_workarea()
 		resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
 	elif is_managed(window):
-		stack = windows.get_active_stack()
+		monitor = monitors.get_active(window)
+		stack = monitor.stack
 		copy = stack.copy()
 		stack.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
 		notify_layout_change()
-	try:
-		with Trap():
-			apply(monitors, windows)
-			windows.apply_decoration_config()
-	except DirtyState:
-		pass  # It was just a try
+		try:
+			with Trap():
+				monitor.apply()
+				windows.apply_decoration_config()
+		except DirtyState:
+			pass  # It was just a try
 
 
 def _state_changed(window: Wnck.Window, changed_mask, new_state):
@@ -53,11 +51,12 @@ def _state_changed(window: Wnck.Window, changed_mask, new_state):
 		window.unmaximize()
 	if changed_mask & Wnck.WindowState.MINIMIZED and is_managed(window):
 		windows.read(window.get_screen(), force_update=False)
-		stack = windows.get_active_stack()
+		monitor = monitors.get_active(window)
+		stack = monitor.stack
 		if is_visible(window):
 			old_index = stack.index(window.get_xid())
 			stack.insert(0, stack.pop(old_index))
-		apply(monitors, windows)
+		monitor.apply()
 		notify_layout_change()
 
 
@@ -68,7 +67,11 @@ def _window_closed(screen: Wnck.Screen, window):
 			del handlers_by_xid[window.get_xid()]
 		if is_visible(window) and is_managed(window):
 			windows.read(screen, force_update=False)
-			apply(monitors, windows)
+			monitor = monitors.get_primary(window.get_workspace())
+			while not monitor.contains(window):
+				monitor = monitor.next()
+			if monitor:
+				monitor.apply()
 	except DirtyState:
 		pass  # It was just a try
 

@@ -16,7 +16,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import traceback, gi, os, re
 import pocoy.messages as messages
-import pocoy.state as state
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk, Gtk
 from typing import List, Dict, Callable
@@ -127,16 +126,6 @@ class Windows:
 			active_window.get_wnck_window().activate_transient(event_time)
 		self.staging = False
 
-	# TODO: keep the 'stack' name?
-	def get_active_stack(self) -> List[int]:
-		return self.stack_for(Wnck.Screen.get_default().get_active_workspace())
-
-	def stack_for(self, workspace: Wnck.Workspace) -> List[int]:
-		return monitors.get_primary(workspace).stack
-
-	def get_active_windows_as_list(self) -> List[Wnck.Window]:
-		return list(map(lambda xid: self.window_by_xid[xid], self.get_active_stack()))
-
 	# TODO: does need to clean stacked xid???
 	def remove(self, window, time):
 		window.close(time)
@@ -239,7 +228,10 @@ class Windows:
 		# TODO: if the first parameter remains the lib, can convert all to int
 		parameters = list(map(lambda word: int(word), user_event.vim_command_parameter.split()))
 		lib = parameters[0]
-		window = self.get_active_windows_as_list()[parameters[1]]
+		index = parameters[1]
+		monitor = monitors.get_active()
+		window = list(map(lambda xid: self.window_by_xid[xid], monitor.stack))[index]
+
 		x = parameters[2]
 		y = parameters[3]
 		gdk_monitor = Gdk.Display.get_default().get_monitor_at_point(x, y)
@@ -490,10 +482,10 @@ class Monitor:
 		self.mfact = max(0.1, self.mfact)
 		self.mfact = min(0.9, self.mfact)
 
-	def increment_master(self, increment=None, upper_limit=None):
+	def increment_master(self, increment=None):
 		self.nmaster += increment
 		self.nmaster = max(0, self.nmaster)
-		self.nmaster = min(upper_limit, self.nmaster)
+		self.nmaster = min(len(self.stack), self.nmaster)
 
 	def contains(self, window: Wnck.Window):
 		rect = self.visible_area
@@ -561,7 +553,7 @@ class Monitors:
 	def get_active(self, window: Wnck.Window = None) -> Monitor:
 		if not window:
 			window = get_active_managed_window()
-		monitor: Monitor = self.get_primary(Wnck.Screen.get_default().get_active_workspace())
+		monitor: Monitor = self.get_primary(window.get_workspace())
 		return monitor if not window or monitor_for(window).is_primary() else monitor.next()
 
 	def get_primary(self, workspace: Wnck.Workspace = None) -> Monitor:
@@ -585,7 +577,8 @@ class ActiveMonitor:
 		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
 		active = get_active_managed_window()
 		if promote_selected and active:
-			stack = windows.get_active_stack()
+			monitor = monitors.get_active(active)
+			stack = monitor.stack
 			old_index = stack.index(active.get_xid())
 			stack.insert(0, stack.pop(old_index))
 		if user_event.parameters:
@@ -630,8 +623,7 @@ class ActiveMonitor:
 	@persistent
 	def incnmaster(self, user_event: UserEvent):
 		monitor = monitors.get_active()
-		monitor.increment_master(
-			increment=user_event.parameters[0], upper_limit=len(windows.get_active_stack()))
+		monitor.increment_master(increment=user_event.parameters[0])
 		monitor.apply()
 
 
