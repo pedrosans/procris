@@ -580,23 +580,22 @@ class ActiveMonitor:
 	def setlayout(self, user_event: UserEvent):
 		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
 		active = get_active_managed_window()
+		monitor = monitors.get_active(active)
+		stack = monitor.stack
 		if promote_selected and active:
-			monitor = monitors.get_active(active)
-			stack = monitor.stack
 			old_index = stack.index(active.get_xid())
 			stack.insert(0, stack.pop(old_index))
-		if user_event.parameters:
-			function_key = user_event.parameters[0]
-		else:
-			function_key = self.last_layout_key
-		self._set_function(function_key)
 
-	def _set_function(self, new):
-		active = monitors.get_active()
-		if active.function_key != new:
-			self.last_layout_key = active.function_key
-		active.function_key = new
-		active.apply(unmaximize=True)
+		if user_event.parameters:
+			new_layout = user_event.parameters[0]
+		else:
+			new_layout = self.last_layout_key
+
+		if monitor.function_key != new_layout:
+			self.last_layout_key = monitor.function_key
+
+		monitor.function_key = new_layout
+		monitor.apply(unmaximize=True)
 
 	@statefull
 	def gap(self, user_event: UserEvent):

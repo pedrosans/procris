@@ -90,7 +90,7 @@ class StatusIcon:
 		self._reloading = True
 
 		iconname = configurations.get_desktop_icon()
-		function_key = self.monitors.get_active().function_key
+		function_key = self.monitors.get_primary().function_key
 
 		for item in self.icons_submenu.get_children():
 			item.set_active(item.icon_style == iconname)
