@@ -358,11 +358,11 @@ class ActiveWindow:
 			return
 		direction = user_event.parameters[0]
 		monitor = monitors.get_active()
-		old_index = monitor.index(active.get_xid())
-		new_index = monitor.index(active.get_xid(), direction)
+		stack = monitor.stack
+		old_index = stack.index(active.get_xid())
+		new_index = (old_index + direction) % len(stack)
 
 		if new_index != old_index:
-			stack = monitor.stack
 			stack.insert(new_index, stack.pop(old_index))
 			monitor.apply()
 
@@ -373,8 +373,12 @@ class ActiveWindow:
 			return
 		direction = user_event.parameters[0]
 		monitor = monitors.get_active()
-		new_index = monitor.index(active.get_xid(), direction)
-		active_window.change_to(monitor.stack[new_index])
+		stack = monitor.stack
+
+		old_index = stack.index(active.get_xid())
+		new_index = (old_index + direction) % len(stack)
+
+		active_window.change_to(stack[new_index])
 
 	@statefull
 	@persistent
