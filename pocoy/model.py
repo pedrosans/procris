@@ -460,11 +460,15 @@ class Monitor:
 		new_index = old_index + increment
 		return min(max(new_index, 0), len(self.stack) - 1)
 
-	def apply(self):
+	def apply(self, unmaximize: bool = False):
 		from pocoy.layout import FUNCTIONS_MAP
 		if self.function_key:
-			monitor_windows: List[Wnck.Window] = list(map(lambda xid: windows.window_by_xid[xid], self.stack))
-			FUNCTIONS_MAP[self.function_key](monitor_windows, self)
+			spread_windows: List[Wnck.Window] = list(map(lambda xid: windows.window_by_xid[xid], self.stack))
+			if unmaximize:
+				for window in spread_windows:
+					if window.is_maximized():
+						window.unmaximize()
+			FUNCTIONS_MAP[self.function_key](spread_windows, self)
 
 	def set_rectangle(self, rectangle: Gdk.Rectangle):
 		self.visible_area = rectangle
@@ -592,7 +596,7 @@ class ActiveMonitor:
 		if active.function_key != new:
 			self.last_layout_key = active.function_key
 		active.function_key = new
-		active.apply()
+		active.apply(unmaximize=True)
 
 	@statefull
 	def gap(self, user_event: UserEvent):
@@ -679,7 +683,7 @@ def start():
 	windows.apply_decoration_config()
 	monitor = monitors.get_primary()
 	while monitor:
-		monitor.apply()
+		monitor.apply(unmaximize=True)
 		monitor = monitor.next()
 
 
