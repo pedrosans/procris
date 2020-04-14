@@ -353,13 +353,13 @@ class ActiveWindow:
 	@statefull
 	@persistent
 	def pushstack(self, user_event: UserEvent):
-		active = get_active_managed_window()
-		if not active:
-			return
 		direction = user_event.parameters[0]
-		monitor = monitors.get_active()
+		window = get_active_managed_window()
+		if not window:
+			return
+		monitor = monitors.get_active(window)
 		stack = monitor.stack
-		old_index = stack.index(active.get_xid())
+		old_index = stack.index(window.get_xid())
 		new_index = (old_index + direction) % len(stack)
 
 		if new_index != old_index:
@@ -367,15 +367,33 @@ class ActiveWindow:
 			monitor.apply()
 
 	@statefull
-	def focusstack(self, user_event: UserEvent):
-		active = get_active_managed_window()
-		if not active:
-			return
+	@persistent
+	def pushmonitor(self, user_event: UserEvent):
 		direction = user_event.parameters[0]
-		monitor = monitors.get_active()
+		window = get_active_managed_window()
+		if not window:
+			return
+		origin = monitors.get_active(window)
+		destinantion = origin.next() if direction == 1 else monitors.get_primary()
+		if origin is destinantion:
+			return
+
+		origin.stack.remove(window.get_xid())
+		destinantion.stack.append(window.get_xid())
+
+		origin.apply()
+		destinantion.apply()
+
+	@statefull
+	def focusstack(self, user_event: UserEvent):
+		direction = user_event.parameters[0]
+		window = get_active_managed_window()
+		if not window:
+			return
+		monitor = monitors.get_active(window)
 		stack = monitor.stack
 
-		old_index = stack.index(active.get_xid())
+		old_index = stack.index(window.get_xid())
 		new_index = (old_index + direction) % len(stack)
 
 		active_window.change_to(stack[new_index])
