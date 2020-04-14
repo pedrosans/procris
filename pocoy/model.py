@@ -477,11 +477,6 @@ class Monitor:
 		self.stack: List[int] = []
 		self.pointer: Monitor = None
 
-	def index(self, xid: int, increment: int = 0):
-		old_index = self.stack.index(xid)
-		new_index = old_index + increment
-		return min(max(new_index, 0), len(self.stack) - 1)
-
 	def apply(self, unmaximize: bool = False):
 		from pocoy.layout import FUNCTIONS_MAP
 		if self.function_key:
@@ -547,7 +542,7 @@ class Monitor:
 		# While it seams easy to implement, there is no thought on
 		# how the configuration would look like to assign a position for
 		# each monitor on the stack.
-		# For now, the Gdk flag does the job for since the second monitor
+		# For now, the Gdk flag does the job since the second monitor
 		# plainly is the one not flagged as primary.
 
 		if n_monitors == 2 and self.primary:
