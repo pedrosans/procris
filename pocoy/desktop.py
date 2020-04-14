@@ -178,6 +178,9 @@ def connect():
 
 
 def on_layout_changed():
+	if is_connected():
+		status_icon.reload()
+
 	import pocoy.model as model
 	monitors = model.monitors
 	if state.is_desktop_notifications():
@@ -217,10 +220,6 @@ def pipe_property_writing(workspace_properties):
 
 def is_connected():
 	return status_icon
-
-
-def update():
-	status_icon.reload()
 
 
 def unload():

@@ -561,7 +561,7 @@ class Monitors:
 	def get_active(self, window: Wnck.Window = None) -> Monitor:
 		if not window:
 			window = get_active_managed_window()
-		monitor: Monitor = self.get_primary(window.get_workspace())
+		monitor: Monitor = self.get_primary(window.get_workspace() if window else None)
 		return monitor if not window or monitor_for(window).is_primary() else monitor.next()
 
 	def get_primary(self, workspace: Wnck.Workspace = None) -> Monitor:
