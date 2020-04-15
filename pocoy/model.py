@@ -475,14 +475,18 @@ class ActiveWindow:
 # https://valadoc.org/gdk-3.0/Gdk.Monitor.html
 class Monitor:
 
-	def __init__(self, primary: bool = False, nmaster: int = 1, mfact: float = 0.5, function_key: str = 'T'):
+	def __init__(
+			self, primary: bool = False,
+			nmaster: int = 1, mfact: float = 0.5,
+			function_key: str = 'T', strut: List = (0, 0, 0, 0)):
 		self.primary: bool = primary
 		# TODO: rename to layout key
 		self.function_key: str = function_key
 		self.nmaster: int = nmaster
 		self.mfact: float = mfact
+		self.strut: List = strut
 		self.wx = self.wy = self.ww = self.wh = None
-		self.visible_area: Gdk.Rectangle = None
+		self.visible_area: List[int] = [0, 0, 0, 0]
 		self.stack: List[int] = []
 		self.pointer: Monitor = None
 
@@ -497,15 +501,22 @@ class Monitor:
 			FUNCTIONS_MAP[self.function_key](spread_windows, self)
 
 	def set_rectangle(self, rectangle: Gdk.Rectangle):
-		self.visible_area = rectangle
+		self.visible_area = [
+			max(rectangle.x, self.strut[0]),
+			max(rectangle.y, self.strut[1]),
+			rectangle.width, rectangle.height]
+		if rectangle.x < self.strut[0]:
+			self.visible_area[2] -= self.strut[0] - rectangle.x
+		if rectangle.y < self.strut[1]:
+			self.visible_area[3] -= self.strut[1] - rectangle.y
 		self.update_work_area()
 
 	def update_work_area(self):
 		outer_gap = state.get_outer_gap()
-		self.wx = self.visible_area.x + outer_gap
-		self.wy = self.visible_area.y + outer_gap
-		self.ww = self.visible_area.width - outer_gap * 2
-		self.wh = self.visible_area.height - outer_gap * 2
+		self.wx = max(self.visible_area[0], self.strut[0]) + outer_gap
+		self.wy = max(self.visible_area[1], self.strut[1]) + outer_gap
+		self.ww = self.visible_area[2] - outer_gap * 2
+		self.wh = self.visible_area[3] - outer_gap * 2
 
 	def increase_master_area(self, increment: float = None):
 		self.mfact += increment
@@ -526,6 +537,7 @@ class Monitor:
 		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
 		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
 		self.function_key = json['function'] if 'function' in json else self.function_key
+		self.strut = json['strut'] if 'strut' in json else self.strut
 
 	def to_json(self):
 		stack = self.stack
@@ -537,6 +549,7 @@ class Monitor:
 			'nmaster': self.nmaster,
 			'mfact': self.mfact,
 			'function': self.function_key,
+			'strut': self.strut,
 			'stack': stack_json
 		}
 
@@ -586,12 +599,14 @@ class Monitors:
 		monitor: Monitor = self.get_primary(window.get_workspace() if window else None)
 		return monitor if not window or monitor_for(window).is_primary() else monitor.next()
 
-	def get_primary(self, workspace: Wnck.Workspace = None) -> Monitor:
-		if not workspace:
-			workspace = Wnck.Screen.get_default().get_active_workspace()
-		if workspace.get_number() not in self.primary_monitors:
-			self.primary_monitors[workspace.get_number()] = Monitor(primary=True)
-		return self.primary_monitors[workspace.get_number()]
+	def get_primary(self, workspace: Wnck.Workspace = None, index: int = None) -> Monitor:
+		if index is None:
+			if not workspace:
+				workspace = Wnck.Screen.get_default().get_active_workspace()
+			index = workspace.get_number()
+		if index not in self.primary_monitors:
+			self.primary_monitors[index] = Monitor(primary=True)
+		return self.primary_monitors[index]
 
 
 class ActiveMonitor:
@@ -631,9 +646,7 @@ class ActiveMonitor:
 		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
 		monitor = monitors.get_active()
 		while monitor:
-			monitors.get_active().update_work_area()
-			# TODO: remove staging logic
-			windows.staging = True
+			monitor.update_work_area()
 			monitor.apply()
 			monitor = monitor.next()
 
@@ -670,7 +683,6 @@ class Axis:
 
 def load(screen: Wnck.Screen):
 	import pocoy.state as state
-	windows.read(screen)
 	try:
 		workspace_config: Dict = state.get_workspace_config()
 		read_user_config(workspace_config, screen)
@@ -678,12 +690,12 @@ def load(screen: Wnck.Screen):
 		print('Unable to the last execution state, using default ones.')
 		traceback.print_exc()
 		traceback.print_stack()
+	windows.read(screen)
 
 
 def read_user_config(config_json: Dict, screen: Wnck.Screen):
-	number_of_workspaces = len(screen.get_workspaces())
 	configured_workspaces = len(config_json['workspaces'])
-	for workspace_index in range(min(number_of_workspaces, configured_workspaces)):
+	for workspace_index in range(configured_workspaces):
 		workspace_json = config_json['workspaces'][workspace_index]
 
 		if False and 'stack' in workspace_json:
@@ -696,10 +708,9 @@ def read_user_config(config_json: Dict, screen: Wnck.Screen):
 				else copy.index(xid))
 
 		monitor_index = 0
-		monitor: Monitor = monitors.primary_monitors[workspace_index]
+		monitor: Monitor = monitors.get_primary(index=workspace_index)
 		while monitor:
-			if monitor_index < len(workspace_json['monitors']):
-				monitor.from_json(workspace_json['monitors'][monitor_index])
+			monitor.from_json(workspace_json['monitors'][monitor_index])
 			monitor_index += 1
 			monitor = monitor.next()
 

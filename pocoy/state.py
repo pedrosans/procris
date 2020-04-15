@@ -56,13 +56,14 @@ def load(config_module_parameter: str = None):
 
 def set_defaults(origin, destination):
 	for key in origin.keys():
-		if key not in destination:
+		if key not in destination or not destination[key]:
 			destination[key] = origin[key]
-		elif not destination[key] and origin[key]:
-			if isinstance(destination[key], type({})):
-				set_defaults(origin[key], destination[key])
-			elif isinstance(destination[key], type([])):
-				destination[key] = origin[key]
+		elif isinstance(origin[key], type({})):
+			set_defaults(origin[key], destination[key])
+		elif isinstance(origin[key], type([])):
+			for i in range(min(len(origin[key]), len(destination[key]))):
+				if isinstance(origin[key][i], type({})):
+					set_defaults(origin[key][i], destination[key][i])
 
 
 def reload():
