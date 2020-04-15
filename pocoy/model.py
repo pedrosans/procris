@@ -775,7 +775,7 @@ def resume():
 				monitor.wx, monitor.wy, monitor.ww, monitor.wh)
 
 			resume += '\t\t[Stack]\t\t('
-			for xid in filter(lambda _xid: monitor.contains(windows.window_by_xid[_xid]), windows.stacks[workspace.get_number()]):
+			for xid in filter(lambda _xid: monitor.contains(windows.window_by_xid[_xid]), monitor.stack):
 				resume += '{:10} '.format(xid)
 			resume += ')\n'
 
