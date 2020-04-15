@@ -87,7 +87,7 @@ def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
 def _handle_x_event(event: Gdk.Event):
 	Gtk.main_do_event(event)
 	event_type = event.get_event_type()
-	if event_type in (Gdk.EventType.MAP, Gdk.EventType.CONFIGURE):
+	if event_type in (Gdk.EventType.MAP, Gdk.EventType.CONFIGURE) and event.window:
 		(configured if event_type == Gdk.EventType.CONFIGURE else mapped).add(event.window.get_xid())
 	elif event_type == Gdk.EventType.PROPERTY_NOTIFY:
 		xid = event.window.get_xid()
