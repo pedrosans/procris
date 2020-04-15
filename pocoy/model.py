@@ -691,7 +691,7 @@ def read_user_config(config_json: Dict, screen: Wnck.Screen):
 
 		monitor_index = 0
 		monitor: Monitor = monitors.get_primary(index=workspace_index)
-		while monitor:
+		while monitor and monitor_index < len(workspace_json['monitors']):
 			monitor.from_json(workspace_json['monitors'][monitor_index])
 			monitor_index += 1
 			monitor = monitor.next()
@@ -699,11 +699,11 @@ def read_user_config(config_json: Dict, screen: Wnck.Screen):
 
 @persistent
 def start():
-	windows.apply_decoration_config()
 	monitor = monitors.get_primary()
 	while monitor:
 		monitor.apply(unmaximize=True)
 		monitor = monitor.next()
+	windows.apply_decoration_config()
 
 
 def persist():
