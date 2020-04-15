@@ -15,6 +15,8 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import traceback, gi, os, re
+from inspect import signature
+
 import pocoy.messages as messages
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk, Gtk
@@ -36,11 +38,18 @@ def statefull(function):
 
 
 def persistent(function):
-	def notify_changes_after(self, user_event: UserEvent):
-		function(self, user_event)
-		import pocoy.controller as controller
-		controller.notify_layout_change()
-	return notify_changes_after
+	import pocoy.controller as controller
+	sig = signature(function)
+	if len(sig.parameters) == 2:
+		def notify_changes_after_method(self, user_event: UserEvent):
+			function(self, user_event)
+			controller.notify_layout_change()
+		return notify_changes_after_method
+	else:
+		def notify_changes_after_function():
+			function()
+			controller.notify_layout_change()
+		return notify_changes_after_function
 
 
 class Windows:
@@ -695,6 +704,7 @@ def read_user_config(config_json: Dict, screen: Wnck.Screen):
 			monitor = monitor.next()
 
 
+@persistent
 def start():
 	windows.apply_decoration_config()
 	monitor = monitors.get_primary()

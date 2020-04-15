@@ -46,6 +46,8 @@ def load(config_module: str = None):
 	terminal.load()
 	state.load(config_module)
 	desktop.load()
+	controller.layout_change_callbacks.append(model.persist)
+	controller.layout_change_callbacks.append(desktop.on_layout_changed)
 	_read_environment(Wnck.Screen.get_default(), state.get_config_module())
 	_configure_process()
 
@@ -75,12 +77,11 @@ def start():
 		print("pocoy is already running")
 		quit()
 
-	remote.export(ipc_handler=message, stop=stop)
 	model.start()
 	controller.connect_to(screen=Wnck.Screen.get_default(), model=model)
+	remote.export(ipc_handler=message, stop=stop)
 	listener.start()
 	desktop.connect()
-	controller.layout_change_callbacks.append(model.persist)
 	Gtk.main()
 	print("Ending pocoy service, pid: {}".format(os.getpid()))
 

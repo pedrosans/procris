@@ -136,16 +136,6 @@ class StatusIcon:
 		self.stop_function()
 
 
-ICONNAME = 'pocoy'
-ICON_STYLES_MAP = {'dark': "Dark icon", 'light': "Light icon"}
-status_icon: StatusIcon = None
-notification: Notify.Notification = None
-PRIMARY_WORKSPACE_LAYOUT =    {'path': '/tmp/primary_workspace_layout'   , 'monitor': 'primary', 'id': 'function'  , 'queue': queue.Queue()}
-PRIMARY_WORKSPACE_NMASTER =   {'path': '/tmp/primary_workspace_nmaster'  , 'monitor': 'primary', 'id': 'nmaster'   , 'queue': queue.Queue()}
-SECONDARY_WORKSPACE_LAYOUT =  {'path': '/tmp/secondary_workspace_layout' , 'monitor': 'secondary', 'id': 'function', 'queue': queue.Queue()}
-SECONDARY_WORKSPACE_NMASTER = {'path': '/tmp/secondary_workspace_nmaster', 'monitor': 'secondary', 'id': 'nmaster' , 'queue': queue.Queue()}
-
-
 # https://lazka.github.io/pgi-docs/Notify-0.7/classes/Notification.html
 # https://developer.gnome.org/notification-spec
 def load():
@@ -172,8 +162,6 @@ def connect():
 	# TODO: pass window and monitor as parameters
 	status_icon = StatusIcon(pocoy.model.windows, pocoy.model.monitors, pocoy.model.active_monitor, stop_function=pocoy.service.stop)
 	status_icon.activate()
-	import pocoy.controller as controller
-	controller.layout_change_callbacks.append(on_layout_changed)
 	start_pipes()
 
 
@@ -183,24 +171,21 @@ def on_layout_changed():
 
 	import pocoy.model as model
 	monitors = model.monitors
+
 	if state.is_desktop_notifications():
-		show_monitor(model.monitors.get_active())
+		show_monitor(monitors.get_active())
 
 	primary = monitors.get_primary()
 	serialized = {'primary': primary.to_json()}
 	if primary.next():
 		serialized['secondary'] = primary.next().to_json()
 
-	for pipe in (
-			PRIMARY_WORKSPACE_LAYOUT, PRIMARY_WORKSPACE_NMASTER,
-			SECONDARY_WORKSPACE_LAYOUT, SECONDARY_WORKSPACE_NMASTER):
+	for pipe in pipes:
 		pipe['queue'].put(serialized)
 
 
 def start_pipes():
-	for pipe in (
-			PRIMARY_WORKSPACE_LAYOUT, PRIMARY_WORKSPACE_NMASTER,
-			SECONDARY_WORKSPACE_LAYOUT, SECONDARY_WORKSPACE_NMASTER):
+	for pipe in pipes:
 		if not os.path.exists(pipe['path']):
 			os.mkfifo(pipe['path'])
 		t = Thread(target=pipe_property_writing(pipe), daemon=True)
@@ -208,14 +193,14 @@ def start_pipes():
 
 
 def pipe_property_writing(workspace_properties):
-	def pipe_writing_service():
+	def write_property_to_pipe():
 		while True:
 			serialized = workspace_properties['queue'].get()
 			with open(workspace_properties['path'], 'w') as f:
-				prop = serialized[workspace_properties['monitor']][workspace_properties['id']]
+				prop = serialized[workspace_properties['monitor']][workspace_properties['property']]
 				f.write(str(prop) + '\n')
 				f.flush()
-	return pipe_writing_service
+	return write_property_to_pipe
 
 
 def is_connected():
@@ -245,3 +230,15 @@ def show_monitor(monitor: Monitor):
 def show(summary: str = 'pocoy', body: str = None, icon: str = 'pocoy'):
 	notification.update(summary, body, icon)
 	notification.show()
+
+
+ICONNAME = 'pocoy'
+ICON_STYLES_MAP = {'dark': "Dark icon", 'light': "Light icon"}
+status_icon = None
+notification = None
+pipes = [
+	{'path': '/tmp/pocoy-monitor-primary-layout', 'monitor': 'primary', 'property': 'function', 'queue': queue.Queue()},
+	{'path': '/tmp/pocoy-monitor-primary-nmaster', 'monitor': 'primary', 'property': 'nmaster', 'queue': queue.Queue()},
+	{'path': '/tmp/pocoy-monitor-secondary-layout', 'monitor': 'secondary', 'property': 'function', 'queue': queue.Queue()},
+	{'path': '/tmp/pocoy-monitor-secondary-nmaster', 'monitor': 'secondary', 'property': 'nmaster', 'queue': queue.Queue()}
+]
