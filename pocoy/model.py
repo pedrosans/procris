@@ -338,16 +338,16 @@ class ActiveWindow:
 		active = get_active_managed_window()
 		monitor = monitors.get_active(active)
 		stack = monitor.stack
-		if not active or len(stack) < 2:
+		if not active:
 			return
-
-		old_index = stack.index(active.get_xid())
-		if old_index == 0:
-			stack.insert(1, stack.pop(old_index))
-		else:
-			stack.insert(0, stack.pop(old_index))
-		active_window.xid = stack[0]
-		windows.staging = True
+		if len(stack) >= 2:
+			old_index = stack.index(active.get_xid())
+			if old_index == 0:
+				stack.insert(1, stack.pop(old_index))
+			else:
+				stack.insert(0, stack.pop(old_index))
+			active_window.xid = stack[0]
+			windows.staging = True
 		monitor.apply()
 
 	@statefull
