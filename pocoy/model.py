@@ -95,12 +95,6 @@ class Windows:
 		self.line = sorted(self.visible, key=sort_line)
 
 		for workspace in screen.get_workspaces():
-			monitor = monitors.get_primary(workspace)
-			while monitor:
-				stack = monitor.stack
-				monitor = monitor.next()
-
-		for workspace in screen.get_workspaces():
 			self._read_workspace(screen, workspace)
 
 	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace):
@@ -531,26 +525,25 @@ class Monitor:
 	def contains(self, window: Wnck.Window):
 		rect = self.visible_area
 		xp, yp, widthp, heightp = window.get_geometry()
-		return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
+		return rect[0] <= xp < (rect[0] + rect[2]) and rect[1] <= yp < (rect[1] + rect[3])
 
 	def from_json(self, json):
 		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
 		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
 		self.function_key = json['function'] if 'function' in json else self.function_key
 		self.strut = json['strut'] if 'strut' in json else self.strut
+		self.stack = list(map(lambda w_dict: w_dict['xid'], json['stack']))if 'stack' in json else self.stack
 
 	def to_json(self):
-		stack = self.stack
-		stack_json = {}
-		for xid in stack:
-			stack_json[str(xid)] = {
-				'name': windows.window_by_xid[xid].get_name(), 'index': stack.index(xid)}
 		return {
 			'nmaster': self.nmaster,
 			'mfact': self.mfact,
 			'function': self.function_key,
 			'strut': self.strut,
-			'stack': stack_json
+			'stack': list(map(
+				lambda xid: {'xid': xid, 'name': windows.window_by_xid[xid].get_name(), 'index': self.stack.index(xid)},
+				self.stack
+			))
 		}
 
 	def print(self):
@@ -581,14 +574,12 @@ class Monitors:
 
 	def read(self, screen: Wnck.Screen):
 		for workspace in screen.get_workspaces():
-			primary_monitor: Monitor = self.get_primary(workspace)
 			for i in range(Gdk.Display.get_default().get_n_monitors()):
-				gdk_monitor = Gdk.Display.get_default().get_monitor(i)
-				if gdk_monitor.is_primary():
-					primary_monitor.set_rectangle(gdk_monitor.get_workarea())
-				elif primary_monitor.next():
-					primary_monitor.next().set_rectangle(gdk_monitor.get_workarea())
-					break
+				self.read_monitor(workspace, Gdk.Display.get_default().get_monitor(i))
+
+	def read_monitor(self, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
+		monitor = self.get_primary(workspace) if gdk_monitor.is_primary() else self.get_primary(workspace).next()
+		monitor.set_rectangle(gdk_monitor.get_workarea())
 
 	#
 	# Monitor API
@@ -697,15 +688,6 @@ def read_user_config(config_json: Dict, screen: Wnck.Screen):
 	configured_workspaces = len(config_json['workspaces'])
 	for workspace_index in range(configured_workspaces):
 		workspace_json = config_json['workspaces'][workspace_index]
-
-		if False and 'stack' in workspace_json:
-			stack = windows.stacks[workspace_index]
-			copy = stack.copy()
-			stack.sort(
-				key=lambda xid:
-				workspace_json['stack'][str(xid)]['index']
-				if str(xid) in workspace_json['stack']
-				else copy.index(xid))
 
 		monitor_index = 0
 		monitor: Monitor = monitors.get_primary(index=workspace_index)
