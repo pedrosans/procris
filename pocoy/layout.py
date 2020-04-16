@@ -47,8 +47,8 @@ from pocoy.model import Monitor
 # © 2015-2016 Quentin Rameau <quinq@fifth.space>
 # © 2015-2016 Eric Pruitt <eric.pruitt@gmail.com>
 # © 2016-2017 Markus Teich <markus.teich@stusta.mhn.de>
-def tile(stack: List[Wnck.Window], m):
-	n = len(stack)
+def tile(clients: List[Wnck.Window], m):
+	n = len(clients)
 
 	if n > m.nmaster:
 		mw = m.ww * m.mfact if m.nmaster else 0
@@ -57,8 +57,8 @@ def tile(stack: List[Wnck.Window], m):
 	my = ty = 0
 	padding = state.get_inner_gap()
 
-	for i in range(len(stack)):
-		window = stack[i]
+	for i in range(len(clients)):
+		window = clients[i]
 		if i < m.nmaster:
 			h = (m.wh - my) / (min(n, m.nmaster) - i) - padding * 2
 			synchronized = set_geometry(
@@ -72,9 +72,9 @@ def tile(stack: List[Wnck.Window], m):
 
 
 # https://git.suckless.org/dwm/file/dwm.c.html#l1104
-def monocle(stack, monitor):
+def monocle(clients, monitor):
 	padding = state.get_inner_gap()
-	for window in stack:
+	for window in clients:
 		set_geometry(
 			window,
 			x=monitor.wx + padding, y=monitor.wy + padding,
@@ -82,11 +82,11 @@ def monocle(stack, monitor):
 
 
 # https://dwm.suckless.org/patches/centeredmaster/
-def centeredmaster(stack: List[Wnck.Window], m: Monitor):
+def centeredmaster(clients: List[Wnck.Window], m: Monitor):
 	tw = mw = m.ww
 	mx = my = 0
 	oty = ety = 0
-	n = len(stack)
+	n = len(clients)
 	padding = state.get_inner_gap()
 
 	if n > m.nmaster:
@@ -97,8 +97,8 @@ def centeredmaster(stack: List[Wnck.Window], m: Monitor):
 			mx = int((m.ww - mw) / 2)
 			tw = int((m.ww - mw) / 2)
 
-	for i in range(len(stack)):
-		window = stack[i]
+	for i in range(len(clients)):
+		window = clients[i]
 		if i < m.nmaster:
 			# nmaster clients are stacked vertically, in the center of the screen
 			h = int((m.wh - my) / (min(n, m.nmaster) - i)) - padding * 2
@@ -119,13 +119,13 @@ def centeredmaster(stack: List[Wnck.Window], m: Monitor):
 				oty += (get_height(window) if synchronized else h) + padding * 2
 
 
-def centeredfloatingmaster(stack: List[Wnck.Window], m: Monitor):
+def centeredfloatingmaster(clients: List[Wnck.Window], m: Monitor):
 	padding = state.get_inner_gap()
 	# i, n, w, mh, mw, mx, mxo, my, myo, tx = 0
 	tx = mx = 0
 
 	# count number of clients in the selected monitor
-	n = len(stack)
+	n = len(clients)
 
 	# initialize nmaster area
 	if n > m.nmaster:
@@ -145,8 +145,8 @@ def centeredfloatingmaster(stack: List[Wnck.Window], m: Monitor):
 		mx = mxo = 0
 		my = myo = 0
 
-	for i in range(len(stack)):
-		c = stack[i]
+	for i in range(len(clients)):
+		c = clients[i]
 		if i < m.nmaster:
 			# nmaster clients are stacked horizontally, in the center of the screen
 			w = (mw + mxo - mx) / (min(n, m.nmaster) - i)
@@ -170,8 +170,8 @@ def centeredfloatingmaster(stack: List[Wnck.Window], m: Monitor):
 # Niki Yoshiuchi - aplusbi@gmail.com
 # Joe Thornber
 # Jan Christoph Ebersbach
-def fibonacci(mon: Monitor, stack: List[int], s: int):
-	n = len(stack)
+def fibonacci(mon: Monitor, clients: List[int], s: int):
+	n = len(clients)
 	nx = mon.wx
 	ny = 0
 	nw = mon.ww
@@ -179,7 +179,7 @@ def fibonacci(mon: Monitor, stack: List[int], s: int):
 	padding = state.get_inner_gap()
 
 	for i in range(n):
-		c = stack[i]
+		c = clients[i]
 		c.bw = 0
 		if (i % 2 and nh / 2 > 2 * c.bw) or (not (i % 2) and nw / 2 > 2 * c.bw):
 			if i < n - 1:
@@ -217,18 +217,18 @@ def fibonacci(mon: Monitor, stack: List[int], s: int):
 			w=nw - padding * 2, h=nh - padding * 2)
 
 
-def dwindle(stack: List[Wnck.Window], monitor: Monitor):
-	fibonacci(monitor, stack, 1)
+def dwindle(clients: List[Wnck.Window], monitor: Monitor):
+	fibonacci(monitor, clients, 1)
 
 
-def spiral(stack: List[Wnck.Window], monitor: Monitor):
-	fibonacci(monitor, stack, 0)
+def spiral(clients: List[Wnck.Window], monitor: Monitor):
+	fibonacci(monitor, clients, 0)
 
 
-def biasedstack(stack: List[Wnck.Window], monitor: Monitor):
-	n = len(stack)
+def biasedstack(clients: List[Wnck.Window], monitor: Monitor):
+	n = len(clients)
 	if n == 1:
-		resize(stack[0], l=0.15, t=0.1, w=0.7, h=0.86)
+		resize(clients[0], l=0.15, t=0.1, w=0.7, h=0.86)
 		return
 	oty = 0
 	mw = int(monitor.ww * monitor.mfact) if monitor.nmaster else 0
@@ -237,7 +237,7 @@ def biasedstack(stack: List[Wnck.Window], monitor: Monitor):
 	padding = state.get_inner_gap()
 
 	for i in range(n):
-		window: Wnck.Window = stack[i]
+		window: Wnck.Window = clients[i]
 		if i < monitor.nmaster:
 			# nmaster clients are stacked vertically, in the center of the screen
 			h = int((monitor.wh - my) / (min(n, monitor.nmaster) - i))

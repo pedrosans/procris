@@ -33,9 +33,9 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 		resize(window, rectangle=primary, l=scratchpad.l, t=scratchpad.t, w=scratchpad.w, h=scratchpad.h)
 	elif is_managed(window):
 		monitor = monitors.get_active(window)
-		stack = monitor.stack
-		copy = stack.copy()
-		stack.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
+		clients = monitor.clients
+		copy = clients.copy()
+		clients.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
 		notify_layout_change()
 		try:
 			with Trap():
@@ -52,10 +52,10 @@ def _state_changed(window: Wnck.Window, changed_mask, new_state):
 	if changed_mask & Wnck.WindowState.MINIMIZED and is_managed(window):
 		windows.read(window.get_screen(), force_update=False)
 		monitor = monitors.get_active(window)
-		stack = monitor.stack
+		clients = monitor.clients
 		if is_visible(window):
-			old_index = stack.index(window.get_xid())
-			stack.insert(0, stack.pop(old_index))
+			old_index = clients.index(window.get_xid())
+			clients.insert(0, clients.pop(old_index))
 		monitor.apply()
 		notify_layout_change()
 

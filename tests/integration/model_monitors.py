@@ -43,8 +43,8 @@ class LayoutIntegrationTestCase(unittest.TestCase):
 		# 	print('{} {}'.format(w.get_xid(), w.get_name()))
 
 	def test_read_window_in_workspace(self):
-		workspace_1 = model.monitors.primary_monitors[0].stack
-		workspace_2 = model.monitors.primary_monitors[1].stack
+		workspace_1 = model.monitors.primary_monitors[0].clients
+		workspace_2 = model.monitors.primary_monitors[1].clients
 		self.assertIn(
 			self.calculator.get_xid(),
 			workspace_1,
@@ -55,8 +55,8 @@ class LayoutIntegrationTestCase(unittest.TestCase):
 			'logs: {} should be in: {}'.format(self.logs.get_xid(), workspace_2))
 
 	def test_dont_read_window_outside_its_workspace(self):
-		workspace_1 = model.monitors.primary_monitors[0].stack
-		workspace_2 = model.monitors.primary_monitors[1].stack
+		workspace_1 = model.monitors.primary_monitors[0].clients
+		workspace_2 = model.monitors.primary_monitors[1].clients
 		self.assertNotIn(
 			self.calculator.get_xid(),
 			workspace_2,

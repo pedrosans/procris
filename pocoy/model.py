@@ -105,18 +105,18 @@ class Windows:
 	def _read_workspace_monitor(self, screen: Wnck.Screen, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
 		primary = monitors.get_primary(workspace)
 		monitor = primary if gdk_monitor.is_primary() else primary.next()
-		stack = monitor.stack
+		clients = monitor.clients
 
 		def monitor_filter(w):
-			return w.get_xid() not in stack and is_visible(w, workspace, gdk_monitor) and is_managed(w)
+			return w.get_xid() not in clients and is_visible(w, workspace, gdk_monitor) and is_managed(w)
 
-		for old in filter(lambda xid: xid not in self.window_by_xid, stack.copy()):
-			stack.remove(old)
+		for old in filter(lambda xid: xid not in self.window_by_xid, clients.copy()):
+			clients.remove(old)
 
-		for outside in filter(lambda xid: not is_visible(self.window_by_xid[xid], workspace, gdk_monitor), stack.copy()):
-			stack.remove(outside)
+		for outside in filter(lambda xid: not is_visible(self.window_by_xid[xid], workspace, gdk_monitor), clients.copy()):
+			clients.remove(outside)
 
-		stack.extend(map(lambda w: w.get_xid(), filter(monitor_filter, reversed(screen.get_windows_stacked()))))
+		clients.extend(map(lambda w: w.get_xid(), filter(monitor_filter, reversed(screen.get_windows_stacked()))))
 
 	#
 	# API
@@ -233,7 +233,7 @@ class Windows:
 		lib = parameters[0]
 		index = parameters[1]
 		monitor = monitors.get_active()
-		window = list(map(lambda xid: self.window_by_xid[xid], monitor.stack))[index]
+		window = list(map(lambda xid: self.window_by_xid[xid], monitor.clients))[index]
 
 		x = parameters[2]
 		y = parameters[3]
@@ -340,16 +340,16 @@ class ActiveWindow:
 	def zoom(self, user_event: UserEvent):
 		active = get_active_managed_window()
 		monitor = monitors.get_active(active)
-		stack = monitor.stack
+		clients = monitor.clients
 		if not active:
 			return
-		if len(stack) >= 2:
-			old_index = stack.index(active.get_xid())
+		if len(clients) >= 2:
+			old_index = clients.index(active.get_xid())
 			if old_index == 0:
-				stack.insert(1, stack.pop(old_index))
+				clients.insert(1, clients.pop(old_index))
 			else:
-				stack.insert(0, stack.pop(old_index))
-			active_window.xid = stack[0]
+				clients.insert(0, clients.pop(old_index))
+			active_window.xid = clients[0]
 			windows.staging = True
 		monitor.apply()
 
@@ -361,12 +361,12 @@ class ActiveWindow:
 		if not window:
 			return
 		monitor = monitors.get_active(window)
-		stack = monitor.stack
-		old_index = stack.index(window.get_xid())
-		new_index = (old_index + direction) % len(stack)
+		clients = monitor.clients
+		old_index = clients.index(window.get_xid())
+		new_index = (old_index + direction) % len(clients)
 
 		if new_index != old_index:
-			stack.insert(new_index, stack.pop(old_index))
+			clients.insert(new_index, clients.pop(old_index))
 			monitor.apply()
 
 	@statefull
@@ -381,8 +381,8 @@ class ActiveWindow:
 		if origin is destinantion:
 			return
 
-		origin.stack.remove(window.get_xid())
-		destinantion.stack.append(window.get_xid())
+		origin.clients.remove(window.get_xid())
+		destinantion.clients.append(window.get_xid())
 
 		origin.apply()
 		destinantion.apply()
@@ -394,12 +394,12 @@ class ActiveWindow:
 		if not window:
 			return
 		monitor = monitors.get_active(window)
-		stack = monitor.stack
+		clients = monitor.clients
 
-		old_index = stack.index(window.get_xid())
-		new_index = (old_index + direction) % len(stack)
+		old_index = clients.index(window.get_xid())
+		new_index = (old_index + direction) % len(clients)
 
-		active_window.change_to(stack[new_index])
+		active_window.change_to(clients[new_index])
 
 	@statefull
 	@persistent
@@ -407,10 +407,10 @@ class ActiveWindow:
 		active_window = self.get_wnck_window()
 		if active_window:
 			monitor = monitors.get_active()
-			stack = monitor.stack
-			index = stack.index(get_active_managed_window().get_xid())
+			clients = monitor.clients
+			index = clients.index(get_active_managed_window().get_xid())
 			windows.remove(active_window, user_event.time)
-			self.xid = stack[min(index, len(stack) - 1)]
+			self.xid = clients[min(index, len(clients) - 1)]
 			windows.staging = True
 			monitor.apply()
 
@@ -432,9 +432,9 @@ class ActiveWindow:
 
 	@statefull
 	def focus_previous(self, user_event: UserEvent):
-		stack = list(filter(lambda x: x in windows.visible, Wnck.Screen.get_default().get_windows_stacked()))
-		i = stack.index(self.get_wnck_window())
-		self.xid = stack[i - 1].get_xid()
+		clients = list(filter(lambda x: x in windows.visible, Wnck.Screen.get_default().get_windows_stacked()))
+		i = clients.index(self.get_wnck_window())
+		self.xid = clients[i - 1].get_xid()
 		windows.staging = True
 
 	def move_focus(self, increment, axis):
@@ -481,13 +481,13 @@ class Monitor:
 		self.strut: List = strut
 		self.wx = self.wy = self.ww = self.wh = None
 		self.visible_area: List[int] = [0, 0, 0, 0]
-		self.stack: List[int] = []
+		self.clients: List[int] = []
 		self.pointer: Monitor = None
 
 	def apply(self, unmaximize: bool = False):
 		from pocoy.layout import FUNCTIONS_MAP
 		if self.function_key:
-			spread_windows: List[Wnck.Window] = list(map(lambda xid: windows.window_by_xid[xid], self.stack))
+			spread_windows: List[Wnck.Window] = list(map(lambda xid: windows.window_by_xid[xid], self.clients))
 			if unmaximize:
 				for window in spread_windows:
 					if window.is_maximized():
@@ -520,7 +520,7 @@ class Monitor:
 	def increment_master(self, increment=None):
 		self.nmaster += increment
 		self.nmaster = max(0, self.nmaster)
-		self.nmaster = min(len(self.stack), self.nmaster)
+		self.nmaster = min(len(self.clients), self.nmaster)
 
 	def contains(self, window: Wnck.Window):
 		rect = self.visible_area
@@ -532,7 +532,7 @@ class Monitor:
 		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
 		self.function_key = json['function'] if 'function' in json else self.function_key
 		self.strut = json['strut'] if 'strut' in json else self.strut
-		self.stack = list(map(lambda w_dict: w_dict['xid'], json['stack']))if 'stack' in json else self.stack
+		self.clients = list(map(lambda w_dict: w_dict['xid'], json['clients']))if 'clients' in json else self.clients
 
 	def to_json(self):
 		return {
@@ -540,9 +540,9 @@ class Monitor:
 			'mfact': self.mfact,
 			'function': self.function_key,
 			'strut': self.strut,
-			'stack': list(map(
-				lambda xid: {'xid': xid, 'name': windows.window_by_xid[xid].get_name(), 'index': self.stack.index(xid)},
-				self.stack
+			'clients': list(map(
+				lambda xid: {'xid': xid, 'name': windows.window_by_xid[xid].get_name(), 'index': self.clients.index(xid)},
+				self.clients
 			))
 		}
 
@@ -555,10 +555,9 @@ class Monitor:
 		if n_monitors > 2:
 			print('BETA VERSION WARN: no support for more than 2 monitors yet.')
 		# While it seams easy to implement, there is no thought on
-		# how the configuration would look like to assign a position for
-		# each monitor on the stack.
-		# For now, the Gdk flag does the job since the second monitor
-		# plainly is the one not flagged as primary.
+		# how and what to configure.
+		# For now, the Gdk flag does the job for as primary+secondary pair being
+		# the second monitor the one not flagged as primary.
 
 		if n_monitors == 2 and self.primary:
 			if not self.pointer:
@@ -613,10 +612,10 @@ class ActiveMonitor:
 		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
 		active = get_active_managed_window()
 		monitor = monitors.get_active(active)
-		stack = monitor.stack
+		clients = monitor.clients
 		if promote_selected and active:
-			old_index = stack.index(active.get_xid())
-			stack.insert(0, stack.pop(old_index))
+			old_index = clients.index(active.get_xid())
+			clients.insert(0, clients.pop(old_index))
 
 		if user_event.parameters:
 			new_layout = user_event.parameters[0]
@@ -768,7 +767,7 @@ def resume():
 				monitor.wx, monitor.wy, monitor.ww, monitor.wh)
 
 			resume += '\t\t[Stack]\t\t('
-			for xid in filter(lambda _xid: monitor.contains(windows.window_by_xid[_xid]), monitor.stack):
+			for xid in filter(lambda _xid: monitor.contains(windows.window_by_xid[_xid]), monitor.clients):
 				resume += '{:10} '.format(xid)
 			resume += ')\n'
 

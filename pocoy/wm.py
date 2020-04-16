@@ -155,7 +155,7 @@ def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None, synchronou
 
 
 def wait_configure_event(xid, type, display: Gdk.Display):
-	limit = 1000
+	limit = 100000
 	queue = []
 	try:
 		while limit > 0:
