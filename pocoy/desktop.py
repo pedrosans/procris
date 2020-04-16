@@ -9,7 +9,8 @@ import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
 gi.require_version('Notify', '0.7')
-from gi.repository import Notify, Gtk, GLib, GdkPixbuf, AppIndicator3
+gi.require_version('Wnck', '3.0')
+from gi.repository import Notify, Gtk, GLib, GdkPixbuf, AppIndicator3, Wnck
 from pocoy import state as configurations
 from pocoy.wm import get_active_workspace, UserEvent
 from pocoy.model import Monitor
@@ -175,29 +176,32 @@ def on_layout_changed():
 	if state.is_desktop_notifications():
 		show_monitor(monitors.get_active())
 
-	primary = monitors.get_primary()
-	serialized = {'primary': primary.to_json()}
-	if primary.next():
-		serialized['secondary'] = primary.next().to_json()
+	serialized = {}
+	monitor = monitors.get_primary()
+	while monitor:
+		serialized['primary' if monitor.primary else 'secondary'] = monitor.to_json()
+		monitor = monitor.next()
+	serialized['workspace'] = {'number': Wnck.Screen.get_default().get_active_workspace().get_number()}
 
-	for pipe in pipes:
+	for pipe in property_queues:
 		pipe['queue'].put(serialized)
 
 
 def start_pipes():
-	for pipe in pipes:
-		if not os.path.exists(pipe['path']):
-			os.mkfifo(pipe['path'])
-		t = Thread(target=pipe_property_writing(pipe), daemon=True)
-		t.start()
+	for pipe in property_queues:
+		path = '/tmp/' + pipe['name']
+		if not os.path.exists(path):
+			os.mkfifo(path)
+		Thread(target=property_writer(pipe), daemon=True).start()
 
 
-def pipe_property_writing(workspace_properties):
+def property_writer(pipe):
 	def write_property_to_pipe():
 		while True:
-			serialized = workspace_properties['queue'].get()
-			with open(workspace_properties['path'], 'w') as f:
-				prop = serialized[workspace_properties['monitor']][workspace_properties['property']]
+			path = '/tmp/' + pipe['name']
+			serialized = pipe['queue'].get()
+			with open(path, 'w') as f:
+				prop = serialized[pipe['object']][pipe['property']]
 				f.write(str(prop) + '\n')
 				f.flush()
 	return write_property_to_pipe
@@ -236,9 +240,10 @@ ICONNAME = 'pocoy'
 ICON_STYLES_MAP = {'dark': "Dark icon", 'light': "Light icon"}
 status_icon = None
 notification = None
-pipes = [
-	{'path': '/tmp/pocoy-monitor-primary-layout', 'monitor': 'primary', 'property': 'function', 'queue': queue.Queue()},
-	{'path': '/tmp/pocoy-monitor-primary-nmaster', 'monitor': 'primary', 'property': 'nmaster', 'queue': queue.Queue()},
-	{'path': '/tmp/pocoy-monitor-secondary-layout', 'monitor': 'secondary', 'property': 'function', 'queue': queue.Queue()},
-	{'path': '/tmp/pocoy-monitor-secondary-nmaster', 'monitor': 'secondary', 'property': 'nmaster', 'queue': queue.Queue()}
+property_queues = [
+	{'name': 'pocoy-workspace-number',          'object': 'workspace', 'property': 'number', 'queue': queue.Queue()},
+	{'name': 'pocoy-monitor-primary-layout',    'object': 'primary',   'property': 'function', 'queue': queue.Queue()},
+	{'name': 'pocoy-monitor-primary-nmaster',   'object': 'primary',   'property': 'nmaster', 'queue': queue.Queue()},
+	{'name': 'pocoy-monitor-secondary-layout',  'object': 'secondary', 'property': 'function', 'queue': queue.Queue()},
+	{'name': 'pocoy-monitor-secondary-nmaster', 'object': 'secondary', 'property': 'nmaster', 'queue': queue.Queue()}
 ]
