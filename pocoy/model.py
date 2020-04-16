@@ -444,7 +444,7 @@ class ActiveWindow:
 			axis_position = axis.position_of(w)
 			perpendicular_distance = abs(axis.perpendicular.position_of(w) - axis.perpendicular.position_of(active))
 			perpendicular_distance *= -1 if axis_position < axis.position_of(active) else 1
-			return axis_position * STRETCH + perpendicular_distance
+			return axis_position + perpendicular_distance
 
 		sorted_windows = sorted(windows.visible, key=key)
 		index = sorted_windows.index(self.get_wnck_window())
