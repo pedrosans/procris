@@ -35,6 +35,32 @@ loaded_interface_config: Dict = None
 loaded_workspace_config: Dict = None
 loaded_decorations: Dict = None
 config_module: ModuleType = None
+DEFAULTS = {
+	'position': 'bottom',
+	'width': 800,
+	'auto_hint': True,
+	'auto_select_first_hint': False,
+	'desktop_icon': 'light',
+	'desktop_notifications': False,
+	'window_manger_border': 0,
+	'remove_decorations': False,
+	'inner_gap': 5,
+	'outer_gap': 5,
+	'workspaces': [
+		{
+			'monitors': [
+				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None},
+				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None}
+			]
+		},
+		{
+			'monitors': [
+				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None},
+				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None}
+			]
+		}
+	]
+}
 
 
 #
@@ -46,11 +72,11 @@ def load(config_module_parameter: str = None):
 	config_module = read_config_module(config_module_parameter)
 
 	interface_config = _read_json(config_file)
-	loaded_interface_config = interface_config if interface_config else config_module.DEFAULTS
+	loaded_interface_config = interface_config if interface_config else DEFAULTS
 
 	loaded_workspace_config = _read_json(workspace_file)
 	if hasattr(config_module, 'DEFAULTS'):
-		deep_copy(loaded_workspace_config, config_module.DEFAULTS, override=False)
+		deep_copy(loaded_workspace_config, DEFAULTS, override=False)
 	if hasattr(config_module, 'parameters'):
 		deep_copy(loaded_workspace_config, config_module.parameters, override=True)
 

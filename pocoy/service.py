@@ -53,9 +53,9 @@ def load(config_module: str = None):
 
 
 def _read_environment(screen: Wnck.Screen, config: ModuleType):
-	for name in config.NAMES:
+	for name in config.names:
 		names.add(name)
-	for key in config.KEYS:
+	for key in config.keys:
 		listener.add(key)
 	model.load(screen)
 

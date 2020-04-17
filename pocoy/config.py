@@ -13,7 +13,7 @@ scratchpads = pocoy.scratchpads
 applications = pocoy.applications
 
 
-KEYS = [
+keys = [
 	Key('<ctrl>Return',          active_window.zoom),
 	Key('<ctrl>KP_Enter',        active_window.zoom),
 	Key('<ctrl><shift>Return',   applications.spawn,  parameters=['x-terminal-emulator']),
@@ -51,7 +51,7 @@ KEYS = [
 		Key('<ctrl>k',      active_window.focus_up),
 	])
 ]
-NAMES = [
+names = [
 	Name('edit',        applications.launch_from_name, alias='e', complete=applications.complete),
 	Name('!',           terminal.bang, complete=terminal.complete),
 	Name('buffers',     windows.list, alias='ls'),
@@ -66,30 +66,21 @@ NAMES = [
 	Name('only',        active_window.only, alias='on'),
 	Name('gap',         active_monitor.gap, complete=active_monitor.complete_gap_options),
 ]
-DEFAULTS = {
-	'position': 'bottom',
-	'width': 800,
-	'auto_hint': True,
-	'auto_select_first_hint': False,
-	'desktop_icon': 'light',
-	'desktop_notifications': False,
-	'window_manger_border': 0,
-	'remove_decorations': False,
+parameters = {
 	'inner_gap': 5,
 	'outer_gap': 5,
 	'workspaces': [
 		{
 			'monitors': [
-				{'nmaster': 1, 'mfact': 0.55, 'function': None},
-				{'nmaster': 1, 'mfact': 0.55, 'function': None}
+				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None},
+				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None}
 			]
 		},
 		{
 			'monitors': [
-				{'nmaster': 1, 'mfact': 0.55, 'function': None},
-				{'nmaster': 1, 'mfact': 0.55, 'function': None}
+				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None},
+				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None}
 			]
 		}
 	]
 }
-pocoy.state.force_defaults()
