@@ -143,7 +143,15 @@ class Windows:
 
 	def apply_decoration_config(self):
 		if state.is_remove_decorations():
-			decoration.remove(self.buffers)
+			tiled = []
+			floating = []
+			for monitor in monitors.primary_monitors.values():
+				while monitor:
+					(tiled if monitor.function_key else floating).extend(
+						map(lambda xid: windows.window_by_xid[xid], monitor.clients))
+					monitor = monitor.next()
+			decoration.remove(tiled)
+			decoration.restore(floating)
 		else:
 			decoration.restore(self.buffers)
 
@@ -627,6 +635,7 @@ class ActiveMonitor:
 
 		monitor.function_key = new_layout
 		monitor.apply(unmaximize=True)
+		windows.apply_decoration_config()
 
 	@statefull
 	def gap(self, user_event: UserEvent):

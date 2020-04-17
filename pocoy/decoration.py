@@ -51,10 +51,6 @@ def remove(buffers: List[Wnck.Window]):
 				decoration_map[key] = decorations if not ssd else Gdk.WMDecoration.ALL
 			gdk_w.set_decorations(Gdk.WMDecoration.BORDER)
 
-	for key in list(decoration_map.keys()):
-		if key not in map(lambda x: str(x.get_xid()), buffers):
-			del decoration_map[key]
-
 	persistor.persist_decorations(decoration_map)
 
 
