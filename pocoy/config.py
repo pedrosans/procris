@@ -13,6 +13,10 @@ scratchpads = pocoy.scratchpads
 applications = pocoy.applications
 
 
+parameters = {
+	'inner_gap': 5,
+	'outer_gap': 5,
+}
 keys = [
 	Key('<ctrl>Return',          active_window.zoom),
 	Key('<ctrl>KP_Enter',        active_window.zoom),
@@ -57,30 +61,9 @@ names = [
 	Name('buffers',     windows.list, alias='ls'),
 	Name('bdelete',     windows.delete, alias='bd'),
 	Name('buffer',      windows.activate, alias='b', complete=windows.complete),
-	Name('centralize',  active_window.centralize, alias='ce'),
 	Name('maximize',    active_window.maximize, alias='ma'),
 	Name('reload',      service.reload),
-	Name('decorate',    active_window.decorate, complete=decoration.complete),
-	Name('read',        service.read_screen),
 	Name('quit',        active_window.minimize, alias='q'),
 	Name('only',        active_window.only, alias='on'),
 	Name('gap',         active_monitor.gap, complete=active_monitor.complete_gap_options),
 ]
-parameters = {
-	'inner_gap': 5,
-	'outer_gap': 5,
-	'workspaces': [
-		{
-			'monitors': [
-				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None},
-				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None}
-			]
-		},
-		{
-			'monitors': [
-				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None},
-				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None}
-			]
-		}
-	]
-}

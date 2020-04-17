@@ -238,7 +238,7 @@ def set_autostart( auto_start):
 	dfile.set("X-GNOME-Autostart-enabled", str(auto_start).lower())
 	dfile.set("Name", "pocoy")
 	dfile.set("Icon", "pocoy")
-	dfile.set("Exec", "pocoy start")
+	dfile.set("Exec", "pocoy")
 	dfile.write(filename=auto_start_file)
 
 
