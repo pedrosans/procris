@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 from types import ModuleType
 from xdg import BaseDirectory as Base
 from xdg import DesktopEntry as Desktop
-from typing import Dict
+from typing import Dict, List
 import os
 import json
 
@@ -31,7 +31,6 @@ cache_dir = Base.save_cache_path(POCOY_PACKAGE)
 workspace_file = cache_dir + '/workspace.json'
 decorations_file = cache_dir + '/decoration.json'
 config_file = cache_dir + '/config.json'
-loaded_interface_config: Dict = None
 loaded_workspace_config: Dict = None
 loaded_decorations: Dict = None
 config_module: ModuleType = None
@@ -43,7 +42,7 @@ DEFAULTS = {
 	'desktop_icon': 'light',
 	'desktop_notifications': False,
 	'window_manger_border': 0,
-	'remove_decorations': False,
+	'remove_decorations': True,
 	'inner_gap': 5,
 	'outer_gap': 5,
 	'workspaces': [
@@ -67,16 +66,12 @@ DEFAULTS = {
 # Wherever exists in between pocoy.stop() and pocoy.start()
 #
 def load(config_module_parameter: str = None):
-	global loaded_interface_config, loaded_workspace_config, loaded_decorations, config_module
+	global loaded_workspace_config, loaded_decorations, config_module
 
 	config_module = read_config_module(config_module_parameter)
 
-	interface_config = _read_json(config_file)
-	loaded_interface_config = interface_config if interface_config else DEFAULTS
-
 	loaded_workspace_config = _read_json(workspace_file)
-	if hasattr(config_module, 'DEFAULTS'):
-		deep_copy(loaded_workspace_config, DEFAULTS, override=False)
+	deep_copy(loaded_workspace_config, DEFAULTS, override=False)
 	if hasattr(config_module, 'parameters'):
 		deep_copy(loaded_workspace_config, config_module.parameters, override=True)
 
@@ -91,7 +86,7 @@ def deep_copy(destination, origin, override):
 			for i in range(min(len(origin[key]), len(destination[key]))):
 				if isinstance(origin[key][i], type({})):
 					deep_copy(destination[key][i], origin[key][i], override)
-		elif origin[key] and (override or (key not in destination or not destination[key])):
+		elif origin[key] is not None and (override or (key not in destination or not destination[key])):
 			destination[key] = origin[key]
 
 
@@ -113,14 +108,11 @@ def clean():
 #
 # JSON CONFIG
 #
-def persist_interface_config():
-	with open(config_file, 'w') as f:
-		json.dump(loaded_interface_config, f, indent=True)
-
-
-def persist_workspace(workspace: Dict):
+def persist_workspace(workspace: List[Dict] = None):
+	if workspace:
+		loaded_workspace_config['workspaces'] = workspace
 	with open(workspace_file, 'w') as f:
-		json.dump(workspace, f, indent=True)
+		json.dump(loaded_workspace_config, f, indent=True)
 
 
 def persist_decorations(decoration_map: Dict):
@@ -174,63 +166,63 @@ def get_decorations() -> Dict:
 
 
 def get_position() -> str:
-	return loaded_interface_config['position']
+	return loaded_workspace_config['position']
 
 
 def get_width() -> str:
-	return loaded_interface_config['width']
+	return loaded_workspace_config['width']
 
 
 def is_auto_hint() -> bool:
-	return loaded_interface_config['auto_hint']
+	return loaded_workspace_config['auto_hint']
 
 
 def is_auto_select_first_hint() -> bool:
-	return loaded_interface_config['auto_select_first_hint']
+	return loaded_workspace_config['auto_select_first_hint']
 
 
 def get_window_manger_border() -> int:
-	return loaded_interface_config['window_manger_border']
+	return loaded_workspace_config['window_manger_border']
 
 
 def get_desktop_icon() -> str:
-	return loaded_interface_config['desktop_icon']
+	return loaded_workspace_config['desktop_icon']
 
 
 def set_desktop_icon(icon):
-	loaded_interface_config['desktop_icon'] = icon
-	persist_interface_config()
+	loaded_workspace_config['desktop_icon'] = icon
+	persist_workspace()
 
 
 def is_desktop_notifications() -> bool:
-	return loaded_interface_config['desktop_notifications']
+	return loaded_workspace_config['desktop_notifications']
 
 
 def is_remove_decorations() -> bool:
-	return loaded_interface_config['remove_decorations']
+	return loaded_workspace_config['remove_decorations']
 
 
 def set_remove_decorations(remove: bool):
-	loaded_interface_config['remove_decorations'] = remove
-	persist_interface_config()
+	loaded_workspace_config['remove_decorations'] = remove
+	persist_workspace()
 
 
 def get_inner_gap() -> int:
-	return loaded_interface_config['inner_gap']
+	return loaded_workspace_config['inner_gap']
 
 
 def get_outer_gap() -> int:
-	return loaded_interface_config['outer_gap']
+	return loaded_workspace_config['outer_gap']
 
 
 def set_inner_gap(gap: int):
-	loaded_interface_config['inner_gap'] = gap
-	persist_interface_config()
+	loaded_workspace_config['inner_gap'] = gap
+	persist_workspace()
 
 
 def set_outer_gap(gap: int):
-	loaded_interface_config['outer_gap'] = gap
-	persist_interface_config()
+	loaded_workspace_config['outer_gap'] = gap
+	persist_workspace()
 
 
 #

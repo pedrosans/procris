@@ -728,7 +728,6 @@ def start():
 def persist():
 	screen = Wnck.Screen.get_default()
 	workspaces: List[Dict] = []
-	props = {'workspaces': workspaces}
 
 	for workspace in screen.get_workspaces():
 		workspace_json = {'monitors': []}
@@ -738,7 +737,7 @@ def persist():
 			workspace_json['monitors'].append(monitor.to_json())
 			monitor = monitor.next()
 
-	state.persist_workspace(props)
+	state.persist_workspace(workspaces)
 
 
 #
