@@ -1,5 +1,6 @@
 import queue
 from threading import Thread
+from typing import Dict
 
 import pocoy.layout
 import pocoy.state as state
@@ -13,7 +14,7 @@ gi.require_version('Wnck', '3.0')
 from gi.repository import Notify, Gtk, GLib, GdkPixbuf, AppIndicator3, Wnck
 from pocoy import state as configurations
 from pocoy.wm import get_active_workspace, UserEvent
-from pocoy.model import Monitor
+from pocoy.model import Monitor, monitors, windows
 
 
 class StatusIcon:
@@ -160,7 +161,7 @@ def connect():
 	import pocoy.service
 	global status_icon
 	# TODO: pass window and monitor as parameters
-	status_icon = StatusIcon(pocoy.model.windows, pocoy.model.monitors, stop_function=pocoy.service.stop)
+	status_icon = StatusIcon(windows, monitors, stop_function=pocoy.service.stop)
 	status_icon.activate()
 	start_pipes()
 
@@ -169,18 +170,16 @@ def on_layout_changed():
 	if is_connected():
 		status_icon.reload()
 
-	import pocoy.model as model
-	monitors = model.monitors
-
 	if state.is_desktop_notifications():
 		show_monitor(monitors.get_active())
 
 	serialized = {}
 	monitor = monitors.get_primary()
 	while monitor:
-		serialized['primary' if monitor.primary else 'secondary'] = monitor.to_json()
+		key = 'primary' if monitor.primary else 'secondary'
+		serialized[key] = monitor.to_json()
+		serialized[key]['workspace'] = Wnck.Screen.get_default().get_active_workspace().get_number()
 		monitor = monitor.next()
-	serialized['workspace'] = {'number': Wnck.Screen.get_default().get_active_workspace().get_number()}
 
 	for pipe in property_queues:
 		pipe['queue'].put(serialized)
@@ -188,22 +187,24 @@ def on_layout_changed():
 
 def start_pipes():
 	for pipe in property_queues:
-		path = '/tmp/' + pipe['name']
-		if not os.path.exists(path):
-			os.mkfifo(path)
+		if not os.path.exists(pipe_path(pipe)):
+			os.mkfifo(pipe_path(pipe))
 		Thread(target=property_writer(pipe), daemon=True).start()
 
 
 def property_writer(pipe):
 	def write_property_to_pipe():
 		while True:
-			path = '/tmp/' + pipe['name']
 			serialized = pipe['queue'].get()
-			with open(path, 'w') as f:
+			with open(pipe_path(pipe), 'w') as f:
 				prop = serialized[pipe['object']][pipe['property']]
 				f.write(str(prop) + '\n')
 				f.flush()
 	return write_property_to_pipe
+
+
+def pipe_path(pipe: Dict):
+	return '/tmp/' + pipe['name']
 
 
 def is_connected():
@@ -240,9 +241,10 @@ ICON_STYLES_MAP = {'dark': "Dark icon", 'light': "Light icon"}
 status_icon = None
 notification = None
 property_queues = [
-	{'name': 'pocoy-workspace-number',          'object': 'workspace', 'property': 'number', 'queue': queue.Queue()},
-	{'name': 'pocoy-monitor-primary-layout',    'object': 'primary',   'property': 'function', 'queue': queue.Queue()},
-	{'name': 'pocoy-monitor-primary-nmaster',   'object': 'primary',   'property': 'nmaster', 'queue': queue.Queue()},
-	{'name': 'pocoy-monitor-secondary-layout',  'object': 'secondary', 'property': 'function', 'queue': queue.Queue()},
-	{'name': 'pocoy-monitor-secondary-nmaster', 'object': 'secondary', 'property': 'nmaster', 'queue': queue.Queue()}
+	{'name': 'pocoy-primary-workspace',   'object': 'primary',   'property': 'workspace', 'queue': queue.Queue()},
+	{'name': 'pocoy-primary-layout',      'object': 'primary',   'property': 'function', 'queue': queue.Queue()},
+	{'name': 'pocoy-primary-nmaster',     'object': 'primary',   'property': 'nmaster', 'queue': queue.Queue()},
+	{'name': 'pocoy-secondary-workspace', 'object': 'secondary', 'property': 'workspace', 'queue': queue.Queue()},
+	{'name': 'pocoy-secondary-layout',    'object': 'secondary', 'property': 'function', 'queue': queue.Queue()},
+	{'name': 'pocoy-secondary-nmaster',   'object': 'secondary', 'property': 'nmaster', 'queue': queue.Queue()}
 ]
