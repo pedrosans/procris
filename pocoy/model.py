@@ -606,6 +606,22 @@ class Monitors:
 			self.primary_monitors[index] = Monitor(primary=True)
 		return self.primary_monitors[index]
 
+	@statefull
+	@persistent
+	def setprimarylayout(self, user_event: UserEvent):
+		new_function_key = user_event.parameters[0]
+		monitor = monitors.get_primary()
+		self.set_layout(monitor, new_function_key)
+
+	def set_layout(self, monitor, new_function):
+
+		if monitor.function_key != new_function:
+			self.last_layout_key = monitor.function_key
+
+		monitor.function_key = new_function
+		monitor.apply(unmaximize=True)
+		windows.apply_decoration_config()
+
 
 class ActiveMonitor:
 
@@ -626,16 +642,11 @@ class ActiveMonitor:
 			clients.insert(0, clients.pop(old_index))
 
 		if user_event.parameters:
-			new_layout = user_event.parameters[0]
+			new_function_key = user_event.parameters[0]
 		else:
-			new_layout = self.last_layout_key
+			new_function_key = self.last_layout_key
 
-		if monitor.function_key != new_layout:
-			self.last_layout_key = monitor.function_key
-
-		monitor.function_key = new_layout
-		monitor.apply(unmaximize=True)
-		windows.apply_decoration_config()
+		monitors.set_layout(monitor, new_function_key)
 
 	@statefull
 	def gap(self, user_event: UserEvent):
