@@ -225,7 +225,7 @@ def spiral(clients: List[Wnck.Window], monitor: Monitor):
 	fibonacci(monitor, clients, 0)
 
 
-def biasedstack(clients: List[Wnck.Window], monitor: Monitor):
+def arrow(clients: List[Wnck.Window], monitor: Monitor):
 	n = len(clients)
 	if n == 1:
 		resize(clients[0], l=0.15, t=0.1, w=0.7, h=0.86)
@@ -266,6 +266,6 @@ def biasedstack(clients: List[Wnck.Window], monitor: Monitor):
 FUNCTIONS_MAP = {
 	None: None,
 	'M': monocle, 'T': tile,
-	'C': centeredmaster, '>': centeredfloatingmaster, 'B': biasedstack,
+	'C': centeredmaster, '>': centeredfloatingmaster, '<': arrow,
 	'@': spiral, '\\': dwindle
 }

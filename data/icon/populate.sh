@@ -12,8 +12,10 @@ _export_sizes() {
 
 _export_sizes ""
 
-for LETTER in "M" "T" "C" ">" "B" "@" "\\"; do
-	ESCAPED_LETTER=$(sed 's/[\/]/\\&/g'<<<"$LETTER")
+for LETTER in "M" "T" "C" "<" ">" "@" "\\"; do
+	ESCAPED_LETTER=$(sed 's/[\/]/\\&/'<<<"$LETTER")
+	ESCAPED_LETTER=$(sed 's/</\\\&lt;/'<<<"$ESCAPED_LETTER")
+	ESCAPED_LETTER=$(sed 's/>/\\\&gt;/'<<<"$ESCAPED_LETTER")
 	SVG_NAME_DIFF="-$LETTER"
 	LETTER_SVG=$DIR/pocoy$SVG_NAME_DIFF.svg
 	cp $DIR/pocoy-layout.svg $LETTER_SVG

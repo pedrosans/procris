@@ -2,7 +2,7 @@
 from distutils.core import setup
 
 ICON_STYLE_KEYS = ['dark', 'light']
-FUNCTION_KEYS = [None, 'M', 'T', 'C', '>', 'B', '@', '\\']
+FUNCTION_KEYS = [None, 'M', 'T', 'C', '>', '<', '@', '\\']
 icons = [
 	('/usr/share/icons/hicolor/symbolic', ['data/icon/pocoy.svg']),
 	('/usr/share/icons/hicolor/scalable/apps', ['data/icon/pocoy.svg']),
