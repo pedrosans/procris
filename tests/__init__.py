@@ -5,6 +5,7 @@ import tests.assistant
 import tests.layout
 import tests.service
 import tests.model
+import tests.state
 
 test_case_classes = (tests.names.CommandInputTestCase,
                      tests.terminal.TerminalTestCase,
@@ -12,6 +13,7 @@ test_case_classes = (tests.names.CommandInputTestCase,
                      tests.layout.LayoutTestCase,
                      tests.service.ServiceTestCase,
                      tests.model.ModelTestCase,
+                     tests.state.StateTestCase,
                      )
 
 

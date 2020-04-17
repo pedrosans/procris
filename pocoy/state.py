@@ -49,21 +49,24 @@ def load(config_module_parameter: str = None):
 	loaded_interface_config = interface_config if interface_config else config_module.DEFAULTS
 
 	loaded_workspace_config = _read_json(workspace_file)
-	set_defaults(config_module.DEFAULTS, loaded_workspace_config)
+	if hasattr(config_module, 'DEFAULTS'):
+		deep_copy(loaded_workspace_config, config_module.DEFAULTS, override=False)
+	if hasattr(config_module, 'parameters'):
+		deep_copy(loaded_workspace_config, config_module.parameters, override=True)
 
 	loaded_decorations = _read_json(decorations_file)
 
 
-def set_defaults(origin, destination):
+def deep_copy(destination, origin, override):
 	for key in origin.keys():
-		if key not in destination or not destination[key]:
-			destination[key] = origin[key]
-		elif isinstance(origin[key], type({})):
-			set_defaults(origin[key], destination[key])
-		elif isinstance(origin[key], type([])):
+		if isinstance(origin[key], type({})) and key in destination:
+			deep_copy(destination[key], origin[key], override)
+		elif isinstance(origin[key], type([])) and key in destination:
 			for i in range(min(len(origin[key]), len(destination[key]))):
 				if isinstance(origin[key][i], type({})):
-					set_defaults(origin[key][i], destination[key][i])
+					deep_copy(destination[key][i], origin[key][i], override)
+		elif origin[key] and (override or (key not in destination or not destination[key])):
+			destination[key] = origin[key]
 
 
 def reload():
