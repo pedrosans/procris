@@ -1,4 +1,4 @@
-# ![logo](data/icon/pocoy.svg "pocoy logo") plugable window management
+# ![logo](data/icon/pocoy.svg "pocoy logo") pocoy
 
 <div align="center">
 <a href="https://github.com/pedrosans/pocoy-media/raw/master/tile-example-01.png">
@@ -39,7 +39,7 @@ be defined at `~/.config/pocoy/config.py`, being the default
 [one](pocoy/config.py) meant to be a starting point. For all keys and names:
 
 ```shell
-groff -mman && pocoy.1 -T utf8 | less
+groff -mman pocoy.1 -T utf8 | less
 ```
 
 ### dwm stuff
@@ -135,13 +135,18 @@ Via DE:
 
 `/usr/share/applications/pocoy.desktop`
 
-Via command line interface:
+Via command line:
 
-`pocoy start`: start pocoy
+`pocoy`: start pocoy
 
-#### Interface
+#### Configuration
 
-config module settings:
+##### config module
+
+The config module has 3 variables: parameters, keys, names.
+
+- keys and names: list of `Key` and `Name` objects binding keys and names to functions.
+- parameters: optional dictionary of optional parameters and their values:
 
 Property|Description|Default
 -|-|-
@@ -151,6 +156,8 @@ Property|Description|Default
 `auto_hint` | show hints for the command as it is being typed. | `true`
 `auto_select_first_hint` | if the fist option offered in the hint bar should be selected automatically. | `true`
 
+
+##### interface
 
 Font size: create and add to `~/.config/pocoy/pocoy.css` ( more properties in [view](pocoy/view.py) module)
 
