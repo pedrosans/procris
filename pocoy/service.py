@@ -102,7 +102,7 @@ def read_screen(user_event: UserEvent):
 
 
 def reload(user_event: UserEvent):
-	desktop.update()
+	desktop.on_layout_changed()
 	state.reload()
 	applications.reload()
 	terminal.reload()
