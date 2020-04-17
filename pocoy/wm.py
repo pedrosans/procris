@@ -20,7 +20,7 @@ import gi
 import traceback
 import pocoy.state as config
 gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck, GdkX11, Gdk
+from gi.repository import Wnck, GdkX11, Gdk, Gio
 from datetime import datetime
 from typing import Callable
 from pocoy import scratchpads
@@ -40,6 +40,19 @@ def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
 		return GdkX11.X11Window.foreign_new_for_display(display, xid)
 	except TypeError as e:
 		raise DirtyState(window=window) from e
+
+
+def is_workspaces_only_on_primary():
+	mutter_settings = Gio.Settings('org.gnome.mutter')
+	return mutter_settings and mutter_settings.get_value('workspaces-only-on-primary')
+
+
+def get_first_workspace():
+	return Wnck.Screen.get_default().get_workspace(0)
+
+
+def get_active_workspace() -> Wnck.Workspace:
+	return Wnck.Screen.get_default().get_active_workspace()
 
 
 # TODO: rename to gdk_monitor_of
@@ -100,10 +113,6 @@ def get_top_two_windows(visible):
 		if w is top:
 			after_top = True
 	return top, below
-
-
-def get_active_workspace() -> Wnck.Workspace:
-	return Wnck.Screen.get_default().get_active_workspace()
 
 
 def is_managed(window):
