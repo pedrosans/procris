@@ -18,13 +18,14 @@ import traceback, gi, os, re
 from inspect import signature
 
 import pocoy.messages as messages
+import pocoy.scratchpads as scratchpads
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk, Gtk
 from typing import List, Dict, Callable
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
 	get_last_focused, decoration_delta, UserEvent, monitor_for, X_Y_W_H_GEOMETRY_MASK, \
-	is_managed, get_active_managed_window
+	is_managed, get_active_managed_window, is_buffer
 from pocoy.decoration import DECORATION_MAP
 from pocoy import decoration, state
 
@@ -270,8 +271,8 @@ class ActiveWindow:
 		return None
 
 	def read_screen(self):
-		active_window = get_last_focused(window_filter=lambda x: x in windows.visible)
-		self.xid = active_window.get_xid() if active_window else None
+		active = get_last_focused(window_filter=is_buffer)
+		self.xid = active.get_xid() if active else None
 
 	def clean(self):
 		self.xid = None
@@ -283,10 +284,12 @@ class ActiveWindow:
 
 	@statefull
 	def only(self, user_event: UserEvent):
-		for w in windows.visible.copy():
-			if self.xid != w.get_xid():
-				w.minimize()
-				windows.remove_from_visible(w)
+		if not self.xid:
+			return
+		monitor = monitors.get_active(self.get_wnck_window())
+		for xid in monitor.clients:
+			if self.xid != xid:
+				windows.window_by_xid[xid].minimize()
 		windows.staging = True
 
 	@statefull
