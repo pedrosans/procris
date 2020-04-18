@@ -17,6 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os, glob, gi, sys
 import xdg.DesktopEntry
 import xdg.Exceptions
+import pocoy.messages as messages
 gi.require_version('Gdk', '3.0')
 from gi.repository import Gdk, GLib, Gio, GdkX11
 from datetime import datetime
@@ -53,7 +54,8 @@ def spawn(user_event: UserEvent):
 def launch_from_name(user_event: UserEvent):
 	name = user_event.vim_command_parameter if user_event.vim_command_parameter else user_event.parameters[0]
 	app_info = info_for(name)
-	launch_app(app_info=app_info, timestamp=user_event.time)
+	if app_info:
+		launch_app(app_info=app_info, timestamp=user_event.time)
 
 
 def launch_from_commandline(user_event: UserEvent):
@@ -121,9 +123,11 @@ def complete(c_in: UserEvent):
 def info_for(name: str) -> Gio.DesktopAppInfo:
 
 	if name not in NAME_MAP.keys():
-		return Message('No matching application for ' + name, 'error')
+		messages.add(Message('No matching application for ' + name, 'error'))
+		return None
 
 	if not name or not name.strip() or name not in NAME_MAP.keys():
-		return Message('Missing application name', 'error')
+		messages.add(Message('Missing application name', 'error'))
+		return None
 
 	return Gio.DesktopAppInfo.new_from_filename(LOCATION_MAP[name])
