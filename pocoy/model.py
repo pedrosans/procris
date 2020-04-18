@@ -130,6 +130,11 @@ class Windows:
 		if window in self.visible:
 			self.remove_from_visible(window)
 		self.buffers.remove(window)
+		for stack_key in self.stacks.keys():
+			xid = window.get_xid()
+			stack = self.stacks[stack_key]
+			if xid in stack:
+				stack.remove(xid)
 		active_window.read_screen()
 
 	def remove_from_visible(self, window: Wnck.Window):
@@ -444,6 +449,17 @@ class ActiveWindow:
 
 		if new_index != old_index:
 			stack.insert(new_index, stack.pop(old_index))
+			apply()
+			persist()
+
+	def killclient(self, user_event: UserEvent):
+		active_window = self.get_wnck_window()
+		if active_window:
+			stack = windows.get_active_stack()
+			index = stack.index(get_active_managed_window().get_xid())
+			windows.remove(active_window, user_event.time)
+			self.xid = stack[min(index, len(stack) - 1)]
+			windows.staging = True
 			apply()
 			persist()
 
