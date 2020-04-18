@@ -38,15 +38,16 @@ def statefull(function):
 
 
 def persistent(function):
-	import pocoy.controller as controller
 	sig = signature(function)
 	if len(sig.parameters) == 2:
 		def notify_changes_after_method(self, user_event: UserEvent):
+			import pocoy.controller as controller
 			function(self, user_event)
 			controller.notify_layout_change()
 		return notify_changes_after_method
 	else:
 		def notify_changes_after_function():
+			import pocoy.controller as controller
 			function()
 			controller.notify_layout_change()
 		return notify_changes_after_function

@@ -27,9 +27,9 @@ import pocoy.applications as applications
 import pocoy.messages as messages
 import pocoy.terminal as terminal
 import pocoy.remote as remote
-import pocoy.desktop as desktop
 import pocoy.model as model
 import pocoy.controller as controller
+import pocoy.desktop as desktop
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gtk, GLib
@@ -78,7 +78,7 @@ def start():
 		quit()
 
 	model.start()
-	controller.connect_to(screen=Wnck.Screen.get_default(), model=model)
+	controller.connect_to(Wnck.Screen.get_default(), model.windows, model.monitors)
 	remote.export(ipc_handler=message, stop=stop)
 	listener.start()
 	desktop.connect()

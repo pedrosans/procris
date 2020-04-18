@@ -16,11 +16,50 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi
 from pocoy import wm, scratchpads
+from pocoy.model import Monitors, Windows
 from pocoy.wm import DirtyState, is_managed, is_visible, gdk_window_for, Trap, resize
 from functools import reduce
 from typing import List, Dict, Callable
 from gi.repository import Wnck, Gdk, Gtk
 gi.require_version('Wnck', '3.0')
+
+
+windows: Windows = None
+monitors: Monitors = None
+screen_handlers: List[int] = []
+handlers_by_xid: Dict[int, int] = {}
+layout_change_callbacks: [Callable] = []
+mapped = set()
+configured = set()
+
+
+def connect_to(screen: Wnck.Screen, model_windows: Windows, model_monitors: Monitors):
+	global windows, monitors
+	windows = model_windows
+	monitors = model_monitors
+	opened_handler_id = screen.connect("window-opened", _window_opened)
+	closed_handler_id = screen.connect("window-closed", _window_closed)
+	viewport_handler_id = screen.connect("viewports-changed", _viewports_changed)
+	workspace_handler_id = screen.connect("active-workspace-changed", _active_workspace_changed)
+	screen_handlers.extend([opened_handler_id, closed_handler_id, viewport_handler_id, workspace_handler_id])
+	_install_present_window_handlers(screen)
+	Gdk.Event.handler_set(_handle_x_event)
+
+
+def _install_present_window_handlers(screen: Wnck.Screen):
+	for window in screen.get_windows():
+		if window.get_xid() not in handlers_by_xid and is_managed(window):
+			handler_id = window.connect("state-changed", _state_changed)
+			handlers_by_xid[window.get_xid()] = handler_id
+
+
+def disconnect_from(screen: Wnck.Screen):
+	windows.read(screen, force_update=False)
+	for xid in handlers_by_xid.keys():
+		if xid in windows.window_by_xid:
+			windows.window_by_xid[xid].disconnect(handlers_by_xid[xid])
+	for handler_id in screen_handlers:
+		screen.disconnect(handler_id)
 
 
 def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
@@ -115,39 +154,3 @@ def _handle_x_event(event: Gdk.Event):
 def notify_layout_change():
 	for callback in layout_change_callbacks:
 		callback()
-
-
-def connect_to(screen: Wnck.Screen, model):
-	global windows, monitors
-	windows = model.windows
-	monitors = model.monitors
-	opened_handler_id = screen.connect("window-opened", _window_opened)
-	closed_handler_id = screen.connect("window-closed", _window_closed)
-	viewport_handler_id = screen.connect("viewports-changed", _viewports_changed)
-	workspace_handler_id = screen.connect("active-workspace-changed", _active_workspace_changed)
-	screen_handlers.extend([opened_handler_id, closed_handler_id, viewport_handler_id, workspace_handler_id])
-	_install_present_window_handlers(screen)
-	Gdk.Event.handler_set(_handle_x_event)
-
-
-def _install_present_window_handlers(screen: Wnck.Screen):
-	for window in screen.get_windows():
-		if window.get_xid() not in handlers_by_xid and is_managed(window):
-			handler_id = window.connect("state-changed", _state_changed)
-			handlers_by_xid[window.get_xid()] = handler_id
-
-
-def disconnect_from(screen: Wnck.Screen):
-	windows.read(screen, force_update=False)
-	for xid in handlers_by_xid.keys():
-		if xid in windows.window_by_xid:
-			windows.window_by_xid[xid].disconnect(handlers_by_xid[xid])
-	for handler_id in screen_handlers:
-		screen.disconnect(handler_id)
-
-
-screen_handlers: List[int] = []
-handlers_by_xid: Dict[int, int] = {}
-layout_change_callbacks: [Callable] = []
-mapped = set()
-configured = set()
