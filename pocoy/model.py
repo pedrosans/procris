@@ -295,11 +295,7 @@ class ActiveWindow:
 	@statefull
 	def minimize(self, user_event: UserEvent):
 		if self.xid:
-			active_window = self.get_wnck_window()
-			active_window.minimize()
-			windows.remove_from_visible(active_window)
-			self.read_screen()
-			windows.staging = True
+			self.get_wnck_window().minimize()
 
 	@statefull
 	def maximize(self, user_event: UserEvent):
