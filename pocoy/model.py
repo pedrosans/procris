@@ -23,7 +23,7 @@ from gi.repository import Wnck, Gdk, Gtk
 from typing import List, Dict, Callable
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
-	get_active_window, decoration_delta, UserEvent, monitor_for, X_Y_W_H_GEOMETRY_MASK, \
+	get_last_focused, decoration_delta, UserEvent, monitor_for, X_Y_W_H_GEOMETRY_MASK, \
 	is_managed, get_active_managed_window
 from pocoy.decoration import DECORATION_MAP
 from pocoy import decoration, state
@@ -270,7 +270,7 @@ class ActiveWindow:
 		return None
 
 	def read_screen(self):
-		active_window = get_active_window(window_filter=lambda x: x in windows.visible)
+		active_window = get_last_focused(window_filter=lambda x: x in windows.visible)
 		self.xid = active_window.get_xid() if active_window else None
 
 	def clean(self):

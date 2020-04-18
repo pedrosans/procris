@@ -93,8 +93,7 @@ def is_on_primary_monitor(window: Wnck.Window):
 	return intersect(window, Gdk.Display.get_default().get_primary_monitor())
 
 
-# TODO: rename to get_top_window
-def get_active_window(workspace: Wnck.Workspace = None, window_filter: Callable = None):
+def get_last_focused(workspace: Wnck.Workspace = None, window_filter: Callable = None):
 	workspace = workspace if workspace else get_active_workspace()
 	for stacked in reversed(Wnck.Screen.get_default().get_windows_stacked()):
 		if is_visible(stacked, workspace) and (not window_filter or window_filter(stacked)):
@@ -102,8 +101,8 @@ def get_active_window(workspace: Wnck.Workspace = None, window_filter: Callable 
 	return None
 
 
-def get_top_two_windows(visible):
-	top = get_active_window(window_filter=is_buffer)
+def get_last_two_focused(visible):
+	top = get_last_focused(window_filter=is_buffer)
 	below = None
 	after_top = False
 	for w in reversed(Wnck.Screen.get_default().get_windows_stacked()):
