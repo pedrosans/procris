@@ -34,13 +34,13 @@ DECORATION_MAP = {
 	'NONE': 0}
 
 
-def remove(buffers: List[Wnck.Window]):
+def remove(windows_xid: List[int]):
 	decoration_map = persistor.get_decorations()
 
-	for w in buffers:
+	for xid in windows_xid:
 
-		key = str(w.get_xid())
-		gdk_w = gdk_window_for(w)
+		key = str(xid)
+		gdk_w = gdk_window_for(xid=xid)
 
 		is_decorated, decorations = gdk_w.get_decorations()
 		has_title = Gdk.WMDecoration.TITLE & decorations or Gdk.WMDecoration.ALL & decorations
@@ -54,11 +54,11 @@ def remove(buffers: List[Wnck.Window]):
 	persistor.persist_decorations(decoration_map)
 
 
-def restore(buffers: List[Wnck.Window]):
+def restore(windows_xid: List[int]):
 	original_decorations = persistor.get_decorations()
-	for w in buffers:
-		if str(w.get_xid()) in original_decorations:
-			gdk_window_for(w).set_decorations(Gdk.WMDecoration(original_decorations[str(w.get_xid())]))
+	for xid in windows_xid:
+		if str(xid) in original_decorations:
+			gdk_window_for(xid=xid).set_decorations(Gdk.WMDecoration(original_decorations[str(xid)]))
 
 
 def complete(c_in: UserEvent):

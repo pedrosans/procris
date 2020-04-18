@@ -56,10 +56,9 @@ def persistent(function):
 
 class Windows:
 
-	window_by_xid: Dict[int, Wnck.Window] = {}
-
 	def __init__(self):
-		self.buffers: List[Wnck.Window] = []
+		self.window_by_xid: Dict[int, Wnck.Window] = {}
+		self.buffers: List[int] = []
 		self.staging = False
 
 	def read_default_screen(self, force_update=True):
@@ -76,11 +75,10 @@ class Windows:
 		monitors.read(screen)
 
 		for wnck_window in screen.get_windows():
-			self.window_by_xid[wnck_window.get_xid()] = wnck_window
-			if wnck_window.get_pid() == os.getpid() or wnck_window.is_skip_tasklist():
-				continue
-
-			self.buffers.append(wnck_window)
+			xid = wnck_window.get_xid()
+			self.window_by_xid[xid] = wnck_window
+			if is_buffer(wnck_window):
+				self.buffers.append(xid)
 
 		active_window.read_screen()
 
@@ -127,6 +125,9 @@ class Windows:
 		visible = filter(is_visible, screen.get_windows())
 		return sorted(visible, key=sort_line)
 
+	def get_buffers(self):
+		return list(map(lambda xid: self.window_by_xid[xid], self.buffers))
+
 	def remove(self, window, time):
 		window.close(time)
 
@@ -139,8 +140,7 @@ class Windows:
 			floating = []
 			for monitor in monitors.primary_monitors.values():
 				while monitor:
-					(tiled if monitor.function_key else floating).extend(
-						map(lambda xid: windows.window_by_xid[xid], monitor.clients))
+					(tiled if monitor.function_key else floating).extend(monitor.clients)
 					monitor = monitor.next()
 			decoration.remove(tiled)
 			decoration.restore(floating)
@@ -151,13 +151,13 @@ class Windows:
 	# Query API
 	#
 	def find_by_name(self, name):
-		return next((w for w in self.buffers if name.lower().strip() in w.get_name().lower()), None)
+		return next((w for w in self.get_buffers() if name.lower().strip() in w.get_name().lower()), None)
 
 	def complete(self, user_event: UserEvent):
 		if not user_event.vim_command_spacer:
 			return None
 		name = user_event.vim_command_parameter
-		names = map(lambda x: x.get_name().strip(), self.buffers)
+		names = map(lambda x: x.get_name().strip(), self.get_buffers())
 		filtered = filter(lambda x: name.lower().strip() in x.lower(), names)
 		return list(filtered)
 
@@ -173,7 +173,7 @@ class Windows:
 		if user_event.text:
 			messages.add(messages.Message(PROMPT + user_event.text, 'info'))
 		from pocoy.view import BufferName
-		for window in self.buffers:
+		for window in self.get_buffers():
 			messages.add(BufferName(window, self))
 
 	@statefull
@@ -183,7 +183,7 @@ class Windows:
 			buffer_number = buffer_number_match.group(2)
 			index = int(buffer_number) - 1
 			if index < len(self.buffers):
-				active_window.xid = self.buffers[index].get_xid()
+				active_window.xid = self.buffers[index]
 				self.staging = True
 			else:
 				return messages.Message('Buffer {} does not exist'.format(buffer_number), 'error')
@@ -214,8 +214,8 @@ class Windows:
 					to_delete.append(self.buffers[index])
 				else:
 					return messages.Message('No buffers were deleted', 'error')
-			for window in to_delete:
-				self.remove(window, user_event.time)
+			for xid in to_delete:
+				self.remove(self.window_by_xid[xid], user_event.time)
 			self.staging = True if to_delete else False
 			return
 
@@ -254,10 +254,11 @@ class ActiveWindow:
 	def __init__(self):
 		self.xid = None
 
+	# TODO: is this needed?
 	def get_wnck_window(self):
-		for w in windows.buffers:
-			if w.get_xid() == self.xid:
-				return w
+		for buffer_xid in windows.buffers:
+			if buffer_xid == self.xid:
+				return windows.window_by_xid[self.xid]
 		return None
 
 	def read_screen(self):
@@ -286,6 +287,7 @@ class ActiveWindow:
 	def minimize(self, user_event: UserEvent):
 		if self.xid:
 			self.get_wnck_window().minimize()
+			windows.staging = True
 
 	@statefull
 	def maximize(self, user_event: UserEvent):
@@ -746,7 +748,7 @@ def resume():
 	for w in reversed(Wnck.Screen.get_default().get_windows_stacked()):
 		resume += '{}\n'.format(w.get_name())
 	from pocoy.layout import FUNCTIONS_MAP
-	for wn in windows.buffers:
+	for wn in windows.get_buffers():
 		gdk_w = gdk_window_for(wn)
 
 		resume += '\n'

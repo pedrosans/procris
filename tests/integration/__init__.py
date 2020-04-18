@@ -17,5 +17,9 @@ def run(function: Callable) -> threading.Thread:
 
 
 def run_on_main_loop_and_wait(function):
-	GLib.idle_add(function, priority=GLib.PRIORITY_HIGH)
+	run_on_main_loop(function)
 	time.sleep(1)
+
+
+def run_on_main_loop(function):
+	GLib.idle_add(function, priority=GLib.PRIORITY_HIGH)

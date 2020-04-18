@@ -306,9 +306,9 @@ class BufferName(messages.Message):
 		super().__init__(None, None)
 		self.indentation = '   '
 		self.window = window
-		self.index = 1 + windows.buffers.index(self.window)
+		self.index = 1 + windows.buffers.index(self.window.get_xid())
 		self.flags = ''
-		top, below = get_last_two_focused(windows.visible)
+		top, below = get_last_two_focused()
 		if self.window is top:
 			self.flags += '%a'
 		elif self.window is below:

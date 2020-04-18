@@ -33,9 +33,10 @@ adjustment_cache = {}
 
 # https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Display.html
 # https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Window.html
-def gdk_window_for(window: Wnck.Window) -> GdkX11.X11Window:
+def gdk_window_for(window: Wnck.Window = None, xid: int = None) -> GdkX11.X11Window:
 	display = GdkX11.X11Display.get_default()
-	xid = window.get_xid()
+	if not xid:
+		xid = window.get_xid()
 	try:
 		return GdkX11.X11Window.foreign_new_for_display(display, xid)
 	except TypeError as e:
@@ -101,12 +102,12 @@ def get_last_focused(workspace: Wnck.Workspace = None, window_filter: Callable =
 	return None
 
 
-def get_last_two_focused(visible):
+def get_last_two_focused():
 	top = get_last_focused(window_filter=is_buffer)
 	below = None
 	after_top = False
 	for w in reversed(Wnck.Screen.get_default().get_windows_stacked()):
-		if w in visible and after_top:
+		if is_visible(w) and after_top:
 			below = w
 			break
 		if w is top:
