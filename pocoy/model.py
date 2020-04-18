@@ -131,17 +131,11 @@ class Windows:
 			active_window.get_wnck_window().activate_transient(event_time)
 		self.staging = False
 
-	# TODO: does need to clean stacked xid???
 	def remove(self, window, time):
 		window.close(time)
-		if window in self.visible:
-			self.remove_from_visible(window)
-		self.buffers.remove(window)
-		active_window.read_screen()
 
 	def remove_from_visible(self, window: Wnck.Window):
-		self.visible.remove(window)
-		self.line.remove(window)
+		pass
 
 	def apply_decoration_config(self):
 		if state.is_remove_decorations():
@@ -440,9 +434,13 @@ class ActiveWindow:
 
 	@statefull
 	def focus_previous(self, user_event: UserEvent):
-		clients = list(filter(lambda x: x in windows.visible, Wnck.Screen.get_default().get_windows_stacked()))
-		i = clients.index(self.get_wnck_window())
-		self.xid = clients[i - 1].get_xid()
+		last = get_last_focused(window_filter=is_buffer)
+		if not last:
+			return
+		previous = get_last_focused(window_filter=lambda w: is_buffer(w) and w is not last)
+		if not previous:
+			return
+		self.xid = previous.get_xid()
 		windows.staging = True
 
 	def move_focus(self, increment, axis):
@@ -744,8 +742,10 @@ def persist():
 # Internal API
 #
 def resume():
-	from pocoy.layout import FUNCTIONS_MAP
 	resume = ''
+	for w in reversed(Wnck.Screen.get_default().get_windows_stacked()):
+		resume += '{}\n'.format(w.get_name())
+	from pocoy.layout import FUNCTIONS_MAP
 	for wn in windows.buffers:
 		gdk_w = gdk_window_for(wn)
 
