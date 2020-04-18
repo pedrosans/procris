@@ -59,9 +59,7 @@ class Windows:
 	window_by_xid: Dict[int, Wnck.Window] = {}
 
 	def __init__(self):
-		self.visible: List[Wnck.Window] = []
 		self.buffers: List[Wnck.Window] = []
-		self.line: List[Wnck.Window] = None
 		self.staging = False
 
 	def read_default_screen(self, force_update=True):
@@ -69,7 +67,6 @@ class Windows:
 
 	def read(self, screen: Wnck.Screen, force_update=True):
 		del self.buffers[:]
-		del self.visible[:]
 		active_window.clean()
 		self.window_by_xid.clear()
 
@@ -85,16 +82,7 @@ class Windows:
 
 			self.buffers.append(wnck_window)
 
-			if wnck_window.is_in_viewport(screen.get_active_workspace()) and not wnck_window.is_minimized():
-				self.visible.append(wnck_window)
-
 		active_window.read_screen()
-
-		def sort_line(w):
-			geometry = w.get_geometry()
-			return geometry.xp * STRETCH + geometry.yp
-
-		self.line = sorted(self.visible, key=sort_line)
 
 		for workspace in screen.get_workspaces():
 			self._read_workspace(screen, workspace)
@@ -130,6 +118,14 @@ class Windows:
 		if self.staging and active_window.xid and active_window.get_wnck_window():
 			active_window.get_wnck_window().activate_transient(event_time)
 		self.staging = False
+
+	def get_window_line(self) -> List[Wnck.Window]:
+		def sort_line(w):
+			geometry = w.get_geometry()
+			return geometry.xp * STRETCH + geometry.yp
+		screen = Wnck.Screen.get_default()
+		visible = filter(is_visible, screen.get_windows())
+		return sorted(visible, key=sort_line)
 
 	def remove(self, window, time):
 		window.close(time)
@@ -452,7 +448,10 @@ class ActiveWindow:
 			perpendicular_distance *= -1 if axis_position < axis.position_of(active) else 1
 			return axis_position + perpendicular_distance
 
-		sorted_windows = sorted(windows.visible, key=key)
+		screen = Wnck.Screen.get_default()
+		screen.get_windows()
+		sorted_windows = sorted(filter(is_visible, screen.get_windows()), key=key)
+
 		index = sorted_windows.index(self.get_wnck_window())
 		if 0 <= index + increment < len(sorted_windows):
 			index = index + increment
@@ -466,8 +465,9 @@ class ActiveWindow:
 	@statefull
 	def focus_next(self, user_event: UserEvent):
 		direction = 1 if not user_event or Gdk.keyval_name(user_event.keyval).islower() else -1
-		i = windows.line.index(self.get_wnck_window())
-		next_window = windows.line[(i + direction) % len(windows.line)]
+		line = windows.get_window_line()
+		i = line.index(self.get_wnck_window())
+		next_window = line[(i + direction) % len(line)]
 		self.xid = next_window.get_xid()
 		windows.staging = True
 

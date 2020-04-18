@@ -123,12 +123,13 @@ class ReadingWindow(Gtk.Window):
 
 	def list_navigation_windows(self):
 		for c in self.completions_line.get_children(): c.destroy()
-		if not self.windows.line:
+		line = self.windows.get_window_line()
+		if not line:
 			self.completions_line.add_status_text('"[No Window]"', False)
-		for window in self.windows.line:
+		for window in line:
 			name = window.get_name()
 			name = ' ' + ((name[:8] + '..') if len(name) > 10 else name)
-			position = self._navigation_index(window)
+			position = self._navigation_index(window, line)
 			if window is not self.active_window:
 				position = ' ' + position
 			active = window is self.active_window
@@ -136,6 +137,17 @@ class ReadingWindow(Gtk.Window):
 			self.completions_line.add_status_text(position, active)
 			self.completions_line.add_status_text(name, active)
 			self.completions_line.add_status_text(' ', False)
+
+	def _navigation_index(self, window, line):
+		length = len(line)
+		start_position = line.index(self.active_window.get_wnck_window())
+		multiplier = (length + line.index(window) - start_position) % len(line)
+		if multiplier == 0:
+			return ''
+		if multiplier == 1:
+			return 'w'
+		else:
+			return str(multiplier) + 'w'
 
 	def show_messages(self):
 		for message in messages.get():
@@ -167,17 +179,6 @@ class ReadingWindow(Gtk.Window):
 			self.colon_prompt.hide()
 			self.colon_prompt.show()  # cause entry to lose focus
 			self.colon_prompt.set_can_focus(False)
-
-	def _navigation_index(self, window):
-		length = len(self.windows.line)
-		start_position = self.windows.line.index(self.active_window.get_wnck_window())
-		multiplier = (length + self.windows.line.index(window) - start_position) % len(self.windows.line)
-		if multiplier == 0:
-			return ''
-		if multiplier == 1:
-			return 'w'
-		else:
-			return str(multiplier) + 'w'
 
 	def _calculate_width(self):
 		width_config = configurations.get_width()
