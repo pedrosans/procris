@@ -183,16 +183,14 @@ class Windows:
 			buffer_number = buffer_number_match.group(2)
 			index = int(buffer_number) - 1
 			if index < len(self.buffers):
-				active_window.xid = self.buffers[index]
-				self.staging = True
+				active_window.change_to(self.buffers[index])
 			else:
 				return messages.Message('Buffer {} does not exist'.format(buffer_number), 'error')
 		elif user_event.vim_command_parameter:
 			window_title = user_event.vim_command_parameter
 			w = self.find_by_name(window_title)
 			if w:
-				active_window.xid = w.get_xid()
-				self.staging = True
+				active_window.change_to(w.get_xid())
 			else:
 				return messages.Message('No matching buffer for ' + window_title, 'error')
 
@@ -202,7 +200,6 @@ class Windows:
 		if not user_event.vim_command_parameter:
 			if active_window.xid:
 				self.remove(active_window.get_wnck_window(), user_event.time)
-				self.staging = True
 				return
 			return messages.Message('There is no active window', 'error')
 
@@ -216,13 +213,11 @@ class Windows:
 					return messages.Message('No buffers were deleted', 'error')
 			for xid in to_delete:
 				self.remove(self.window_by_xid[xid], user_event.time)
-			self.staging = True if to_delete else False
 			return
 
 		w = self.find_by_name(user_event.vim_command_parameter)
 		if w:
 			self.remove(w, user_event.time)
-			self.staging = True
 		else:
 			return messages.Message('No matching buffer for ' + user_event.vim_command_parameter, 'error')
 
@@ -246,7 +241,6 @@ class Windows:
 				x + gdk_monitor.get_workarea().x, y + gdk_monitor.get_workarea().y,
 				parameters[4] if len(parameters) > 4 else window.get_geometry().widthp,
 				parameters[5] if len(parameters) > 5 else window.get_geometry().heightp)
-		windows.staging = True
 
 
 class ActiveWindow:
@@ -281,19 +275,16 @@ class ActiveWindow:
 		for xid in monitor.clients:
 			if self.xid != xid:
 				windows.window_by_xid[xid].minimize()
-		windows.staging = True
 
 	@statefull
 	def minimize(self, user_event: UserEvent):
 		if self.xid:
 			self.get_wnck_window().minimize()
-			windows.staging = True
 
 	@statefull
 	def maximize(self, user_event: UserEvent):
 		if self.xid:
 			self.get_wnck_window().maximize()
-			windows.staging = True
 
 	@statefull
 	def move_right(self, user_event: UserEvent):
@@ -319,12 +310,10 @@ class ActiveWindow:
 			resize(window, l=position, t=0, w=proportion, h=1)
 		else:
 			resize(window, l=0, t=position, w=1, h=proportion)
-		windows.staging = True
 
 	@statefull
 	def centralize(self, user_event: UserEvent):
 		resize(self.get_wnck_window(), l=0.1, t=0.1, w=0.8, h=0.8)
-		windows.staging = True
 
 	@statefull
 	def decorate(self, user_event: UserEvent):
@@ -333,7 +322,6 @@ class ActiveWindow:
 			opt = DECORATION_MAP[decoration_parameter]
 		gdk_window = gdk_window_for(self.get_wnck_window())
 		gdk_window.set_decorations(opt)
-		windows.staging = True
 
 	@statefull
 	@persistent
@@ -349,8 +337,7 @@ class ActiveWindow:
 				clients.insert(1, clients.pop(old_index))
 			else:
 				clients.insert(0, clients.pop(old_index))
-			active_window.xid = clients[0]
-			windows.staging = True
+			active_window.change_to(clients[0])
 		monitor.apply()
 
 	@statefull
@@ -410,8 +397,7 @@ class ActiveWindow:
 			clients = monitor.clients
 			index = clients.index(get_active_managed_window().get_xid())
 			windows.remove(active_window, user_event.time)
-			self.xid = clients[min(index, len(clients) - 1)]
-			windows.staging = True
+			self.change_to(clients[min(index, len(clients) - 1)])
 			monitor.apply()
 
 	@statefull
@@ -438,8 +424,7 @@ class ActiveWindow:
 		previous = get_last_focused(window_filter=lambda w: is_buffer(w) and w is not last)
 		if not previous:
 			return
-		self.xid = previous.get_xid()
-		windows.staging = True
+		self.change_to(previous.get_xid())
 
 	def move_focus(self, increment, axis):
 		active = self.get_wnck_window()
@@ -461,8 +446,7 @@ class ActiveWindow:
 			while 0 <= next_index < len(sorted_windows) and axis.position_of(sorted_windows[index]) == axis.position_of(active):
 				index = next_index
 				next_index += increment
-		self.xid = sorted_windows[index].get_xid()
-		windows.staging = True
+		self.change_to(sorted_windows[index].get_xid())
 
 	@statefull
 	def focus_next(self, user_event: UserEvent):
@@ -470,8 +454,7 @@ class ActiveWindow:
 		line = windows.get_window_line()
 		i = line.index(self.get_wnck_window())
 		next_window = line[(i + direction) % len(line)]
-		self.xid = next_window.get_xid()
-		windows.staging = True
+		self.change_to(next_window.get_xid())
 
 
 # https://valadoc.org/gdk-3.0/Gdk.Monitor.html

@@ -5,6 +5,8 @@ import warnings
 import pocoy.service as service
 from subprocess import Popen
 
+from pocoy import messages
+
 
 class ServiceIntegrationTestCase(unittest.TestCase):
 
@@ -19,6 +21,7 @@ class ServiceIntegrationTestCase(unittest.TestCase):
 		run('edit Calculator', wait=2)
 		run('ls')
 		self.assertIn('Calculator', service.messages.to_string())
+		messages.clean()
 		run('bdelete Calculator', wait=2)
 		run('ls')
 		self.assertNotIn('Calculator', service.messages.to_string())
@@ -32,6 +35,7 @@ class ServiceIntegrationTestCase(unittest.TestCase):
 		run('ls')
 		self.assertIn('%a ' + WINDOW_NAME, service.messages.to_string())
 		run('quit')
+		messages.clean()
 		run('ls')
 		self.assertIn(WINDOW_NAME, service.messages.to_string())
 		self.assertNotIn('%a ' + WINDOW_NAME, service.messages.to_string())
