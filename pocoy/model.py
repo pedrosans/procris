@@ -14,14 +14,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import traceback, gi, os, re
+import traceback, gi, re
 from inspect import signature
 
 import pocoy.messages as messages
-import pocoy.scratchpads as scratchpads
+
 gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck, Gdk, Gtk
-from typing import List, Dict, Callable
+from gi.repository import Wnck, Gdk
+from typing import List, Dict
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
 	get_last_focused, decoration_delta, UserEvent, monitor_for, X_Y_W_H_GEOMETRY_MASK, \
@@ -128,12 +128,6 @@ class Windows:
 	def get_buffers(self):
 		return list(map(lambda xid: self.window_by_xid[xid], self.buffers))
 
-	def remove(self, window, time):
-		window.close(time)
-
-	def remove_from_visible(self, window: Wnck.Window):
-		pass
-
 	def apply_decoration_config(self):
 		if state.is_remove_decorations():
 			tiled = []
@@ -199,7 +193,8 @@ class Windows:
 
 		if not user_event.vim_command_parameter:
 			if active_window.xid:
-				self.remove(active_window.get_wnck_window(), user_event.time)
+				window = active_window.get_wnck_window()
+				window.close(user_event.time)
 				return
 			return messages.Message('There is no active window', 'error')
 
@@ -212,12 +207,13 @@ class Windows:
 				else:
 					return messages.Message('No buffers were deleted', 'error')
 			for xid in to_delete:
-				self.remove(self.window_by_xid[xid], user_event.time)
+				window1 = self.window_by_xid[xid]
+				window1.close(user_event.time)
 			return
 
 		w = self.find_by_name(user_event.vim_command_parameter)
 		if w:
-			self.remove(w, user_event.time)
+			w.close(user_event.time)
 		else:
 			return messages.Message('No matching buffer for ' + user_event.vim_command_parameter, 'error')
 
@@ -391,14 +387,12 @@ class ActiveWindow:
 	@statefull
 	@persistent
 	def killclient(self, user_event: UserEvent):
-		active_window = self.get_wnck_window()
-		if active_window:
-			monitor = monitors.get_active()
-			clients = monitor.clients
-			index = clients.index(get_active_managed_window().get_xid())
-			windows.remove(active_window, user_event.time)
-			self.change_to(clients[min(index, len(clients) - 1)])
-			monitor.apply()
+		active = self.get_wnck_window()
+
+		if not active:
+			return
+
+		active.close(user_event.time)
 
 	@statefull
 	def focus_right(self, user_event: UserEvent):
