@@ -42,7 +42,7 @@ def window_for(xid: int = None) -> GdkX11.X11Window:
 	try:
 		return GdkX11.X11Window.foreign_new_for_display(display, xid)
 	except TypeError as e:
-		raise DirtyState(window=window) from e
+		raise DirtyState(xid=xid) from e
 
 
 #
