@@ -49,8 +49,7 @@ def window_for(xid: int = None) -> GdkX11.X11Window:
 # WORKSPACE
 #
 def is_workspaces_only_on_primary():
-	mutter_settings = Gio.Settings('org.gnome.mutter')
-	return mutter_settings and mutter_settings.get_value('workspaces-only-on-primary')
+	return 'org.gnome.mutter' in Gio.Settings.list_schemas() and Gio.Settings('org.gnome.mutter').get_value('workspaces-only-on-primary')
 
 
 def get_first_workspace():
