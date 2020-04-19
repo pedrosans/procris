@@ -25,9 +25,10 @@ manual:
 test:
 	python3 -m unittest discover -v
 install:
-	${SETUP_SCRIPT} install --record $(PYTHONPATH)/installed_files.txt 1>/dev/null
+	python3 ${SETUP_SCRIPT} install --record $(PYTHONPATH)/installed_files.txt 1>/dev/null
 	echo "	OK: pocoy files installed"
-	update-icon-caches /usr/share/icons/* 1>/dev/null && echo "	OK: icons cache updated" || echo "	WARN: failed to update icons cache"
+	(command -v update-icon-caches && update-icon-caches /usr/share/icons/hicolor ) | \
+	(command -v gtk-update-icon-cache && gtk-update-icon-cache -f --include-image-data /usr/share/icons/hicolor )
 	echo "	SUCCESS: pocoy installed"
 uninstall:
 	cat $(PYTHONPATH)/installed_files.txt | xargs rm -rf ; rm -f $(PYTHONPATH)/installed_files.txt
@@ -48,10 +49,12 @@ publish:
 	debsign -pgpg2 ${PYTHONPATH}/deb_dist/pocoy_${VERSION}-1_source.changes && echo "Signed"
 	cd ${PYTHONPATH}/deb_dist && dput ppa:pedrosans/pocoy pocoy_${VERSION}-1_source.changes && echo "Published"
 dependencies:
+	# arch
+	command -v pacman  && pacman -S libwnck3 gobject-introspection-runtime libappindicator-gtk3 python-pyxdg python-dbus python-setproctitle python-xlib libx11
 	# binaries / sources
-	apt-get install python3-distutils python3-stdeb -y 1>/dev/null
+	command -v apt-get && apt-get install python3-distutils python3-stdeb -y 1>/dev/null
 	# install
-	apt-get install -y python3 gir1.2-gtk-3.0 gir1.2-wnck-3.0 gir1.2-appindicator3-0.1 libwnck-3-0 python3-gi-cairo python3-xdg python3-dbus python3-setproctitle python3-xlib libx11-dev 1>/dev/null
+	command -v apt-get && apt-get install -y gir1.2-gtk-3.0 gir1.2-wnck-3.0 gir1.2-appindicator3-0.1 python3-xdg python3-dbus python3-setproctitle python3-xlib libx11-6 1>/dev/null
 	# publish
-	apt-get install devscripts gnupg2 -y 1>/dev/null
+	command -v apt-get && apt-get install devscripts gnupg2 -y 1>/dev/null
 	echo "	OK: pocoy dependencies"

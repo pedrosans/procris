@@ -6,37 +6,36 @@
 </a>
 </div>
 
-pocoy is a window management tool to add tiling and navigation features
-from dwm and Vim to the window manager of choice.
-It adds the prefix key + command key combinations in addition to dwm keys,
-thus enabling a standard set of commands to navigate inside Vim, Tmux and the WM
-on top of windows tiled in master and stack areas.
+pocoy is a window management tool to tile and navigate windows with layout, key and names from dwm and Vim, 
+being the goal to enable a standard way to navigate inside Vim, Tmux and the WM.
 
-### Usage
+## Overview
 
 Commands are bound to names and keys in the config module.
 Keys can be combined of
 [prefix key](https://manpages.debian.org/buster/tmux/tmux.1.en.html#KEY_BINDINGS)
 +
 [command key](https://manpages.debian.org/buster/tmux/tmux.1.en.html#KEY_BINDINGS),
-which are by default bound to a set of
-Vim [window commands](http://vimdoc.sourceforge.net/htmldoc/vimindex.html#CTRL-W).
+which are by default bound to
+Vim's [window commands](http://vimdoc.sourceforge.net/htmldoc/vimindex.html#CTRL-W).
 
 
-Example:
+Examples:
 
-1. open the colon prompt <kbd>prefix key</kbd> + <kbd>:</kbd>
-2. list windows by entering `buffers`
-3. pass window numbers (as listed by `:buffers`) as parameters to `:bdelete` to close a set of windows
+Close a set of windows
 
-or:
+1. open the colon prompt (<kbd>prefix key</kbd> + <kbd>:</kbd>)
+2. list existing windows (`:buffers`)
+3. list to close window numbers delete command (`:bdelete 3 5 6`)
+
+Focus on a task
 
 1. <kbd>prefix key</kbd> + <kbd>o</kbd> to quit all visible windows but the active one.
 
 
 The prefix key is <kbd>Ctrl</kbd> + <kbd>q</kbd> by default. A custom config module can
 be defined at `~/.config/pocoy/config.py`, being the default
-[one](pocoy/config.py) meant to be a starting point. For all keys and names:
+one [pocoy/config.py](pocoy/config.py) meant to be a starting point. For keys and names documentation:
 
 ```shell
 groff -mman pocoy.1 -T utf8 | less
@@ -44,34 +43,33 @@ groff -mman pocoy.1 -T utf8 | less
 
 ### dwm stuff
 
-The usual dwm keys are bound by default.
-The layout can be selected by their option in the status icon on the DE panel (if running on a DE)
-or via a bound key or name.
+Main dwm keys to set the layout and navigate are bound by default.
+In addition, a layout can be selected by their option in the DE panel (if running on a DE).
 
-Each layout is visually indicated by a custom icon in the DE panel. Main layouts are bound by default:
+Each layout is visually indicated by a custom icon, being the main one:
 
-||none|monocle|tile|[centeredmaster](https://dwm.suckless.org/patches/centeredmaster/)|centeredfloatingmaster|[spiral](https://dwm.suckless.org/patches/fibonacci/)|dwindle|
+||none|monocle|tile|[centeredmaster](https://dwm.suckless.org/patches/centeredmaster/)|[spiral](https://dwm.suckless.org/patches/fibonacci/)|dwindle|
 |---|--|---|---|---|---|---|---|
-|Icon| ![floating](data/icon/48x48/pocoy-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-M-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-T-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-C-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy->-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-@-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-\\-dark.png "pocoy logo")
-|Default key|ctrl+f|ctrl+m|ctrl+t|||||
+|Icon| ![floating](data/icon/48x48/pocoy-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-M-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-T-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-C-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-@-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-\\-dark.png "pocoy logo")
+|Default key|ctrl+f|ctrl+m|ctrl+t|||
 
 
 ### Vim stuff
 
-The set of Vim names and keys to manipulate buffers, which translates to
+A set of Vim names and keys to manipulate buffers, which translates to
 both application and windows inside pocoy, works like:
 
-`:ls` lists current windows.
+`:ls` list current windows.
 
-`:b4` change the focus to the window number 4.
+`:b4` focus window number 4
 
-`:buffer term` activate the window containing `term` in the title if any.
+`:buffer term` activate window containing `term` in the title if any
 
-`:bd` closes the current window.
+`:bd` close the current window
 
-`:edit calc` launches an application containing `calc` in the name like a calculator.
+`:edit calc` launches an application containing `calc` in the name
 
-### Installation
+## Installation
 
 1. From PPA, for Ubuntu distributions
 	```bash
@@ -79,77 +77,58 @@ both application and windows inside pocoy, works like:
 	sudo apt-get update
 	sudo apt-get install pocoy
 	```
-2. Make file
-
-	```bash
-	sudo make install
-	```
-
-	To uninstall:
-
-	```bash
-	sudo make uninstall
-	```
 
 3. Manually
 
 	1. Install pocoy's dependencies
 
-		`python3 gir1.2-gtk-3.0 python3-gi-cairo` python + gtk  
-		`python3-xdg` free desktop standards used to configure and launch pocoy  
-		`gir1.2-wnck-3.0 libwnck-3-0` functions to navigate X windows  
-		`gir1.2-appindicator3-0.1` used to indicate pocoy running on the statur bar  
-		`gir1.2-keybinder-3.0 python3-dbus` bind navigation functions to keyboard prefix + shortcuts  
-		`python3-setproctitle` used to name the running process
-		`python3-xlib,libx11-dev` used to listen the keyboard
-
-		on Unbuntu:
+		Unbuntu dependencies:
 
 		```bash
-		sudo apt-get install python3-distutils gir1.2-gtk-3.0 gir1.2-wnck-3.0 \
-		gir1.2-appindicator3-0.1 gir1.2-keybinder-3.0 libwnck-3-0             \
-		python3-gi-cairo python3-xdg python3-dbus python3-setproctitle        \
-		python3-xlib,libx11-dev
+		python3-distutils python3-xdg python3-dbus python3-setproctitle python3-xlib \
+		gir1.2-gtk-3.0 gir1.2-wnck-3.0 gir1.2-appindicator3-0.1 libx11-6
+		```
+		Arch dependencies:
+
+		```bash
+		python-pyxdg python-dbus python-setproctitle python-xlib \
+		libwnck3 gobject-introspection-runtime libappindicator-gtk3 libx11
 		```
 
 	2. Install pocoy
 		```
-		sudo ./setup.py install --record installed_files.txt
+		./setup.py install --record installed_files.txt
 		```
 		to uninstall:
 		```
-		sudo cat installed_files.txt | sudo  xargs rm -rf ; rm -f installed_files.txt
+		cat installed_files.txt | xargs rm -rf ; rm -f installed_files.txt
 		```
 
-	3. Update icons cache
+	3. Update hicolor icons cache
 
-		on Unbuntu:
+		on Unbuntu: `update-icon-caches /usr/share/icons/hicolor`
 
-		```
-		sudo update-icon-caches /usr/share/icons/*
-		```
+		on Arch: `gtk-update-icon-cache && gtk-update-icon-cache -f --include-image-data /usr/share/icons/hicolor`
 
 ### Start pocoy
 
-Via DE:
+Via DE: `/usr/share/applications/pocoy.desktop`
 
-`/usr/share/applications/pocoy.desktop`
+Via command line: `pocoy`
 
-Via command line:
+## Configuration
 
-`pocoy`: start pocoy
+### config module
 
-#### Configuration
+The module defines a set of configuration variables that will be read when pocoy starts.
+For customizations, new one needs to be place at `~/.config/pocoy/config.py`.
 
-##### config module
-
-The config module has 3 variables: parameters, keys, names.
-
-- keys and names: list of `Key` and `Name` objects binding keys and names to functions.
-- parameters: optional dictionary of optional parameters and their values:
+Default config module: [pocoy/config.py](pocoy/config.py)
 
 Property|Description|Default
 -|-|-
+`keys` | list of keys and their correspondent command | [config.py](pocoy/config.py)
+`names` | list of keys and their correspondent command | [config.py](pocoy/config.py)
 `list_workspaces`| if buffers command should list windows from all workspaces. |`true`
 `position`| colon prompt positon on the monitor `top`, `middle`, `bottom` | `bottom`
 `width`| colon prompt width in pixels or `100%` if it should span the entire screen. | 800
@@ -157,9 +136,14 @@ Property|Description|Default
 `auto_select_first_hint` | if the fist option offered in the hint bar should be selected automatically. | `true`
 
 
-##### interface
+### colon prompt window
 
-Font size: create and add to `~/.config/pocoy/pocoy.css` ( more properties in [view](pocoy/view.py) module)
+Components in the window like the font size can be customized via a CSS file
+by placing one at `~/.config/pocoy/pocoy.css`.
+
+Default CSS at the bottom of [pocoy/view.py](pocoy/view.py)
+
+Example:
 
 ```css
 * {
@@ -167,7 +151,11 @@ Font size: create and add to `~/.config/pocoy/pocoy.css` ( more properties in [v
 }
 ```
 
-Border around active window: create and add to `~/.config/gtk-3.0/gtk.cs`
+### window borders
+
+pocoy does not add border around windows. For reference, one can define it
+with a different color for the active window by placing `~/.config/gtk-3.0/gtk.css`
+with:
 
 ```css
 decoration {
