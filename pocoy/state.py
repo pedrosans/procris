@@ -30,11 +30,12 @@ config_dir = Base.save_config_path(POCOY_PACKAGE)
 cache_dir = Base.save_cache_path(POCOY_PACKAGE)
 workspace_file = cache_dir + '/workspace.json'
 decorations_file = cache_dir + '/decoration.json'
-config_file = cache_dir + '/config.json'
-loaded_workspace_config: Dict = None
+parameters_file = cache_dir + '/parameters.json'
+loaded_parameters: Dict = None
+loaded_workspaces: Dict = None
 loaded_decorations: Dict = None
 config_module: ModuleType = None
-DEFAULTS = {
+DEFAULT_PARAMETERS = {
 	'position': 'bottom',
 	'width': 800,
 	'auto_hint': True,
@@ -44,18 +45,20 @@ DEFAULTS = {
 	'window_manger_border': 0,
 	'remove_decorations': True,
 	'inner_gap': 5,
-	'outer_gap': 5,
+	'outer_gap': 5
+}
+DEFAULT_WORKSPACES = {
 	'workspaces': [
 		{
 			'monitors': [
-				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None},
-				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None}
+				{'nmaster': 1, 'mfact': 0.55, 'strut': {'top': 0}, 'function': None},
+				{'nmaster': 1, 'mfact': 0.55, 'strut': {'top': 0}, 'function': None}
 			]
 		},
 		{
 			'monitors': [
-				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None},
-				{'nmaster': 1, 'mfact': 0.55, 'strut': [0, 0, 0, 0], 'function': None}
+				{'nmaster': 1, 'mfact': 0.55, 'strut': {'top': 0}, 'function': None},
+				{'nmaster': 1, 'mfact': 0.55, 'strut': {'top': 0}, 'function': None}
 			]
 		}
 	]
@@ -63,19 +66,37 @@ DEFAULTS = {
 
 
 #
-# Wherever exists in between pocoy.stop() and pocoy.start()
+# Whatever exists in between stop() and start()
 #
 def load(config_module_parameter: str = None):
-	global loaded_workspace_config, loaded_decorations, config_module
+	global loaded_workspaces, loaded_parameters, loaded_decorations, config_module
 
 	config_module = read_config_module(config_module_parameter)
 
-	loaded_workspace_config = _read_json(workspace_file)
-	deep_copy(loaded_workspace_config, DEFAULTS, override=False)
-	if hasattr(config_module, 'parameters'):
-		deep_copy(loaded_workspace_config, config_module.parameters, override=True)
+	loaded_workspaces = _read_json(workspace_file)
+	deep_copy(loaded_workspaces, DEFAULT_WORKSPACES, override=False)
+	if hasattr(config_module, 'workspaces'):
+		copy_workspaces(loaded_workspaces['workspaces'], config_module.workspaces)
+
+	loaded_parameters = _read_json(parameters_file)
+	deep_copy(loaded_parameters, DEFAULT_PARAMETERS, override=False)
+	read_user_config(loaded_parameters, config_module)
 
 	loaded_decorations = _read_json(decorations_file)
+
+
+def copy_workspaces(dest, origin):
+	for i in range(len(origin)):
+		if len(dest) < len(origin):
+			dest.insert(i, origin[i])
+		else:
+			deep_copy(dest[i], origin[i], True)
+
+
+def read_user_config(cache_json, config_module):
+	for key in cache_json:
+		if hasattr(config_module, key):
+			cache_json[key] = eval('config_module.{}'.format(key))
 
 
 def deep_copy(destination, origin, override):
@@ -86,7 +107,7 @@ def deep_copy(destination, origin, override):
 			for i in range(min(len(origin[key]), len(destination[key]))):
 				if isinstance(origin[key][i], type({})):
 					deep_copy(destination[key][i], origin[key][i], override)
-		elif origin[key] is not None and (override or (key not in destination or not destination[key])):
+		elif override or (key not in destination or not destination[key]):
 			destination[key] = origin[key]
 
 
@@ -101,18 +122,22 @@ def force_defaults():
 def clean():
 	if os.path.exists(workspace_file):
 		os.remove(workspace_file)
-	if os.path.exists(config_file):
-		os.remove(config_file)
+	if os.path.exists(parameters_file):
+		os.remove(parameters_file)
 
 
 #
 # JSON CONFIG
 #
+def persist_parameters():
+	with open(parameters_file, 'w') as f:
+		json.dump(loaded_parameters, f, indent=True)
+
+
 def persist_workspace(workspace: List[Dict] = None):
-	if workspace:
-		loaded_workspace_config['workspaces'] = workspace
+	loaded_workspaces['workspaces'] = workspace
 	with open(workspace_file, 'w') as f:
-		json.dump(loaded_workspace_config, f, indent=True)
+		json.dump(loaded_workspaces, f, indent=True)
 
 
 def persist_decorations(decoration_map: Dict):
@@ -158,7 +183,7 @@ def get_config_module() -> ModuleType:
 
 
 def get_workspace_config() -> Dict:
-	return loaded_workspace_config
+	return loaded_workspaces
 
 
 def get_decorations() -> Dict:
@@ -166,63 +191,63 @@ def get_decorations() -> Dict:
 
 
 def get_position() -> str:
-	return loaded_workspace_config['position']
+	return loaded_parameters['position']
 
 
 def get_width() -> str:
-	return loaded_workspace_config['width']
+	return loaded_parameters['width']
 
 
 def is_auto_hint() -> bool:
-	return loaded_workspace_config['auto_hint']
+	return loaded_parameters['auto_hint']
 
 
 def is_auto_select_first_hint() -> bool:
-	return loaded_workspace_config['auto_select_first_hint']
+	return loaded_parameters['auto_select_first_hint']
 
 
 def get_window_manger_border() -> int:
-	return loaded_workspace_config['window_manger_border']
+	return loaded_parameters['window_manger_border']
 
 
 def get_desktop_icon() -> str:
-	return loaded_workspace_config['desktop_icon']
+	return loaded_parameters['desktop_icon']
 
 
 def set_desktop_icon(icon):
-	loaded_workspace_config['desktop_icon'] = icon
-	persist_workspace()
+	loaded_parameters['desktop_icon'] = icon
+	persist_parameters()
 
 
 def is_desktop_notifications() -> bool:
-	return loaded_workspace_config['desktop_notifications']
+	return loaded_parameters['desktop_notifications']
 
 
 def is_remove_decorations() -> bool:
-	return loaded_workspace_config['remove_decorations']
+	return loaded_parameters['remove_decorations']
 
 
 def set_remove_decorations(remove: bool):
-	loaded_workspace_config['remove_decorations'] = remove
-	persist_workspace()
+	loaded_parameters['remove_decorations'] = remove
+	persist_parameters()
 
 
 def get_inner_gap() -> int:
-	return loaded_workspace_config['inner_gap']
+	return loaded_parameters['inner_gap']
 
 
 def get_outer_gap() -> int:
-	return loaded_workspace_config['outer_gap']
+	return loaded_parameters['outer_gap']
 
 
 def set_inner_gap(gap: int):
-	loaded_workspace_config['inner_gap'] = gap
-	persist_workspace()
+	loaded_parameters['inner_gap'] = gap
+	persist_parameters()
 
 
 def set_outer_gap(gap: int):
-	loaded_workspace_config['outer_gap'] = gap
-	persist_workspace()
+	loaded_parameters['outer_gap'] = gap
+	persist_parameters()
 
 
 #

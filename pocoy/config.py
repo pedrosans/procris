@@ -13,10 +13,17 @@ scratchpads = pocoy.scratchpads
 applications = pocoy.applications
 
 
-parameters = {
-	'inner_gap': 5,
-	'outer_gap': 5,
-}
+inner_gap = 5
+outer_gap = 5
+workspaces = [
+	{
+		'monitors': [
+			{'function': None, 'nmaster': 1, 'mfact': 0.55, 'strut': {'top': 0}},
+			{'function': None, 'nmaster': 1, 'mfact': 0.55, 'strut': {'top': 0}}
+		]
+	}
+]
+
 keys = [
 	Key('<ctrl>Return',          active_window.zoom),
 	Key('<ctrl>KP_Enter',        active_window.zoom),

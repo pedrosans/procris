@@ -516,15 +516,27 @@ class Monitor:
 		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
 		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
 		self.function_key = json['function'] if 'function' in json else self.function_key
-		self.strut = json['strut'] if 'strut' in json else self.strut
+		self.strut = self.read_strut(json['strut']) if 'strut' in json else self.strut
 		self.clients = list(map(lambda w_dict: w_dict['xid'], json['clients']))if 'clients' in json else self.clients
+
+	def read_strut(self, json):
+		keys = ['left', 'top', 'right', 'bottom']
+		strut = []
+		for key in keys:
+			strut.append(0 if key not in json else json[key])
+		return strut
 
 	def to_json(self):
 		return {
 			'nmaster': self.nmaster,
 			'mfact': self.mfact,
 			'function': self.function_key,
-			'strut': self.strut,
+			'strut': {
+				'left': self.strut[0],
+				'top': self.strut[1],
+				'right': self.strut[2],
+				'bottom': self.strut[3]
+			},
 			'clients': list(map(
 				lambda xid: {'xid': xid, 'name': windows.window_by_xid[xid].get_name(), 'index': self.clients.index(xid)},
 				self.clients
