@@ -164,7 +164,7 @@ class ReadingWindow(Gtk.Window):
 			label.set_max_width_chars(self.columns)
 			label.get_layout().set_ellipsize(Pango.EllipsizeMode.END)
 			label.set_ellipsize(Pango.EllipsizeMode.END)
-			if message.level is 'error':
+			if message.level == 'error':
 				label.get_style_context().add_class('error-message')
 			line.pack_start(label, expand=False, fill=False, padding=0)
 

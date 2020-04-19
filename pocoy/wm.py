@@ -34,15 +34,20 @@ adjustment_cache = {}
 # https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Display.html
 # https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Window.html
 def gdk_window_for(window: Wnck.Window = None, xid: int = None) -> GdkX11.X11Window:
+	return window_for(window.get_xid())
+
+
+def window_for(xid: int = None) -> GdkX11.X11Window:
 	display = GdkX11.X11Display.get_default()
-	if not xid:
-		xid = window.get_xid()
 	try:
 		return GdkX11.X11Window.foreign_new_for_display(display, xid)
 	except TypeError as e:
 		raise DirtyState(window=window) from e
 
 
+#
+# WORKSPACE
+#
 def is_workspaces_only_on_primary():
 	mutter_settings = Gio.Settings('org.gnome.mutter')
 	return mutter_settings and mutter_settings.get_value('workspaces-only-on-primary')
@@ -56,6 +61,9 @@ def get_active_workspace() -> Wnck.Workspace:
 	return Wnck.Screen.get_default().get_active_workspace()
 
 
+#
+# MONITOR
+#
 # TODO: rename to gdk_monitor_of
 def monitor_for(window: Wnck.Window) -> GdkX11.X11Monitor:
 	gdk_window: GdkX11.X11Window = gdk_window_for(window)
@@ -68,10 +76,9 @@ def monitor_work_area_for(window: Wnck.Window) -> Gdk.Rectangle:
 	return gdk_monitor.get_workarea()
 
 
-def is_buffer(window: Wnck.Window) -> bool:
-	return window.get_pid() != os.getpid() and not window.is_skip_tasklist()
-
-
+#
+# WINDOW
+#
 # TODO: rename to visible_in
 def is_visible(window: Wnck.Window, workspace: Wnck.Workspace = None, monitor: Gdk.Monitor = None) -> bool:
 	workspace = workspace if workspace else Wnck.Screen.get_default().get_active_workspace()
@@ -84,10 +91,8 @@ def is_visible(window: Wnck.Window, workspace: Wnck.Workspace = None, monitor: G
 	)
 
 
-def intersect(window: Wnck.Window, monitor: Gdk.Monitor):
-	rect = monitor.get_workarea()
-	xp, yp, widthp, heightp = window.get_geometry()
-	return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
+def is_buffer(window: Wnck.Window) -> bool:
+	return window.get_pid() != os.getpid() and not window.is_skip_tasklist()
 
 
 def is_on_primary_monitor(window: Wnck.Window):
@@ -124,6 +129,15 @@ def get_active_managed_window():
 	return active if active and is_managed(active) else None
 
 
+def intersect(window: Wnck.Window, monitor: Gdk.Monitor):
+	rect = monitor.get_workarea()
+	xp, yp, widthp, heightp = window.get_geometry()
+	return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
+
+
+#
+# GEOMETRY
+#
 def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, h=0):
 	"""
 	:param l: distance from left edge
@@ -240,13 +254,13 @@ def decoration_delta(window: Wnck.Window):
 
 class DirtyState(Exception):
 
-	def __init__(self, message: str = None, window: Wnck.Window = None):
+	def __init__(self, message: str = None, xid: int = None):
 		super(DirtyState, self).__init__(message)
-		self.window = window
+		self.xid = xid
 
 	def print(self):
-		if self.window:
-			print('\tLooking for: {} - {}'.format(self.window.get_xid(), self.window.get_name()))
+		if self.xid:
+			print('\tLooking for: {}'.format(self.xid))
 		print('\tOn screen:')
 		for listed in Wnck.Screen.get_default().get_windows():
 			print('\t\t {} - {}'.format(listed.get_xid(), listed.get_name()))

@@ -16,7 +16,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi
 import pocoy.state as persistor
-from pocoy.wm import gdk_window_for, UserEvent
+from pocoy.wm import gdk_window_for, UserEvent, window_for
 
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
@@ -40,7 +40,7 @@ def remove(windows_xid: List[int]):
 	for xid in windows_xid:
 
 		key = str(xid)
-		gdk_w = gdk_window_for(xid=xid)
+		gdk_w = window_for(xid)
 
 		is_decorated, decorations = gdk_w.get_decorations()
 		has_title = Gdk.WMDecoration.TITLE & decorations or Gdk.WMDecoration.ALL & decorations
@@ -58,7 +58,7 @@ def restore(windows_xid: List[int]):
 	original_decorations = persistor.get_decorations()
 	for xid in windows_xid:
 		if str(xid) in original_decorations:
-			gdk_window_for(xid=xid).set_decorations(Gdk.WMDecoration(original_decorations[str(xid)]))
+			window_for(xid).set_decorations(Gdk.WMDecoration(original_decorations[str(xid)]))
 
 
 def complete(c_in: UserEvent):
