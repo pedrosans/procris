@@ -91,6 +91,7 @@ def stop():
 	listener.stop()
 	remote.release()
 	controller.disconnect_from(Wnck.Screen.get_default())
+	model.stop()
 	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
 
 

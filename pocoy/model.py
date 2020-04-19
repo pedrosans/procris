@@ -714,6 +714,11 @@ def start():
 	windows.apply_decoration_config()
 
 
+def stop():
+	windows.read_default_screen()
+	decoration.restore(windows.buffers)
+
+
 def persist():
 	screen = Wnck.Screen.get_default()
 	workspaces: List[Dict] = []
