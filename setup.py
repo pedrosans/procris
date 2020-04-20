@@ -19,7 +19,7 @@ for size in (16, 48, 96, 256):
 
 setup(
 	name='pocoy',
-	version='0.1',
+	version='0.2',
 	description='plugable window management',
 	author='Pedro Santos',
 	author_email='pedrosans@gmail.com',
