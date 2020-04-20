@@ -49,9 +49,9 @@ In addition, a layout can be selected by their option in the DE panel (if runnin
 Each layout is visually indicated by a custom icon, being the main one:
 
 ||none|monocle|tile|[centeredmaster](https://dwm.suckless.org/patches/centeredmaster/)|[spiral](https://dwm.suckless.org/patches/fibonacci/)|dwindle|
-|---|--|---|---|---|---|---|---|
+|---|---|---|---|---|---|---|
 |Icon| ![floating](data/icon/48x48/pocoy-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-M-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-T-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-C-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-@-dark.png "pocoy logo") | ![floating](data/icon/48x48/pocoy-\\-dark.png "pocoy logo")
-|Default key|ctrl+f|ctrl+m|ctrl+t|||
+|Default key|ctrl+f|ctrl+m|ctrl+t||||
 
 
 ### Vim stuff
