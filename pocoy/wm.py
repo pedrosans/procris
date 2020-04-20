@@ -33,6 +33,7 @@ adjustment_cache = {}
 
 # https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Display.html
 # https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Window.html
+# https://lazka.github.io/pgi-docs/GdkX11-3.0/classes/X11Monitor.html
 def gdk_window_for(window: Wnck.Window = None, xid: int = None) -> GdkX11.X11Window:
 	return window_for(window.get_xid())
 
@@ -63,16 +64,10 @@ def get_active_workspace() -> Wnck.Workspace:
 #
 # MONITOR
 #
-# TODO: rename to gdk_monitor_of
-def monitor_for(window: Wnck.Window):
-	gdk_window: GdkX11.X11Window = gdk_window_for(window)
+def monitor_of(xid) -> Gdk.Monitor:
+	gdk_window: GdkX11.X11Window = window_for(xid)
 	gdk_display: GdkX11.X11Display = gdk_window.get_display()
 	return gdk_display.get_monitor_at_window(gdk_window)
-
-
-def monitor_work_area_for(window: Wnck.Window) -> Gdk.Rectangle:
-	gdk_monitor = monitor_for(window)
-	return gdk_monitor.get_workarea()
 
 
 #
@@ -144,7 +139,7 @@ def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, 
 	"""
 
 	if not rectangle:
-		rectangle = monitor_work_area_for(window)
+		rectangle = monitor_of(window.get_xid()).get_workarea()
 
 	new_x = int(rectangle.width * l) + rectangle.x
 	new_y = int(rectangle.height * t) + rectangle.y

@@ -106,11 +106,9 @@ def _window_closed(screen: Wnck.Screen, window):
 			del handlers_by_xid[window.get_xid()]
 		if is_visible(window) and is_managed(window):
 			windows.read(screen, force_update=False)
-			monitor = monitors.get_primary(window.get_workspace())
-			while not monitor.contains(window):
-				monitor = monitor.next()
-			if monitor:
-				monitor.apply()
+			for monitor in monitors.all():
+				if monitor.contains(window):
+					monitor.apply()
 	except DirtyState:
 		pass  # It was just a try
 

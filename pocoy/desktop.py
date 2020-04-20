@@ -184,7 +184,7 @@ def on_layout_changed():
 	serialized['primary'] = monitor.to_json()
 	serialized['primary']['workspace'] = get_active_workspace().get_number()
 	secondary_monitor_workspace = get_first_workspace() if is_workspaces_only_on_primary() else get_active_workspace()
-	secondary = monitors.get_primary(workspace=secondary_monitor_workspace).next()
+	secondary = monitors.get_secondary(secondary_monitor_workspace)
 	if secondary:
 		serialized['secondary'] = secondary.to_json()
 		serialized['secondary']['workspace'] = secondary_monitor_workspace.get_number()

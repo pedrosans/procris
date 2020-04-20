@@ -21,10 +21,10 @@ import pocoy.messages as messages
 
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
-from typing import List, Dict
+from typing import List, Dict, Tuple
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
-	get_last_focused, decoration_delta, UserEvent, monitor_for, X_Y_W_H_GEOMETRY_MASK, \
+	get_last_focused, decoration_delta, UserEvent, monitor_of, X_Y_W_H_GEOMETRY_MASK, \
 	is_managed, get_active_managed_window, is_buffer
 from pocoy.decoration import DECORATION_MAP
 from pocoy import decoration, state
@@ -38,20 +38,13 @@ def statefull(function):
 	return read_screen_before
 
 
+# TODO: change to notify
 def persistent(function):
-	sig = signature(function)
-	if len(sig.parameters) == 2:
-		def notify_changes_after_method(self, user_event: UserEvent):
-			import pocoy.controller as controller
-			function(self, user_event)
-			controller.notify_layout_change()
-		return notify_changes_after_method
-	else:
-		def notify_changes_after_function():
-			import pocoy.controller as controller
-			function()
-			controller.notify_layout_change()
-		return notify_changes_after_function
+	def notify_changes_after_method(self, user_event: UserEvent):
+		import pocoy.controller as controller
+		function(self, user_event)
+		controller.notify_layout_change()
+	return notify_changes_after_method
 
 
 class Windows:
@@ -91,8 +84,7 @@ class Windows:
 			self._read_workspace_monitor(screen, workspace, gdk_monitor)
 
 	def _read_workspace_monitor(self, screen: Wnck.Screen, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
-		primary = monitors.get_primary(workspace)
-		monitor = primary if gdk_monitor.is_primary() else primary.next()
+		monitor = monitors.of(workspace, gdk_monitor)
 		clients = monitor.clients
 
 		def monitor_filter(w):
@@ -132,10 +124,8 @@ class Windows:
 		if state.is_remove_decorations():
 			tiled = []
 			floating = []
-			for monitor in monitors.primary_monitors.values():
-				while monitor:
-					(tiled if monitor.function_key else floating).extend(monitor.clients)
-					monitor = monitor.next()
+			for monitor in monitors.all():
+				(tiled if monitor.function_key else floating).extend(monitor.clients)
 			decoration.remove(tiled)
 			decoration.restore(floating)
 		else:
@@ -360,8 +350,8 @@ class ActiveWindow:
 		if not window:
 			return
 		origin = monitors.get_active(window)
-		destinantion = origin.next() if direction == 1 else monitors.get_primary()
-		if origin is destinantion:
+		destinantion = monitors.get_secondary() if direction == 1 else monitors.get_primary()
+		if not destinantion:
 			return
 
 		origin.clients.remove(window.get_xid())
@@ -546,54 +536,58 @@ class Monitor:
 	def print(self):
 		print('monitor: {} {} {} {}'.format(self.wx, self.wy, self.ww, self.wh))
 
-	def next(self):
-		n_monitors = Gdk.Display.get_default().get_n_monitors()
-
-		if n_monitors > 2:
-			print('BETA VERSION WARN: no support for more than 2 monitors yet.')
-		# While it seams easy to implement, there is no thought on
-		# how and what to configure.
-		# For now, the Gdk flag does the job for as primary+secondary pair being
-		# the second monitor the one not flagged as primary.
-
-		if n_monitors == 2 and self.primary:
-			if not self.pointer:
-				self.pointer = Monitor(nmaster=0, primary=False)
-			return self.pointer
-		else:
-			return None
-
 
 class Monitors:
 
-	primary_monitors: Dict[int, Monitor] = {}
+	# primary_monitors: Dict[int, Monitor] = {}
+	# by_model: Dict[str, Monitor] = {}
+	def __init__(self):
+		self.map: Dict[Tuple, Monitor] = {}
+		self.primaries: Dict[int, Monitor] = {}
+		self.by_workspace: Dict[int, List[Monitor]] = {}
 
 	def read(self, screen: Wnck.Screen):
 		for workspace in screen.get_workspaces():
+			if workspace.get_number() not in self.by_workspace:
+				self.by_workspace[workspace.get_number()] = []
 			for i in range(Gdk.Display.get_default().get_n_monitors()):
 				self.read_monitor(workspace, Gdk.Display.get_default().get_monitor(i))
 
 	def read_monitor(self, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
-		monitor = self.get_primary(workspace) if gdk_monitor.is_primary() else self.get_primary(workspace).next()
-		monitor.set_rectangle(gdk_monitor.get_workarea())
+		id = (workspace.get_number(), gdk_monitor.get_model())
+		if id not in self.map.keys():
+			self.map[id] = Monitor(primary=gdk_monitor.is_primary())
+			self.by_workspace[workspace.get_number()].append(self.map[id])
+			if gdk_monitor.is_primary():
+				self.primaries[workspace.get_number()] = self.map[id]
+		self.map[id].set_rectangle(gdk_monitor.get_workarea())
 
 	#
 	# Monitor API
 	#
+	def all(self):
+		return self.map.values()
+
+	def of(self, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
+		return self.map[(workspace.get_number(), gdk_monitor.get_model())]
+
 	def get_active(self, window: Wnck.Window = None) -> Monitor:
 		if not window:
 			window = get_active_managed_window()
-		monitor: Monitor = self.get_primary(window.get_workspace() if window else None)
-		return monitor if not window or monitor_for(window).is_primary() else monitor.next()
+		return self.of(window.get_workspace(), monitor_of(window.get_xid())) if window else self.get_primary()
 
 	def get_primary(self, workspace: Wnck.Workspace = None, index: int = None) -> Monitor:
+		if not workspace and index is None:
+			workspace = Wnck.Screen.get_default().get_active_workspace()
 		if index is None:
-			if not workspace:
-				workspace = Wnck.Screen.get_default().get_active_workspace()
 			index = workspace.get_number()
-		if index not in self.primary_monitors:
-			self.primary_monitors[index] = Monitor(primary=True)
-		return self.primary_monitors[index]
+		return self.primaries[index]
+
+	def get_secondary(self, workspace: Wnck.Workspace = None):
+		if not workspace:
+			workspace = Wnck.Screen.get_default().get_active_workspace()
+		index = workspace.get_number()
+		return self.by_workspace[index][1] if len(self.by_workspace[index]) > 1 else None
 
 	@statefull
 	@persistent
@@ -643,11 +637,9 @@ class ActiveMonitor:
 		where = parameters[0]
 		pixels = int(parameters[1])
 		state.set_outer_gap(pixels) if where == 'outer' else state.set_inner_gap(pixels)
-		monitor = monitors.get_active()
-		while monitor:
+		for monitor in monitors.all():
 			monitor.update_work_area()
 			monitor.apply()
-			monitor = monitor.next()
 
 	def complete_gap_options(self, user_event: UserEvent):
 		input = user_event.vim_command_parameter.lower()
@@ -684,6 +676,7 @@ def load(screen: Wnck.Screen):
 	import pocoy.state as state
 	try:
 		workspace_config: Dict = state.get_workspace_config()
+		windows.read_default_screen()
 		read_user_config(workspace_config, screen)
 	except (KeyError, TypeError):
 		print('Unable to the last execution state, using default ones.')
@@ -698,19 +691,15 @@ def read_user_config(config_json: Dict, screen: Wnck.Screen):
 		workspace_json = config_json['workspaces'][workspace_index]
 
 		monitor_index = 0
-		monitor: Monitor = monitors.get_primary(index=workspace_index)
-		while monitor and monitor_index < len(workspace_json['monitors']):
-			monitor.from_json(workspace_json['monitors'][monitor_index])
+		for monitor in monitors.by_workspace[workspace_index]:
+			if monitor_index < len(workspace_json['monitors']):
+				monitor.from_json(workspace_json['monitors'][monitor_index])
 			monitor_index += 1
-			monitor = monitor.next()
 
 
-@persistent
 def start():
-	monitor = monitors.get_primary()
-	while monitor:
+	for monitor in monitors.all():
 		monitor.apply(unmaximize=True)
-		monitor = monitor.next()
 	windows.apply_decoration_config()
 
 
@@ -726,10 +715,8 @@ def persist():
 	for workspace in screen.get_workspaces():
 		workspace_json = {'monitors': []}
 		workspaces.append(workspace_json)
-		monitor = monitors.get_primary(workspace)
-		while monitor:
+		for monitor in monitors.by_workspace[workspace.get_number()]:
 			workspace_json['monitors'].append(monitor.to_json())
-			monitor = monitor.next()
 
 	state.persist_workspace(workspaces)
 
@@ -739,8 +726,7 @@ def persist():
 #
 def resume():
 	resume = ''
-	for w in reversed(Wnck.Screen.get_default().get_windows_stacked()):
-		resume += '{}\n'.format(w.get_name())
+	# for w in reversed(Wnck.Screen.get_default().get_windows_stacked()): resume += '{}\n'.format(w.get_name())
 	from pocoy.layout import FUNCTIONS_MAP
 	for wn in windows.get_buffers():
 		gdk_w = gdk_window_for(wn)
@@ -770,12 +756,13 @@ def resume():
 		resume += 'Workspace {}\n'.format(workspace.get_number())
 		for i in range(Gdk.Display.get_default().get_n_monitors()):
 			m = Gdk.Display.get_default().get_monitor(i)
+			monitor: Monitor = monitors.by_workspace[workspace.get_number()][i]
 			rect = m.get_workarea()
-			primary_monitor = monitors.primary_monitors[workspace.get_number()]
-			monitor: Monitor = primary_monitor if m.is_primary() else primary_monitor.next()
 
-			resume += '\tMonitor\t\t\tLayout: {}\tPrimary: {}\n'.format(
-				FUNCTIONS_MAP[monitor.function_key].__name__ if monitor.function_key else None, m.is_primary())
+			resume += '\tMonitor Layout: {} Primary: {} Manufacturer: {} Model: {}\n'.format(
+				FUNCTIONS_MAP[monitor.function_key].__name__ if monitor.function_key else None, m.is_primary(),
+				m.get_manufacturer(), m.get_model()
+			)
 			resume += '\t\t[GDK]\t\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(
 				rect.x, rect.y, rect.width, rect.height)
 			resume += '\t\t[pocoy]\tRectangle: {:5}, {:5}, {:5}, {:5}\n'.format(

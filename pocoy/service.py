@@ -78,6 +78,7 @@ def start():
 		quit()
 
 	model.start()
+	controller.notify_layout_change()
 	controller.connect_to(Wnck.Screen.get_default(), model.windows, model.monitors)
 	remote.export(ipc_handler=message, stop=stop)
 	listener.start()
