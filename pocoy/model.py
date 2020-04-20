@@ -451,6 +451,7 @@ class Monitor:
 		self.primary: bool = primary
 		# TODO: rename to layout key
 		self.function_key: str = function_key
+		self.last_function_key = None
 		self.nmaster: int = nmaster
 		self.mfact: float = mfact
 		self.strut: List = strut
@@ -458,6 +459,11 @@ class Monitor:
 		self.visible_area: List[int] = [0, 0, 0, 0]
 		self.clients: List[int] = []
 		self.pointer: Monitor = None
+
+	def set_layout(self, new_function):
+		if self.function_key != new_function:
+			self.last_function_key = self.function_key
+		self.function_key = new_function
 
 	def apply(self, unmaximize: bool = False):
 		from pocoy.layout import FUNCTIONS_MAP
@@ -594,21 +600,13 @@ class Monitors:
 	def setprimarylayout(self, user_event: UserEvent):
 		new_function_key = user_event.parameters[0]
 		monitor = monitors.get_primary()
-		self.set_layout(monitor, new_function_key)
-
-	def set_layout(self, monitor, new_function):
-
-		if monitor.function_key != new_function:
-			self.last_layout_key = monitor.function_key
-
-		monitor.function_key = new_function
+		monitor.set_layout(new_function_key)
 		monitor.apply(unmaximize=True)
 		windows.apply_decoration_config()
 
 
 class ActiveMonitor:
 
-	last_layout_key = None
 
 	#
 	# COMMANDS
@@ -627,9 +625,10 @@ class ActiveMonitor:
 		if user_event.parameters:
 			new_function_key = user_event.parameters[0]
 		else:
-			new_function_key = self.last_layout_key
-
-		monitors.set_layout(monitor, new_function_key)
+			new_function_key = monitor.last_function_key
+		monitor.set_layout(new_function_key)
+		monitor.apply(unmaximize=True)
+		windows.apply_decoration_config()
 
 	@statefull
 	def gap(self, user_event: UserEvent):
@@ -686,15 +685,16 @@ def load(screen: Wnck.Screen):
 
 
 def read_user_config(config_json: Dict, screen: Wnck.Screen):
-	configured_workspaces = len(config_json['workspaces'])
-	for workspace_index in range(configured_workspaces):
+	for workspace_index in range(len(config_json['workspaces'])):
+		if workspace_index >= len(monitors.by_workspace):
+			continue
 		workspace_json = config_json['workspaces'][workspace_index]
-
-		monitor_index = 0
-		for monitor in monitors.by_workspace[workspace_index]:
-			if monitor_index < len(workspace_json['monitors']):
-				monitor.from_json(workspace_json['monitors'][monitor_index])
-			monitor_index += 1
+		for monitor_index in range(len(workspace_json['monitors'])):
+			if monitor_index >= len(monitors.by_workspace[workspace_index]):
+				continue
+			monitors.by_workspace[workspace_index][monitor_index].from_json(
+				workspace_json['monitors'][monitor_index]
+			)
 
 
 def start():
