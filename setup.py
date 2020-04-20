@@ -34,3 +34,5 @@ setup(
 		('/usr/share/man/man1/', ['data/pocoy.1.gz']),
 	] + icons,
 )
+
+# eof

@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi
 from pocoy import wm, scratchpads
 from pocoy.model import Monitors, Windows
-from pocoy.wm import DirtyState, is_managed, is_visible, gdk_window_for, Trap, resize
+from pocoy.wm import DirtyState, is_managed, is_visible, gdk_window_for, Trap, resize, unmaximize
 from functools import reduce
 from typing import List, Dict, Callable
 from gi.repository import Wnck, Gdk, Gtk
@@ -78,8 +78,9 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 		notify_layout_change()
 		try:
 			with Trap():
-				monitor.apply()
-				windows.apply_decoration_config()
+				if monitor.function_key:
+					monitor.apply(unmaximize=True)
+					windows.apply_decoration_config()
 		except DirtyState:
 			pass  # It was just a try
 

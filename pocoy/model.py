@@ -27,7 +27,7 @@ from pocoy.wm import gdk_window_for, resize, is_visible, \
 	get_last_focused, decoration_delta, UserEvent, monitor_of, X_Y_W_H_GEOMETRY_MASK, \
 	is_managed, get_active_managed_window, is_buffer
 from pocoy.decoration import DECORATION_MAP
-from pocoy import decoration, state
+from pocoy import decoration, state, wm
 
 
 def statefull(function):
@@ -471,8 +471,7 @@ class Monitor:
 			spread_windows: List[Wnck.Window] = list(map(lambda xid: windows.window_by_xid[xid], self.clients))
 			if unmaximize:
 				for window in spread_windows:
-					if window.is_maximized() or window.is_maximized_vertically() or window.is_maximized_horizontally():
-						window.unmaximize()
+					wm.unmaximize(window)
 			FUNCTIONS_MAP[self.function_key](spread_windows, self)
 
 	def set_rectangle(self, rectangle: Gdk.Rectangle):

@@ -129,6 +129,11 @@ def intersect(window: Wnck.Window, monitor: Gdk.Monitor):
 	return rect.x <= xp < (rect.x + rect.width) and rect.y <= yp < (rect.y + rect.height)
 
 
+def unmaximize(window: Wnck.Window):
+	if window.is_maximized() or window.is_maximized_vertically() or window.is_maximized_horizontally():
+		window.unmaximize()
+
+
 #
 # GEOMETRY
 #
