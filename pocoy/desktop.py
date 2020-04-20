@@ -9,9 +9,8 @@ import os
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
-gi.require_version('Notify', '0.7')
 gi.require_version('Wnck', '3.0')
-from gi.repository import Notify, Gtk, GLib, GdkPixbuf, AppIndicator3, Wnck
+from gi.repository import Gtk, GLib, GdkPixbuf, AppIndicator3, Wnck
 from pocoy import state as configurations
 from pocoy.wm import get_active_workspace, UserEvent, is_workspaces_only_on_primary, get_first_workspace
 from pocoy.model import Monitor, monitors, windows
@@ -140,21 +139,28 @@ class StatusIcon:
 # https://lazka.github.io/pgi-docs/Notify-0.7/classes/Notification.html
 # https://developer.gnome.org/notification-spec
 def load():
-	global notification
-	Notify.init('pocoy')
-	notification = Notify.Notification.new('pocoy')
-	notification.set_app_name('pocoy')
-	notification.set_hint('resident', GLib.Variant.new_boolean(True))
 	icon_path = xdg.IconTheme.getIconPath('pocoy', size=96)
 	if icon_path:
 		icon_image = GdkPixbuf.Pixbuf.new_from_file(icon_path)
-		notification.set_image_from_pixbuf(icon_image)
 	else:
 		print('**********************************************************************************')
 		print(' No image found for status icon and notifications.')
 		print(' The status icon may be invisible during this run')
 		print(' Images for the icon can be installed with "make install" or "./setup.py install"')
 		print('**********************************************************************************')
+	if state.is_desktop_notifications():
+		try:
+			gi.require_version('Notify', '0.7')
+		except:
+			print('Can not load Notify')
+			return
+		from gi.repository import Notify
+		global notification
+		Notify.init('pocoy')
+		notification = Notify.Notification.new('pocoy')
+		notification.set_app_name('pocoy')
+		notification.set_hint('resident', GLib.Variant.new_boolean(True))
+		notification.set_image_from_pixbuf(icon_image)
 
 
 def connect():
@@ -214,12 +220,11 @@ def is_connected():
 
 
 def unload():
-	notification.close()
+	if notification:
+		notification.close()
 
 
 def show_monitor(monitor: Monitor):
-	if not state.is_desktop_notifications():
-		return
 	html = ''
 	count = 0
 	while monitor:
@@ -234,8 +239,9 @@ def show_monitor(monitor: Monitor):
 
 
 def show(summary: str = 'pocoy', body: str = None, icon: str = 'pocoy'):
-	notification.update(summary, body, icon)
-	notification.show()
+	if notification:
+		notification.update(summary, body, icon)
+		notification.show()
 
 
 ICONNAME = 'pocoy'

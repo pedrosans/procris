@@ -86,7 +86,7 @@ both application and windows inside pocoy, works like:
 
 		```bash
 		python3-distutils python3-xdg python3-dbus python3-setproctitle python3-xlib \
-		gir1.2-gtk-3.0 gir1.2-wnck-3.0 gir1.2-appindicator3-0.1 libx11-6
+		gir1.2-gtk-3.0 gir1.2-wnck-3.0 gir1.2-appindicator3-0.1 gir1.2-notify-0.7 libx11-6
 		```
 		Arch dependencies:
 

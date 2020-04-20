@@ -18,7 +18,6 @@ import gi, pocoy
 import pocoy.messages as messages
 import pocoy.names as names
 import pocoy.state as configurations
-import pocoy.service as service
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
@@ -206,6 +205,7 @@ class Reading:
 		self.prompt_history.append(cmd)
 
 		try:
+			import pocoy.service as service
 			service.execute(cmd=cmd, timestamp=gtk_time, move_to_main_loop=False)
 		except names.InvalidName as e:
 			messages.add_error(e.message)

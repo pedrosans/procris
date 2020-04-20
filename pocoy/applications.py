@@ -82,7 +82,7 @@ def launch_app(app_info, timestamp: int = None, desktop: int = -1):
 		context.set_screen(display.get_default_screen())
 		app_info.launch_uris_as_manager([], context, SPAWN_FLAGS, USER_SETUP, USER_SETUP_DATA, None)
 	except GLib.GError as exc:
-		return Message('Error launching ' + app_info, 'error')
+		messages.add(Message('Error launching ' + str(app_info), 'error'))
 
 
 def pid_callback(app_info: Gio.DesktopAppInfo, pid: int):

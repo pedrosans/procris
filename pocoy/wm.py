@@ -64,7 +64,7 @@ def get_active_workspace() -> Wnck.Workspace:
 # MONITOR
 #
 # TODO: rename to gdk_monitor_of
-def monitor_for(window: Wnck.Window) -> GdkX11.X11Monitor:
+def monitor_for(window: Wnck.Window):
 	gdk_window: GdkX11.X11Window = gdk_window_for(window)
 	gdk_display: GdkX11.X11Display = gdk_window.get_display()
 	return gdk_display.get_monitor_at_window(gdk_window)
