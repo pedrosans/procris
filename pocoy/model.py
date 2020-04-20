@@ -475,7 +475,7 @@ class Monitor:
 			spread_windows: List[Wnck.Window] = list(map(lambda xid: windows.window_by_xid[xid], self.clients))
 			if unmaximize:
 				for window in spread_windows:
-					if window.is_maximized():
+					if window.is_maximized() or window.is_maximized_vertically() or window.is_maximized_horizontally():
 						window.unmaximize()
 			FUNCTIONS_MAP[self.function_key](spread_windows, self)
 
