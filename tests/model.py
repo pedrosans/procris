@@ -7,7 +7,9 @@ workspace = MagicMock()
 workspace.get_number = lambda: 0
 screen = MagicMock()
 screen.get_workspaces = lambda: [workspace]
-model.monitors.primary_monitors = {0: Monitor(primary=True)}
+monitor = Monitor(primary=True)
+model.monitors.primaries = {0: monitor}
+model.monitors.by_workspace = {0: [monitor]}
 
 
 class ModelTestCase(unittest.TestCase):
@@ -21,16 +23,6 @@ class ModelTestCase(unittest.TestCase):
 
 
 DEFAULTS = {
-	'position': 'bottom',
-	'width': 800,
-	'auto_hint': True,
-	'auto_select_first_hint': False,
-	'desktop_icon': 'light',
-	'desktop_notifications': False,
-	'window_manger_border': 0,
-	'remove_decorations': False,
-	'inner_gap': 5,
-	'outer_gap': 5,
 	'workspaces': [
 		{
 			'monitors': [
