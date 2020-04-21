@@ -104,19 +104,6 @@ def get_last_focused(window_filter: Callable = None):
 	return None
 
 
-def get_last_two_focused():
-	top = get_last_focused(window_filter=is_buffer)
-	below = None
-	after_top = False
-	for w in reversed(Wnck.Screen.get_default().get_windows_stacked()):
-		if is_visible(w) and after_top:
-			below = w
-			break
-		if w is top:
-			after_top = True
-	return top, below
-
-
 def is_managed(window):
 	return is_buffer(window) and window.get_name() not in scratchpads.names()
 

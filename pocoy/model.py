@@ -47,7 +47,11 @@ def persistent(function):
 
 
 def in_visible_monitor(w: Wnck.Window):
-	return is_buffer(w) and monitors.id_for(w.get_workspace(), wm.monitor_of(w.get_xid())) in monitors.visible_ids
+	return (
+			is_buffer(w)
+			and not w.is_minimized()
+			and monitors.id_for(w.get_workspace(), wm.monitor_of(w.get_xid())) in monitors.visible_ids
+	)
 
 
 class Windows:
@@ -135,6 +139,15 @@ class Windows:
 	#
 	# Query API
 	#
+	def get_last_focused(self):
+		return get_last_focused(window_filter=in_visible_monitor)
+
+	def get_previous(self):
+		last = self.get_last_focused()
+		if not last:
+			return
+		return get_last_focused(window_filter=lambda w: in_visible_monitor(w) and w is not last)
+
 	def find_by_name(self, name):
 		return next((w for w in self.get_buffers() if name.lower().strip() in w.get_name().lower()), None)
 
@@ -416,10 +429,7 @@ class ActiveWindow:
 
 	@statefull
 	def focus_previous(self, user_event: UserEvent):
-		last = get_last_focused(window_filter=in_visible_monitor)
-		if not last:
-			return
-		previous = get_last_focused(window_filter=lambda w: in_visible_monitor(w) and w is not last)
+		previous = windows.get_previous()
 		if not previous:
 			return
 		self.change_to(previous.get_xid())

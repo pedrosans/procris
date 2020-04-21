@@ -18,7 +18,6 @@ import gi, io
 import pocoy.messages as messages
 import pocoy.state as configurations
 import pocoy.names as names
-from pocoy.wm import get_last_two_focused
 
 gi.require_version('Gtk', '3.0')
 gi.require_version('Wnck', '3.0')
@@ -308,7 +307,8 @@ class BufferName(messages.Message):
 		self.window = window
 		self.index = 1 + windows.buffers.index(self.window.get_xid())
 		self.flags = ''
-		top, below = get_last_two_focused()
+		top = windows.get_last_focused()
+		below = windows.get_previous()
 		if self.window is top:
 			self.flags += '%a'
 		elif self.window is below:
