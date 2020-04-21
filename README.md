@@ -108,7 +108,7 @@ both application and windows inside pocoy, works like:
 
 		on Unbuntu: `update-icon-caches /usr/share/icons/hicolor`
 
-		on Arch: `gtk-update-icon-cache && gtk-update-icon-cache -f --include-image-data /usr/share/icons/hicolor`
+		on Arch: `gtk-update-icon-cache -f --include-image-data /usr/share/icons/hicolor`
 
 ### Start pocoy
 
