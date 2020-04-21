@@ -18,7 +18,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 
 import argparse
 
-VERSION = '0.2'
+VERSION = '0.3'
 parser = argparse.ArgumentParser()
 parser.add_argument(
 	'-v', '--version', required=False, action='store_true',help='print the version'
