@@ -33,7 +33,7 @@ class TerminalIntegrationTestCase(unittest.TestCase):
 		windows = Windows()
 		windows.read_default_screen()
 		opened = None
-		for w in windows.visible:
+		for w in windows.window_by_xid.values():
 			if w.get_name() == INTEGRATION_TEST_NAME:
 				opened = w
 		self.assertTrue(opened)

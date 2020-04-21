@@ -12,7 +12,7 @@ class Application(threading.Thread):
 		service.start()
 
 	def stop(self):
-		service.stop()
+		primaries.stop()
 		self.join()
 
 

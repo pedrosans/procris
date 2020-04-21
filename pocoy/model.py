@@ -15,17 +15,16 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import traceback, gi, re
-from inspect import signature
-
 import pocoy.messages as messages
-
+import pocoy.wm as wm
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Tuple
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
 	get_last_focused, decoration_delta, UserEvent, monitor_of, X_Y_W_H_GEOMETRY_MASK, \
-	is_managed, get_active_managed_window, is_buffer
+	is_managed, get_active_managed_window, is_buffer, get_first_workspace, is_workspaces_only_on_primary, \
+	get_active_workspace, get_workspace_outside_primary
 from pocoy.decoration import DECORATION_MAP
 from pocoy import decoration, state, wm
 
@@ -45,6 +44,10 @@ def persistent(function):
 		function(self, user_event)
 		controller.notify_layout_change()
 	return notify_changes_after_method
+
+
+def in_visible_monitor(w: Wnck.Window):
+	return is_buffer(w) and monitors.id_for(w.get_workspace(), wm.monitor_of(w.get_xid())) in monitors.visible_ids
 
 
 class Windows:
@@ -113,9 +116,7 @@ class Windows:
 		def sort_line(w):
 			geometry = w.get_geometry()
 			return geometry.xp * STRETCH + geometry.yp
-		screen = Wnck.Screen.get_default()
-		visible = filter(is_visible, screen.get_windows())
-		return sorted(visible, key=sort_line)
+		return sorted(filter(in_visible_monitor, Wnck.Screen.get_default().get_windows()), key=sort_line)
 
 	def get_buffers(self):
 		return list(map(lambda xid: self.window_by_xid[xid], self.buffers))
@@ -233,8 +234,8 @@ class ActiveWindow:
 
 	def __init__(self):
 		self.xid = None
+		self.last = None
 
-	# TODO: is this needed?
 	def get_wnck_window(self):
 		for buffer_xid in windows.buffers:
 			if buffer_xid == self.xid:
@@ -242,14 +243,15 @@ class ActiveWindow:
 		return None
 
 	def read_screen(self):
-		active = get_last_focused(window_filter=is_buffer)
+		active = get_last_focused(window_filter=in_visible_monitor)
 		self.xid = active.get_xid() if active else None
 
 	def clean(self):
-		self.xid = None
+		self.last = self.xid = None
 
 	def change_to(self, xid: int):
 		if self.xid != xid:
+			self.last = self.xid
 			self.xid = xid
 			windows.staging = True
 
@@ -350,15 +352,27 @@ class ActiveWindow:
 		if not window:
 			return
 		origin = monitors.get_active(window)
-		destinantion = monitors.get_secondary() if direction == 1 else monitors.get_primary()
-		if not destinantion:
+		origin_x = origin.visible_area[0]
+		destination = None
+		for visible in monitors.get_visible():
+			destination_x = visible.visible_area[0]
+			if visible is not origin and (
+					(direction > 0 and destination_x > origin_x) or
+					(direction < 0 and destination_x < origin_x)
+			):
+				destination = visible
+
+		if not destination:
 			return
 
+		if destination.get_workspace().get_number() != origin.get_workspace().get_number():
+			window.move_to_workspace(destination.get_workspace())
+
 		origin.clients.remove(window.get_xid())
-		destinantion.clients.append(window.get_xid())
+		destination.clients.append(window.get_xid())
 
 		origin.apply()
-		destinantion.apply()
+		destination.apply()
 
 	@statefull
 	def focusstack(self, user_event: UserEvent):
@@ -402,10 +416,10 @@ class ActiveWindow:
 
 	@statefull
 	def focus_previous(self, user_event: UserEvent):
-		last = get_last_focused(window_filter=is_buffer)
+		last = get_last_focused(window_filter=in_visible_monitor)
 		if not last:
 			return
-		previous = get_last_focused(window_filter=lambda w: is_buffer(w) and w is not last)
+		previous = get_last_focused(window_filter=lambda w: in_visible_monitor(w) and w is not last)
 		if not previous:
 			return
 		self.change_to(previous.get_xid())
@@ -419,11 +433,12 @@ class ActiveWindow:
 			perpendicular_distance *= -1 if axis_position < axis.position_of(active) else 1
 			return axis_position + perpendicular_distance
 
-		screen = Wnck.Screen.get_default()
-		screen.get_windows()
-		sorted_windows = sorted(filter(is_visible, screen.get_windows()), key=key)
+		clients = []
+		for monitor in monitors.get_visible():
+			clients.extend(monitor.clients)
+		sorted_windows = sorted(map(lambda xid: windows.window_by_xid[xid], clients), key=key)
 
-		index = sorted_windows.index(self.get_wnck_window())
+		index = sorted_windows.index(active)
 		if 0 <= index + increment < len(sorted_windows):
 			index = index + increment
 			next_index = index + increment
@@ -447,6 +462,7 @@ class Monitor:
 	def __init__(
 			self, primary: bool = False,
 			nmaster: int = 1, mfact: float = 0.5,
+			model: str = None, workspace: int = None,
 			function_key: str = 'T', strut: List = (0, 0, 0, 0)):
 		self.primary: bool = primary
 		# TODO: rename to layout key
@@ -459,6 +475,8 @@ class Monitor:
 		self.visible_area: List[int] = [0, 0, 0, 0]
 		self.clients: List[int] = []
 		self.pointer: Monitor = None
+		self.model = model
+		self.workspace = workspace
 
 	def set_layout(self, new_function):
 		if self.function_key != new_function:
@@ -541,6 +559,9 @@ class Monitor:
 	def print(self):
 		print('monitor: {} {} {} {}'.format(self.wx, self.wy, self.ww, self.wh))
 
+	def get_workspace(self):
+		return Wnck.Screen.get_default().get_workspace(self.workspace)
+
 
 class Monitors:
 
@@ -550,18 +571,30 @@ class Monitors:
 		self.map: Dict[Tuple, Monitor] = {}
 		self.primaries: Dict[int, Monitor] = {}
 		self.by_workspace: Dict[int, List[Monitor]] = {}
+		self.visible_ids = []
 
 	def read(self, screen: Wnck.Screen):
+		del self.visible_ids[:]
+		active_workspace = get_active_workspace()
+		secondary_workspace = get_workspace_outside_primary()
 		for workspace in screen.get_workspaces():
 			if workspace.get_number() not in self.by_workspace:
 				self.by_workspace[workspace.get_number()] = []
 			for i in range(Gdk.Display.get_default().get_n_monitors()):
-				self.read_monitor(workspace, Gdk.Display.get_default().get_monitor(i))
+				gdk_monitor = Gdk.Display.get_default().get_monitor(i)
+				self.read_monitor(workspace, gdk_monitor)
+				if (i == 0 and workspace is active_workspace) or (i > 0 and workspace is secondary_workspace):
+					self.visible_ids.append(self.id_for(workspace, gdk_monitor))
+					self.visible_ids.append(self.id_for(workspace, gdk_monitor))
+
+	def id_for(self, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
+		return workspace.get_number(), gdk_monitor.get_model()
 
 	def read_monitor(self, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
-		id = (workspace.get_number(), gdk_monitor.get_model())
+		id = self.id_for(workspace, gdk_monitor)
 		if id not in self.map.keys():
-			self.map[id] = Monitor(primary=gdk_monitor.is_primary())
+			self.map[id] = Monitor(
+				primary=gdk_monitor.is_primary(), model=gdk_monitor.get_model(), workspace=workspace.get_number())
 			self.by_workspace[workspace.get_number()].append(self.map[id])
 			if gdk_monitor.is_primary():
 				self.primaries[workspace.get_number()] = self.map[id]
@@ -588,11 +621,12 @@ class Monitors:
 			index = workspace.get_number()
 		return self.primaries[index]
 
-	def get_secondary(self, workspace: Wnck.Workspace = None):
-		if not workspace:
-			workspace = Wnck.Screen.get_default().get_active_workspace()
-		index = workspace.get_number()
+	def get_secondary(self):
+		index = get_workspace_outside_primary().get_number()
 		return self.by_workspace[index][1] if len(self.by_workspace[index]) > 1 else None
+
+	def get_visible(self) -> List[Monitor]:
+		return list(map(lambda monitor_id: self.map[monitor_id], self.visible_ids))
 
 	@statefull
 	@persistent

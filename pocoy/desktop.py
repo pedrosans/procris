@@ -12,7 +12,8 @@ gi.require_version('AppIndicator3', '0.1')
 gi.require_version('Wnck', '3.0')
 from gi.repository import Gtk, GLib, GdkPixbuf, AppIndicator3, Wnck
 from pocoy import state as configurations
-from pocoy.wm import get_active_workspace, UserEvent, is_workspaces_only_on_primary, get_first_workspace
+from pocoy.wm import get_active_workspace, UserEvent, is_workspaces_only_on_primary, get_first_workspace, \
+	get_workspace_outside_primary
 from pocoy.model import Monitor, monitors, windows
 
 
@@ -183,11 +184,10 @@ def on_layout_changed():
 	monitor = monitors.get_primary()
 	serialized['primary'] = monitor.to_json()
 	serialized['primary']['workspace'] = get_active_workspace().get_number()
-	secondary_monitor_workspace = get_first_workspace() if is_workspaces_only_on_primary() else get_active_workspace()
-	secondary = monitors.get_secondary(secondary_monitor_workspace)
-	if secondary:
-		serialized['secondary'] = secondary.to_json()
-		serialized['secondary']['workspace'] = secondary_monitor_workspace.get_number()
+	secondary_monitor = monitors.get_secondary()
+	if secondary_monitor:
+		serialized['secondary'] = secondary_monitor.to_json()
+		serialized['secondary']['workspace'] = secondary_monitor.workspace
 
 	for pipe in property_queues:
 		pipe['queue'].put(serialized)
