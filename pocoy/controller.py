@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import gi
 from pocoy import wm, scratchpads
 from pocoy.model import Monitors, Windows
-from pocoy.wm import DirtyState, is_managed, is_visible, gdk_window_for, Trap, resize, unmaximize
+from pocoy.wm import DirtyState, is_managed, gdk_window_for, Trap, resize
 from functools import reduce
 from typing import List, Dict, Callable
 from gi.repository import Wnck, Gdk, Gtk
@@ -93,7 +93,7 @@ def _state_changed(window: Wnck.Window, changed_mask, new_state):
 		windows.read(window.get_screen(), force_update=False)
 		monitor = monitors.get_active(window)
 		clients = monitor.clients
-		if is_visible(window):
+		if window.get_xid() in clients:
 			old_index = clients.index(window.get_xid())
 			clients.insert(0, clients.pop(old_index))
 		monitor.apply()
@@ -105,11 +105,10 @@ def _window_closed(screen: Wnck.Screen, window):
 		if window.get_xid() in handlers_by_xid:
 			window.disconnect(handlers_by_xid[window.get_xid()])
 			del handlers_by_xid[window.get_xid()]
-		if is_visible(window) and is_managed(window):
+		monitor = monitors.of_client(window.get_xid())
+		if monitor:
 			windows.read(screen, force_update=False)
-			for monitor in monitors.all():
-				if monitor.contains(window):
-					monitor.apply()
+			monitor.apply()
 	except DirtyState:
 		pass  # It was just a try
 

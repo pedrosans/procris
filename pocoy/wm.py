@@ -77,14 +77,10 @@ def monitor_of(xid) -> Gdk.Monitor:
 #
 # WINDOW
 #
-# TODO: rename to visible_in
 def is_visible(window: Wnck.Window, workspace: Wnck.Workspace = None, monitor: Gdk.Monitor = None) -> bool:
-	workspace = workspace if workspace else Wnck.Screen.get_default().get_active_workspace()
 	return (
-			is_buffer(window)
-			and not window.is_minimized()
-			and window.is_in_viewport(workspace)
-			and window.is_visible_on_workspace(workspace)
+			not window.is_minimized()
+			and (not workspace or (window.is_in_viewport(workspace) and window.is_visible_on_workspace(workspace)))
 			and (not monitor or intersect(window, monitor))
 	)
 

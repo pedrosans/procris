@@ -619,6 +619,12 @@ class Monitors:
 	def of(self, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
 		return self.map[(workspace.get_number(), gdk_monitor.get_model())]
 
+	def of_client(self, xid: int):
+		for monitor in self.map.values():
+			if xid in monitor.clients:
+				return monitor
+		return None
+
 	def get_active(self, window: Wnck.Window = None) -> Monitor:
 		if not window:
 			window = get_active_managed_window()
