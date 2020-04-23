@@ -16,14 +16,13 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import traceback, gi, re
 import pocoy.messages as messages
-import pocoy.wm as wm
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gdk
 from typing import List, Dict, Tuple
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
 	get_last_focused, decoration_delta, UserEvent, monitor_of, X_Y_W_H_GEOMETRY_MASK, \
-	is_managed, get_active_managed_window, is_buffer, get_first_workspace, is_workspaces_only_on_primary, \
+	is_managed, get_active_managed_window, is_buffer, \
 	get_active_workspace, get_workspace_outside_primary
 from pocoy.decoration import DECORATION_MAP
 from pocoy import decoration, state, wm
@@ -443,10 +442,7 @@ class ActiveWindow:
 			perpendicular_distance *= -1 if axis_position < axis.position_of(active) else 1
 			return axis_position + perpendicular_distance
 
-		clients = []
-		for monitor in monitors.get_visible():
-			clients.extend(monitor.clients)
-		sorted_windows = sorted(map(lambda xid: windows.window_by_xid[xid], clients), key=key)
+		sorted_windows = sorted(filter(in_visible_monitor, Wnck.Screen.get_default().get_windows()), key=key)
 
 		index = sorted_windows.index(active)
 		if 0 <= index + increment < len(sorted_windows):
