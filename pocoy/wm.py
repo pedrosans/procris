@@ -180,29 +180,27 @@ def wait_configure_event(xid, type, display: Gdk.Display):
 		del queue[:]
 
 
-def get_height(window: Wnck.Window):
-	dx, dy, dw, dh = decoration_delta(window)
-	with Trap():
-		gx, gy, gw, gh = gdk_window_for(window).get_geometry()
-
-	with Trap():
-		is_decorated, decorations = gdk_window_for(window).get_decorations()
-	client_side_decoration = is_decorated and not decorations and dh > 0
-
-	return gh - dh + (config.get_window_manger_border() * 2 if client_side_decoration else 0)
-
-
-# TODO: remove duplicated code
 def get_width(window: Wnck.Window):
+	w, h = get_size(window)
+	return w
+
+
+def get_height(window: Wnck.Window):
+	w, h = get_size(window)
+	return h
+
+
+def get_size(window: Wnck.Window):
 	dx, dy, dw, dh = decoration_delta(window)
 	with Trap():
 		gx, gy, gw, gh = gdk_window_for(window).get_geometry()
 
 	with Trap():
 		is_decorated, decorations = gdk_window_for(window).get_decorations()
-	client_side_decoration = is_decorated and not decorations and dw > 0
+	client_side_decoration = is_decorated and not decorations and dh < 0
+	border_compensation = (config.get_window_manger_border() * 2 if client_side_decoration else 0)
 
-	return gw - dw + (config.get_window_manger_border() * 2 if client_side_decoration else 0)
+	return gw + dw + border_compensation, gh + dh + border_compensation
 
 
 def calculate_geometry_offset(window: Wnck.Window):
@@ -229,12 +227,11 @@ def calculate_geometry_offset(window: Wnck.Window):
 	return 0, 0, 0, 0
 
 
-# TODO: invert and explain
 def decoration_delta(window: Wnck.Window):
 	with Trap():
 		wx, wy, ww, wh = window.get_geometry()
 		cx, cy, cw, ch = window.get_client_window_geometry()
-	return cx - wx, cy - wy, cw - ww, ch - wh
+	return cx - wx, cy - wy, ww - cw, wh - ch
 
 
 class DirtyState(Exception):
