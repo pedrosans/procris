@@ -35,10 +35,9 @@ def create_icon_image(window: Wnck.Window, size):
 
 class ReadingWindow(Gtk.Window):
 
-	def __init__(self, controller, windows, active_window):
+	def __init__(self, controller, windows):
 		Gtk.Window.__init__(self, title="pocoy")
 		self.windows: Windows = windows
-		self.active_window: ActiveWindow = active_window
 
 		self.columns = 100
 
@@ -128,25 +127,9 @@ class ReadingWindow(Gtk.Window):
 		for window in line:
 			name = window.get_name()
 			name = ' ' + ((name[:8] + '..') if len(name) > 10 else name)
-			position = self._navigation_index(window, line)
-			if window is not self.active_window:
-				position = ' ' + position
-			active = window is self.active_window
-			self.completions_line.add_status_icon(window, active)
-			self.completions_line.add_status_text(position, active)
-			self.completions_line.add_status_text(name, active)
+			self.completions_line.add_status_icon(window, False)
+			self.completions_line.add_status_text(name, False)
 			self.completions_line.add_status_text(' ', False)
-
-	def _navigation_index(self, window, line):
-		length = len(line)
-		start_position = line.index(self.active_window.get_wnck_window())
-		multiplier = (length + line.index(window) - start_position) % len(line)
-		if multiplier == 0:
-			return ''
-		if multiplier == 1:
-			return 'w'
-		else:
-			return str(multiplier) + 'w'
 
 	def show_messages(self):
 		for message in messages.get():

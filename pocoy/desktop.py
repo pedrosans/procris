@@ -9,11 +9,9 @@ import os
 import gi
 gi.require_version('Gtk', '3.0')
 gi.require_version('AppIndicator3', '0.1')
-gi.require_version('Wnck', '3.0')
-from gi.repository import Gtk, GLib, GdkPixbuf, AppIndicator3, Wnck
+from gi.repository import Gtk, GLib, GdkPixbuf, AppIndicator3
 from pocoy import state as configurations
-from pocoy.wm import get_active_workspace, UserEvent, is_workspaces_only_on_primary, get_first_workspace, \
-	get_workspace_outside_primary
+from pocoy.wm import get_active_workspace, UserEvent
 from pocoy.model import Monitor, monitors, windows
 
 
@@ -27,10 +25,8 @@ class StatusIcon:
 	# Track reloading routine to stop any layout side effect when updating the UI
 	_reloading = False
 
-	def __init__(self, windows, monitors, stop_function=None):
+	def __init__(self, stop_function=None):
 		self.stop_function = stop_function
-		self.windows = windows
-		self.monitors = monitors
 		self.menu = Gtk.Menu()
 
 		self.menu.append(self.autostart_item)
@@ -91,7 +87,7 @@ class StatusIcon:
 		self._reloading = True
 
 		iconname = configurations.get_desktop_icon()
-		function_key = self.monitors.get_primary().function_key
+		function_key = monitors.get_primary().function_key
 
 		for item in self.icons_submenu.get_children():
 			item.set_active(item.icon_style == iconname)
@@ -125,13 +121,13 @@ class StatusIcon:
 			event = UserEvent(time=Gtk.get_current_event_time())
 			event.parameters = [function_key]
 			import pocoy.service as service
-			service.call(self.monitors.setprimarylayout, event)
+			service.call(monitors.setprimarylayout, event)
 
 	def _change_decorations(self, check_menu_item: Gtk.CheckMenuItem):
 		to_remove = check_menu_item.get_active()
 		configurations.set_remove_decorations(to_remove)
 		import pocoy.service as service
-		service.call(self.windows.decorate, None)
+		service.call(windows.decorate, None)
 
 	def _quit(self, data):
 		self.stop_function()
@@ -167,8 +163,7 @@ def load():
 def connect():
 	import pocoy.service
 	global status_icon
-	# TODO: pass window and monitor as parameters
-	status_icon = StatusIcon(windows, monitors, stop_function=pocoy.service.stop)
+	status_icon = StatusIcon(stop_function=pocoy.service.stop)
 	status_icon.activate()
 	start_pipes()
 

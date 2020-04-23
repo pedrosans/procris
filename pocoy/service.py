@@ -228,5 +228,5 @@ SIGINT = getattr(signal, "SIGINT", None)
 SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP = getattr(signal, "SIGHUP", None)
 
-reading: Reading = Reading(model.windows, model.active_window)
+reading: Reading = Reading(model.windows)
 listener: KeyboardListener = KeyboardListener(callback=keyboard_listener, on_error=stop)
