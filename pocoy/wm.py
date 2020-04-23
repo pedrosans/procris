@@ -105,8 +105,8 @@ def is_managed(window):
 
 
 def get_active_managed_window():
-	active = Wnck.Screen.get_default().get_active_window()
-	return active if active and is_managed(active) else None
+	last_focused_buffer = get_last_focused(is_buffer)
+	return last_focused_buffer if last_focused_buffer and is_managed(last_focused_buffer) else None
 
 
 def intersect(window: Wnck.Window, monitor: Gdk.Monitor):
