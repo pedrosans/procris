@@ -222,6 +222,29 @@ class Windows:
 
 	@statefull
 	@persistent
+	def zoom(self, user_event: UserEvent):
+		active = get_active_managed_window()
+		visible_monitors = monitors.get_visible()
+
+		if not active or len(visible_monitors) < 2:
+			return
+
+		origin = monitors.get_active(active)
+		index = visible_monitors.index(origin)
+		destination = visible_monitors[1 if index == 0 else 0]
+
+		aux = destination.clients
+		destination.clients = origin.clients
+		origin.clients = aux
+
+		if index == 0 and origin.clients:
+			active_window.change_to(origin.clients[0])
+
+		origin.apply()
+		destination.apply()
+
+	@statefull
+	@persistent
 	def pushmonitor(self, user_event: UserEvent):
 		direction = user_event.parameters[0]
 		window = get_active_managed_window()
@@ -353,17 +376,18 @@ class ActiveWindow:
 	@persistent
 	def zoom(self, user_event: UserEvent):
 		active = get_active_managed_window()
-		monitor = monitors.get_active(active)
-		clients = monitor.clients
 		if not active:
 			return
-		if len(clients) >= 2:
-			old_index = clients.index(active.get_xid())
-			if old_index == 0:
-				clients.insert(1, clients.pop(old_index))
-			else:
-				clients.insert(0, clients.pop(old_index))
-			active_window.change_to(clients[0])
+		monitor = monitors.get_active(active)
+		clients = monitor.clients
+		if len(clients) < 2:
+			return
+		old_index = clients.index(active.get_xid())
+		if old_index == 0:
+			clients.insert(1, clients.pop(old_index))
+		else:
+			clients.insert(0, clients.pop(old_index))
+		active_window.change_to(clients[0])
 		monitor.apply()
 
 	@statefull
@@ -620,7 +644,6 @@ class Monitors:
 				gdk_monitor = Gdk.Display.get_default().get_monitor(i)
 				self.read_monitor(workspace, gdk_monitor)
 				if (i == 0 and workspace is active_workspace) or (i > 0 and workspace is secondary_workspace):
-					self.visible_ids.append(self.id_for(workspace, gdk_monitor))
 					self.visible_ids.append(self.id_for(workspace, gdk_monitor))
 
 	def id_for(self, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
