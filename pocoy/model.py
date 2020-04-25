@@ -221,6 +221,32 @@ class Windows:
 			return messages.Message('No matching buffer for ' + user_event.vim_command_parameter, 'error')
 
 	@statefull
+	@persistent
+	def pushmonitor(self, user_event: UserEvent):
+		direction = user_event.parameters[0]
+		window = get_active_managed_window()
+		if not window:
+			return
+		origin = monitors.get_active(window)
+		destination = origin.get_adjacent(direction)
+
+		if not destination:
+			return
+
+		aux = destination.clients
+		destination.clients = origin.clients
+		origin.clients = aux
+
+		if destination.get_workspace().get_number() != origin.get_workspace().get_number():
+			for xid in origin.clients:
+				windows.window_by_xid[xid].move_to_workspace(origin.get_workspace())
+			for xid in destination.clients:
+				windows.window_by_xid[xid].move_to_workspace(destination.get_workspace())
+
+		origin.apply()
+		destination.apply()
+
+	@statefull
 	def geometry(self, user_event: UserEvent):
 		# TODO: if the first parameter remains the lib, can convert all to int
 		parameters = list(map(lambda word: int(word), user_event.vim_command_parameter.split()))
@@ -364,15 +390,7 @@ class ActiveWindow:
 		if not window:
 			return
 		origin = monitors.get_active(window)
-		origin_x = origin.visible_area[0]
-		destination = None
-		for visible in monitors.get_visible():
-			destination_x = visible.visible_area[0]
-			if visible is not origin and (
-					(direction > 0 and destination_x > origin_x) or
-					(direction < 0 and destination_x < origin_x)
-			):
-				destination = visible
+		destination = origin.get_adjacent(direction)
 
 		if not destination:
 			return
@@ -567,6 +585,18 @@ class Monitor:
 
 	def get_workspace(self):
 		return Wnck.Screen.get_default().get_workspace(self.workspace)
+
+	def get_adjacent(self, direction):
+		origin_x = self.visible_area[0]
+		destination = None
+		for visible in monitors.get_visible():
+			destination_x = visible.visible_area[0]
+			if visible is not self and (
+					(direction > 0 and destination_x > origin_x) or
+					(direction < 0 and destination_x < origin_x)
+			):
+				destination = visible
+		return destination
 
 
 class Monitors:
