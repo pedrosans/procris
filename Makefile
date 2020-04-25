@@ -27,8 +27,7 @@ test:
 install:
 	python3 ${SETUP_SCRIPT} install --record $(PYTHONPATH)/installed_files.txt 1>/dev/null
 	echo "	OK: pocoy files installed"
-	(command -v update-icon-caches && update-icon-caches /usr/share/icons/hicolor ) | \
-	(command -v gtk-update-icon-cache && gtk-update-icon-cache -f --include-image-data /usr/share/icons/hicolor )
+	(command -v gtk-update-icon-cache && gtk-update-icon-cache -f --include-image-data /usr/share/icons/hicolor ) || echo 'skiping icon update'
 	echo "	SUCCESS: pocoy installed"
 uninstall:
 	cat $(PYTHONPATH)/installed_files.txt | xargs rm -rf ; rm -f $(PYTHONPATH)/installed_files.txt
