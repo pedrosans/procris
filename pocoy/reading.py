@@ -71,6 +71,7 @@ class Reading:
 	def make_transient(self):
 		self.remove_focus_callback()
 		self.long = False
+		messages.clean_placeholder()
 
 	def end(self):
 		self.remove_focus_callback()

@@ -52,6 +52,11 @@ def clean():
 	del memory[:]
 
 
+def clean_placeholder():
+	global prompt_placeholder
+	prompt_placeholder = None
+
+
 def has_message():
 	return memory or prompt_placeholder
 
@@ -74,4 +79,3 @@ def to_string():
 	for m in memory:
 		output += '\n' + m.get_content(100)
 	return output
-
