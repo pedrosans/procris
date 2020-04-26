@@ -227,11 +227,9 @@ class Windows:
 		index = visible_monitors.index(origin)
 		destination = visible_monitors[1 if index == 0 else 0]
 
-		aux = destination.clients
-		destination.clients = origin.clients
-		origin.clients = aux
+		origin.switch_with(destination)
 
-		if index == 0 and origin.clients:
+		if origin.primary and origin.clients:
 			active_window.change_to(origin.clients[0])
 
 		origin.apply()
@@ -249,15 +247,7 @@ class Windows:
 		if not destination:
 			return
 
-		aux = destination.clients
-		destination.clients = origin.clients
-		origin.clients = aux
-
-		if destination.get_workspace().get_number() != origin.get_workspace().get_number():
-			for xid in origin.clients:
-				windows.window_by_xid[xid].move_to_workspace(origin.get_workspace())
-			for xid in destination.clients:
-				windows.window_by_xid[xid].move_to_workspace(destination.get_workspace())
+		origin.switch_with(destination)
 
 		origin.apply()
 		destination.apply()
@@ -610,6 +600,17 @@ class Monitor:
 			):
 				destination = visible
 		return destination
+
+	def switch_with(self, destination):
+		aux = destination.clients
+		destination.clients = self.clients
+		self.clients = aux
+
+		if destination.get_workspace().get_number() != self.get_workspace().get_number():
+			for xid in self.clients:
+				windows.window_by_xid[xid].move_to_workspace(self.get_workspace())
+			for xid in destination.clients:
+				windows.window_by_xid[xid].move_to_workspace(destination.get_workspace())
 
 
 class Monitors:
