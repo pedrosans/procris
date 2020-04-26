@@ -28,21 +28,16 @@ from pocoy.decoration import DECORATION_MAP
 from pocoy import decoration, state, wm
 
 
-def statefull(function):
-	def read_screen_before(self, user_event: UserEvent):
-		screen = Wnck.Screen.get_default()
-		windows.read(screen)
-		function(self, user_event)
-	return read_screen_before
-
-
-# TODO: change to notify
-def persistent(function):
-	def notify_changes_after_method(self, user_event: UserEvent):
-		import pocoy.controller as controller
-		function(self, user_event)
-		controller.notify_layout_change()
-	return notify_changes_after_method
+def impure(mutates: bool = False):
+	def decorator(function):
+		def read_write_state(self, user_event: UserEvent):
+			windows.read(Wnck.Screen.get_default())
+			function(self, user_event)
+			if mutates:
+				import pocoy.controller as controller
+				controller.notify_layout_change()
+		return read_write_state
+	return decorator
 
 
 def in_visible_monitor(w: Wnck.Window):
@@ -161,11 +156,11 @@ class Windows:
 	#
 	# COMMANDS
 	#
-	@statefull
+	@impure(mutates=False)
 	def decorate(self, user_event: UserEvent):
 		self.apply_decoration_config()
 
-	@statefull
+	@impure(mutates=False)
 	def list(self, user_event: UserEvent):
 		if user_event.text:
 			messages.add(messages.Message(PROMPT + user_event.text, 'info'))
@@ -173,7 +168,7 @@ class Windows:
 		for window in self.get_buffers():
 			messages.add(BufferName(window, self))
 
-	@statefull
+	@impure(mutates=False)
 	def activate(self, user_event: UserEvent):
 		buffer_number_match = re.match(r'^\s*(buffer|b)\s*([0-9]+)\s*$', user_event.text)
 		if buffer_number_match:
@@ -191,7 +186,7 @@ class Windows:
 			else:
 				return messages.Message('No matching buffer for ' + window_title, 'error')
 
-	@statefull
+	@impure(mutates=False)
 	def delete(self, user_event: UserEvent):
 
 		if not user_event.vim_command_parameter:
@@ -220,8 +215,7 @@ class Windows:
 		else:
 			return messages.Message('No matching buffer for ' + user_event.vim_command_parameter, 'error')
 
-	@statefull
-	@persistent
+	@impure(mutates=True)
 	def zoom(self, user_event: UserEvent):
 		active = get_active_managed_window()
 		visible_monitors = monitors.get_visible()
@@ -243,8 +237,7 @@ class Windows:
 		origin.apply()
 		destination.apply()
 
-	@statefull
-	@persistent
+	@impure(mutates=True)
 	def pushmonitor(self, user_event: UserEvent):
 		direction = user_event.parameters[0]
 		window = get_active_managed_window()
@@ -269,7 +262,7 @@ class Windows:
 		origin.apply()
 		destination.apply()
 
-	@statefull
+	@impure(mutates=False)
 	def geometry(self, user_event: UserEvent):
 		# TODO: if the first parameter remains the lib, can convert all to int
 		parameters = list(map(lambda word: int(word), user_event.vim_command_parameter.split()))
@@ -316,7 +309,7 @@ class ActiveWindow:
 			self.xid = xid
 			windows.staging = True
 
-	@statefull
+	@impure(mutates=False)
 	def only(self, user_event: UserEvent):
 		if not self.xid:
 			return
@@ -325,29 +318,29 @@ class ActiveWindow:
 			if self.xid != xid:
 				windows.window_by_xid[xid].minimize()
 
-	@statefull
+	@impure(mutates=False)
 	def minimize(self, user_event: UserEvent):
 		if self.xid:
 			self.get_wnck_window().minimize()
 
-	@statefull
+	@impure(mutates=False)
 	def maximize(self, user_event: UserEvent):
 		if self.xid:
 			self.get_wnck_window().maximize()
 
-	@statefull
+	@impure(mutates=False)
 	def move_right(self, user_event: UserEvent):
 		self._snap_active_window(HORIZONTAL, 0.5)
 
-	@statefull
+	@impure(mutates=False)
 	def move_left(self, user_event: UserEvent):
 		self._snap_active_window(HORIZONTAL, 0)
 
-	@statefull
+	@impure(mutates=False)
 	def move_up(self, user_event: UserEvent):
 		self._snap_active_window(VERTICAL, 0)
 
-	@statefull
+	@impure(mutates=False)
 	def move_down(self, user_event: UserEvent):
 		self._snap_active_window(VERTICAL, 0.5)
 
@@ -360,11 +353,11 @@ class ActiveWindow:
 		else:
 			resize(window, l=0, t=position, w=1, h=proportion)
 
-	@statefull
+	@impure(mutates=False)
 	def centralize(self, user_event: UserEvent):
 		resize(self.get_wnck_window(), l=0.1, t=0.1, w=0.8, h=0.8)
 
-	@statefull
+	@impure(mutates=False)
 	def decorate(self, user_event: UserEvent):
 		decoration_parameter = user_event.vim_command_parameter
 		if decoration_parameter in DECORATION_MAP.keys():
@@ -372,8 +365,7 @@ class ActiveWindow:
 		gdk_window = gdk_window_for(self.get_wnck_window())
 		gdk_window.set_decorations(opt)
 
-	@statefull
-	@persistent
+	@impure(mutates=True)
 	def zoom(self, user_event: UserEvent):
 		active = get_active_managed_window()
 		if not active:
@@ -390,8 +382,7 @@ class ActiveWindow:
 		active_window.change_to(clients[0])
 		monitor.apply()
 
-	@statefull
-	@persistent
+	@impure(mutates=True)
 	def pushstack(self, user_event: UserEvent):
 		direction = user_event.parameters[0]
 		window = get_active_managed_window()
@@ -406,8 +397,7 @@ class ActiveWindow:
 			clients.insert(new_index, clients.pop(old_index))
 			monitor.apply()
 
-	@statefull
-	@persistent
+	@impure(mutates=True)
 	def pushmonitor(self, user_event: UserEvent):
 		direction = user_event.parameters[0]
 		window = get_active_managed_window()
@@ -428,7 +418,7 @@ class ActiveWindow:
 		origin.apply()
 		destination.apply()
 
-	@statefull
+	@impure(mutates=False)
 	def focusstack(self, user_event: UserEvent):
 		direction = user_event.parameters[0]
 		window = get_active_managed_window()
@@ -442,8 +432,7 @@ class ActiveWindow:
 
 		active_window.change_to(clients[new_index])
 
-	@statefull
-	@persistent
+	@impure(mutates=True)
 	def killclient(self, user_event: UserEvent):
 		active = self.get_wnck_window()
 
@@ -452,23 +441,23 @@ class ActiveWindow:
 
 		active.close(user_event.time)
 
-	@statefull
+	@impure(mutates=False)
 	def focus_right(self, user_event: UserEvent):
 		self.move_focus(1, HORIZONTAL)
 
-	@statefull
+	@impure(mutates=False)
 	def focus_left(self, user_event: UserEvent):
 		self.move_focus(-1, HORIZONTAL)
 
-	@statefull
+	@impure(mutates=False)
 	def focus_up(self, user_event: UserEvent):
 		self.move_focus(-1, VERTICAL)
 
-	@statefull
+	@impure(mutates=False)
 	def focus_down(self, user_event: UserEvent):
 		self.move_focus(1, VERTICAL)
 
-	@statefull
+	@impure(mutates=False)
 	def focus_previous(self, user_event: UserEvent):
 		previous = windows.get_previous()
 		if not previous:
@@ -495,7 +484,7 @@ class ActiveWindow:
 				next_index += increment
 		self.change_to(sorted_windows[index].get_xid())
 
-	@statefull
+	@impure(mutates=False)
 	def focus_next(self, user_event: UserEvent):
 		direction = 1 if not user_event or Gdk.keyval_name(user_event.keyval).islower() else -1
 		line = windows.get_window_line()
@@ -693,8 +682,7 @@ class Monitors:
 	def get_visible(self) -> List[Monitor]:
 		return list(map(lambda monitor_id: self.map[monitor_id], self.visible_ids))
 
-	@statefull
-	@persistent
+	@impure(mutates=True)
 	def setprimarylayout(self, user_event: UserEvent):
 		new_function_key = user_event.parameters[0]
 		monitor = monitors.get_primary()
@@ -709,8 +697,7 @@ class ActiveMonitor:
 	#
 	# COMMANDS
 	#
-	@statefull
-	@persistent
+	@impure(mutates=True)
 	def setlayout(self, user_event: UserEvent):
 		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
 		active = get_active_managed_window()
@@ -728,7 +715,7 @@ class ActiveMonitor:
 		monitor.apply(unmaximize=True)
 		windows.apply_decoration_config()
 
-	@statefull
+	@impure(mutates=False)
 	def gap(self, user_event: UserEvent):
 		parameters = user_event.vim_command_parameter.split()
 		where = parameters[0]
@@ -742,15 +729,13 @@ class ActiveMonitor:
 		input = user_event.vim_command_parameter.lower()
 		return list(filter(lambda x: input != x and input in x, ['inner', 'outer']))
 
-	@statefull
-	@persistent
+	@impure(mutates=True)
 	def setmfact(self, user_event: UserEvent):
 		monitor = monitors.get_active()
 		monitor.increase_master_area(increment=user_event.parameters[0])
 		monitor.apply()
 
-	@statefull
-	@persistent
+	@impure(mutates=True)
 	def incnmaster(self, user_event: UserEvent):
 		monitor = monitors.get_active()
 		monitor.increment_master(increment=user_event.parameters[0])
