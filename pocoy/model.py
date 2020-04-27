@@ -102,6 +102,7 @@ class Windows:
 	#
 	# API
 	#
+	# TODO: move to ActiveWindow
 	def commit_navigation(self, event_time):
 		"""
 		Commits any staged change in the active window
@@ -137,7 +138,11 @@ class Windows:
 		return get_last_focused(window_filter=in_visible_monitor)
 
 	def get_last_managed_focused(self):
-		last = get_last_focused(window_filter=in_visible_monitor)
+		active = Wnck.Screen.get_default().get_active_window()
+		if is_buffer(active):
+			last = active
+		else:
+			last = get_last_focused(window_filter=in_visible_monitor)
 		return last if is_managed(last) else None
 
 	def get_previous(self):
@@ -252,6 +257,7 @@ class Windows:
 			return
 
 		origin.switch_with(destination)
+		# windows.staging = True
 
 		origin.apply()
 		destination.apply()
@@ -291,7 +297,9 @@ class ActiveWindow:
 		return None
 
 	def read_screen(self):
-		active = get_last_focused(window_filter=in_visible_monitor)
+		active = Wnck.Screen.get_default().get_active_window()
+		if not active or not is_buffer(active):
+			active = get_last_focused(window_filter=in_visible_monitor)
 		self.xid = active.get_xid() if active else None
 
 	def clean(self):
