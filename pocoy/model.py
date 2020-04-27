@@ -22,7 +22,7 @@ from typing import List, Dict, Tuple
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
 	get_last_focused, decoration_delta, UserEvent, monitor_of, X_Y_W_H_GEOMETRY_MASK, \
-	is_managed, get_active_managed_window, is_buffer, \
+	is_managed, is_buffer, \
 	get_active_workspace, get_workspace_outside_primary
 from pocoy.decoration import DECORATION_MAP
 from pocoy import decoration, state, wm
@@ -136,6 +136,10 @@ class Windows:
 	def get_last_focused(self):
 		return get_last_focused(window_filter=in_visible_monitor)
 
+	def get_last_managed_focused(self):
+		last = get_last_focused(window_filter=in_visible_monitor)
+		return last if is_managed(last) else None
+
 	def get_previous(self):
 		last = self.get_last_focused()
 		if not last:
@@ -217,7 +221,7 @@ class Windows:
 
 	@impure(mutates=True)
 	def zoom(self, user_event: UserEvent):
-		active = get_active_managed_window()
+		active = windows.get_last_managed_focused()
 		visible_monitors = monitors.get_visible()
 
 		if not active or len(visible_monitors) < 2:
@@ -238,7 +242,7 @@ class Windows:
 	@impure(mutates=True)
 	def pushmonitor(self, user_event: UserEvent):
 		direction = user_event.parameters[0]
-		window = get_active_managed_window()
+		window = windows.get_last_managed_focused()
 		if not window:
 			return
 		origin = monitors.get_active(window)
@@ -357,7 +361,7 @@ class ActiveWindow:
 
 	@impure(mutates=True)
 	def zoom(self, user_event: UserEvent):
-		active = get_active_managed_window()
+		active = windows.get_last_managed_focused()
 		if not active:
 			return
 		monitor = monitors.get_active(active)
@@ -375,7 +379,7 @@ class ActiveWindow:
 	@impure(mutates=True)
 	def pushstack(self, user_event: UserEvent):
 		direction = user_event.parameters[0]
-		window = get_active_managed_window()
+		window = windows.get_last_managed_focused()
 		if not window:
 			return
 		monitor = monitors.get_active(window)
@@ -390,7 +394,7 @@ class ActiveWindow:
 	@impure(mutates=True)
 	def pushmonitor(self, user_event: UserEvent):
 		direction = user_event.parameters[0]
-		window = get_active_managed_window()
+		window = windows.get_last_managed_focused()
 		if not window:
 			return
 		origin = monitors.get_active(window)
@@ -411,7 +415,7 @@ class ActiveWindow:
 	@impure(mutates=False)
 	def focusstack(self, user_event: UserEvent):
 		direction = user_event.parameters[0]
-		window = get_active_managed_window()
+		window = windows.get_last_managed_focused()
 		if not window:
 			return
 		monitor = monitors.get_active(window)
@@ -666,7 +670,7 @@ class Monitors:
 
 	def get_active(self, window: Wnck.Window = None) -> Monitor:
 		if not window:
-			window = get_active_managed_window()
+			window = windows.get_last_managed_focused()
 		return self.of(window.get_workspace(), monitor_of(window.get_xid())) if window else self.get_primary()
 
 	def get_primary(self, workspace: Wnck.Workspace = None, index: int = None) -> Monitor:
@@ -701,7 +705,7 @@ class ActiveMonitor:
 	@impure(mutates=True)
 	def setlayout(self, user_event: UserEvent):
 		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
-		active = get_active_managed_window()
+		active = windows.get_last_managed_focused()
 		monitor = monitors.get_active(active)
 		clients = monitor.clients
 		if promote_selected and active:
