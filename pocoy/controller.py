@@ -33,6 +33,16 @@ mapped = set()
 configured = set()
 
 
+def resilient(function):
+	def decorator(*args, **kwargs):
+		try:
+			with Trap():
+				function(*args, **kwargs)
+		except DirtyState as e:
+			e.print()
+	return decorator
+
+
 def connect_to(screen: Wnck.Screen, model_windows: Windows, model_monitors: Monitors):
 	global windows, monitors
 	windows = model_windows
@@ -62,6 +72,7 @@ def disconnect_from(screen: Wnck.Screen):
 		screen.disconnect(handler_id)
 
 
+@resilient
 def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 	gdk_window_for(window).flush()
 	windows.read(screen, force_update=False)
@@ -76,15 +87,12 @@ def _window_opened(screen: Wnck.Screen, window: Wnck.Window):
 		copy = clients.copy()
 		clients.sort(key=lambda xid: -1 if xid == window.get_xid() else copy.index(xid))
 		notify_layout_change()
-		try:
-			with Trap():
-				if monitor.function_key:
-					monitor.apply(unmaximize=True)
-					windows.apply_decoration_config()
-		except DirtyState:
-			pass  # It was just a try
+		if monitor.function_key:
+			monitor.apply(unmaximize=True)
+			windows.apply_decoration_config()
 
 
+@resilient
 def _state_changed(window: Wnck.Window, changed_mask, new_state):
 	maximization = changed_mask & Wnck.WindowState.MAXIMIZED_HORIZONTALLY or changed_mask & Wnck.WindowState.MAXIMIZED_VERTICALLY
 	if maximization and new_state and monitors.get_active(window).function_key:
@@ -100,27 +108,28 @@ def _state_changed(window: Wnck.Window, changed_mask, new_state):
 		notify_layout_change()
 
 
+@resilient
 def _window_closed(screen: Wnck.Screen, window):
-	try:
-		if window.get_xid() in handlers_by_xid:
-			window.disconnect(handlers_by_xid[window.get_xid()])
-			del handlers_by_xid[window.get_xid()]
-		monitor = monitors.of_client(window.get_xid())
-		if monitor:
-			windows.read(screen, force_update=False)
-			monitor.apply()
-	except DirtyState:
-		pass  # It was just a try
+	if window.get_xid() in handlers_by_xid:
+		window.disconnect(handlers_by_xid[window.get_xid()])
+		del handlers_by_xid[window.get_xid()]
+	monitor = monitors.of_client(window.get_xid())
+	if monitor:
+		windows.read(screen, force_update=False)
+		monitor.apply()
 
 
+@resilient
 def _viewports_changed(scree: Wnck.Screen):
 	notify_layout_change()
 
 
+@resilient
 def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
 	notify_layout_change()
 
 
+@resilient
 def _handle_x_event(event: Gdk.Event):
 	Gtk.main_do_event(event)
 	event_type = event.get_event_type()

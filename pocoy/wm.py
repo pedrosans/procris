@@ -43,7 +43,7 @@ def window_for(xid: int = None) -> GdkX11.X11Window:
 	try:
 		return GdkX11.X11Window.foreign_new_for_display(display, xid)
 	except TypeError as e:
-		raise DirtyState(xid=xid) from e
+		raise DirtyState('No state for window {}'.format(xid)) from e
 
 
 #
@@ -102,11 +102,6 @@ def get_last_focused(window_filter: Callable = None):
 
 def is_managed(window):
 	return is_buffer(window) and window.get_name() not in scratchpads.names()
-
-
-def get_active_managed_window():
-	last_focused_buffer = get_last_focused(is_buffer)
-	return last_focused_buffer if last_focused_buffer and is_managed(last_focused_buffer) else None
 
 
 def intersect(window: Wnck.Window, monitor: Gdk.Monitor):
@@ -236,17 +231,20 @@ def decoration_delta(window: Wnck.Window):
 
 class DirtyState(Exception):
 
-	def __init__(self, message: str = None, xid: int = None):
-		super(DirtyState, self).__init__(message)
-		self.xid = xid
+	def __init__(self, message: str = None):
+		self.message = message
+
+	def __str__(self):
+		return self.message
 
 	def print(self):
-		if self.xid:
-			print('\tLooking for: {}'.format(self.xid))
+		print(self.__str__())
+		traceback.print_exc()
+
+	def debug(self):
 		print('\tOn screen:')
 		for listed in Wnck.Screen.get_default().get_windows():
 			print('\t\t {} - {}'.format(listed.get_xid(), listed.get_name()))
-		traceback.print_exc()
 		traceback.print_stack()
 
 
@@ -265,7 +263,7 @@ class Trap:
 	def __exit__(self, type, exception, traceback):
 		error: int = self.display.error_trap_pop()
 		if error:
-			raise DirtyState(message='X11 Error code {}'.format(error)) from exception
+			raise DirtyState('X11 Error code {}'.format(error)) from exception
 
 
 class UserEvent:
