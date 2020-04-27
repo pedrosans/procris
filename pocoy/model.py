@@ -197,32 +197,31 @@ class Windows:
 
 	@impure(mutates=False)
 	def delete(self, user_event: UserEvent):
+		to_delete = []
 
 		if not user_event.vim_command_parameter:
 			if active_window.xid:
-				window = active_window.get_wnck_window()
-				window.close(user_event.time)
-				return
-			return messages.Message('There is no active window', 'error')
-
-		if re.match(r'^([0-9]+\s*)+$', user_event.vim_command_parameter):
-			to_delete = []
+				to_delete.append(active_window.xid)
+			else:
+				return messages.Message('There is no active window', 'error')
+		elif re.match(r'^([0-9]+\s*)+$', user_event.vim_command_parameter):
 			for number in re.findall(r'\d+', user_event.vim_command_parameter):
 				index = int(number) - 1
 				if index < len(self.buffers):
 					to_delete.append(self.buffers[index])
 				else:
 					return messages.Message('No buffers were deleted', 'error')
-			for xid in to_delete:
-				window1 = self.window_by_xid[xid]
-				window1.close(user_event.time)
-			return
-
-		w = self.find_by_name(user_event.vim_command_parameter)
-		if w:
-			w.close(user_event.time)
 		else:
-			return messages.Message('No matching buffer for ' + user_event.vim_command_parameter, 'error')
+			by_name = self.find_by_name(user_event.vim_command_parameter)
+			if by_name:
+				to_delete.append(by_name.get_xid())
+			else:
+				return messages.Message('No matching buffer for ' + user_event.vim_command_parameter, 'error')
+
+		for xid in to_delete:
+			self.window_by_xid[xid].close(user_event.time)
+
+		messages.clean()
 
 	@impure(mutates=True)
 	def zoom(self, user_event: UserEvent):
