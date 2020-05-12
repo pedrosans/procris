@@ -36,6 +36,7 @@ def impure(mutates: bool = False):
 			if mutates:
 				import pocoy.controller as controller
 				controller.notify_layout_change()
+			windows.clean()
 		return read_write_state
 	return decorator
 
@@ -59,10 +60,6 @@ class Windows:
 		self.read(Wnck.Screen.get_default(), force_update=force_update)
 
 	def read(self, screen: Wnck.Screen, force_update=True):
-		del self.buffers[:]
-		active_window.clean()
-		self.window_by_xid.clear()
-
 		if force_update:
 			screen.force_update()  # make sure we query X server
 
@@ -78,6 +75,11 @@ class Windows:
 
 		for workspace in screen.get_workspaces():
 			self._read_workspace(screen, workspace)
+
+	def clean(self):
+		del self.buffers[:]
+		active_window.clean()
+		self.window_by_xid.clear()
 
 	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace):
 		for i in range(Gdk.Display.get_default().get_n_monitors()):

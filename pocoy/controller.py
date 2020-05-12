@@ -40,6 +40,8 @@ def resilient(function):
 				function(*args, **kwargs)
 		except DirtyState as e:
 			e.print()
+		finally:
+			windows.clean()
 	return decorator
 
 
