@@ -36,7 +36,6 @@ def impure(mutates: bool = False):
 			if mutates:
 				import pocoy.controller as controller
 				controller.notify_layout_change()
-			windows.clean()
 		return read_write_state
 	return decorator
 

@@ -200,6 +200,8 @@ def _post_processing(user_event: UserEvent):
 	if reading.is_transient():
 		reading.end()
 
+	model.windows.clean()
+
 
 #
 # Util
