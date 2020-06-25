@@ -32,10 +32,12 @@ def impure(mutates: bool = False):
 	def decorator(function):
 		def read_write_state(self, user_event: UserEvent):
 			windows.read(Wnck.Screen.get_default())
-			function(self, user_event)
-			if mutates:
-				import pocoy.controller as controller
-				controller.notify_layout_change()
+			try:
+				return function(self, user_event)
+			finally:
+				if mutates:
+					import pocoy.controller as controller
+					controller.notify_layout_change()
 		return read_write_state
 	return decorator
 
@@ -155,6 +157,7 @@ class Windows:
 	def find_by_name(self, name):
 		return next((w for w in self.get_buffers() if name.lower().strip() in w.get_name().lower()), None)
 
+	@impure(mutates=False)
 	def complete(self, user_event: UserEvent):
 		if not user_event.vim_command_spacer:
 			return None
