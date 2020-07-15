@@ -169,8 +169,8 @@ def call(function, user_event: UserEvent, multiplier=1):
 
 		for i in range(multiplier):
 			return_message = function(user_event)
-			if return_message:
-				messages.add(return_message)
+			if isinstance(return_message, messages.Message):
+				messages.add(message=return_message)
 
 		_post_processing(user_event)
 
