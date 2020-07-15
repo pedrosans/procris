@@ -12,11 +12,44 @@ from gi.repository import Gtk, Gdk, GObject, GLib
 
 class Key:
 
-	def __init__(self, accelerator, function, parameters=[], combinations=[]):
+	def __init__(self, accelerator=None, code=None, mask=None, function=None, parameters=[], combinations=[]):
+
+		if (code is not None or mask is not None) and accelerator is not None:
+			raise Exception('A Key must be defined by an accelerator or by a code+mask pair.')
+
 		self.accelerator = accelerator
+		self.code = code
+		self.mask = mask
+
+		if accelerator:
+			self.parse_accelerator(accelerator)
+		elif code is None or mask is None:
+			raise Exception('No key was defined')
+
+		self.id = (self.code, self.mask)
 		self.function = function
 		self.parameters = parameters
 		self.combinations = combinations
+
+	def parse_accelerator(self, accelerator_string):
+		a = Gtk.accelerator_parse_with_keycode(accelerator_string)
+
+		if not a.accelerator_codes:
+			raise Exception('Can not parse the accelerator string {}'.format(accelerator_string))
+		if len(a.accelerator_codes) > 1:
+			# https://mail.gnome.org/archives/gtk-devel-list/2000-December/msg00034.html
+			raise Exception('Support to keycodes with multiple keyvalues not implemented')
+
+		self.code = a.accelerator_codes[0]
+		mapped_the_same, non_virtual_counterpart = Gdk.Keymap.get_default().map_virtual_modifiers(a.accelerator_mods)
+		self.mask = normalize_mask(non_virtual_counterpart)
+
+
+class Context:
+
+	def __init__(self, level):
+		self.level = level
+		self.children = []
 
 
 class KeyboardListener:
@@ -29,7 +62,7 @@ class KeyboardListener:
 		self.callback = callback
 		self.stopped = False
 
-		self.thred = threading.Thread(target=self.x_client_loop, daemon=True, name='key listener thread')
+		self.thread = threading.Thread(target=self.x_client_loop, daemon=True, name='key listener thread')
 		self.connection = Display()
 		self.connection.set_error_handler(self._local_display_error_handler)
 
@@ -53,24 +86,23 @@ class KeyboardListener:
 	def start(self):
 		for key in self.keys:
 			self._bind_to_root(key)
-		self.thred.start()
+		self.thread.start()
 
 	def _bind_to_root(self, key):
 		self._bind(key, self.accelerators_root)
 
 	def _bind(self, key: Key, node):
-		gdk_key_val, code, mask = parse_accelerator(key.accelerator)
 		node['has_children'] = True
 
-		if (code, mask) in node:
+		if key.id in node:
 			raise Exception('key ({}) already mapped'.format(', '.join(key.accelerator)))
 
-		we = {'code': code, 'mask': mask, 'has_children': False, 'children': [], 'level': node['level'] + 1, 'key': key}
-		node[(code, mask)] = we
+		we = {'code': key.code, 'mask': key.mask, 'has_children': False, 'children': [], 'level': node['level'] + 1, 'key': key}
+		node[key.id] = we
 		node['children'].append(we)
 
 		if we['level'] == 1:
-			self._grab_keys(code, mask)
+			self._grab_keys(key.code, key.mask)
 			self.connection.sync()
 			if self.stopped:
 				raise Exception('Unable to bind: {}'.format(', '.join(key.accelerator)))
@@ -161,24 +193,6 @@ def normalize_mask(state):
 	for mod in MODIFIERS:
 		normalized += int(state & mod)
 	return normalized
-
-
-def parse_accelerator(accelerator_string):
-	a = Gtk.accelerator_parse_with_keycode(accelerator_string)
-
-	if not a.accelerator_codes:
-		raise Exception('Can not parse the accelerator string {}'.format(accelerator_string))
-	if len(a.accelerator_codes) > 1:
-		# https://mail.gnome.org/archives/gtk-devel-list/2000-December/msg00034.html
-		raise Exception('Support to keycodes with multiple keyvalues not implemented')
-
-	gdk_keyval = a.accelerator_key
-	if Gdk.keyval_to_upper(gdk_keyval) != Gdk.keyval_to_lower(gdk_keyval):
-		gdk_keyval = Gdk.keyval_from_name(accelerator_string[-1])
-	code = a.accelerator_codes[0]
-	mapped_the_same, non_virtual_counterpart = Gdk.Keymap.get_default().map_virtual_modifiers(a.accelerator_mods)
-	mask = normalize_mask(non_virtual_counterpart)
-	return gdk_keyval, code, mask
 
 
 # http://python-xlib.sourceforge.net/doc/html/python-xlib_13.html
