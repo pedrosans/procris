@@ -6,7 +6,7 @@ from Xlib import X
 from Xlib.ext import record
 from Xlib.display import Display
 from Xlib.protocol import rq
-from pocoy.keyboard import normalized_mask, format_key_event
+from pocoy.keyboard import format_key_event
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 CONTEXT_FILTER = [{
