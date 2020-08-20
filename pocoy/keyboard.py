@@ -142,9 +142,16 @@ class KeyboardListener:
 	#
 	def _grab_keys(self, code, mask):
 		self.root.grab_key(code, mask,                           True, X.GrabModeAsync, X.GrabModeAsync)
+
 		self.root.grab_key(code, mask | X.Mod2Mask,              True, X.GrabModeAsync, X.GrabModeAsync)
+		self.root.grab_key(code, mask | X.Mod3Mask,              True, X.GrabModeAsync, X.GrabModeAsync)
 		self.root.grab_key(code, mask | X.LockMask,              True, X.GrabModeAsync, X.GrabModeAsync)
+
 		self.root.grab_key(code, mask | X.Mod2Mask | X.LockMask, True, X.GrabModeAsync, X.GrabModeAsync)
+		self.root.grab_key(code, mask | X.Mod2Mask | X.Mod3Mask, True, X.GrabModeAsync, X.GrabModeAsync)
+		self.root.grab_key(code, mask | X.Mod3Mask | X.LockMask, True, X.GrabModeAsync, X.GrabModeAsync)
+
+		self.root.grab_key(code, mask | X.Mod2Mask | X.Mod3Mask | X.LockMask, True, X.GrabModeAsync, X.GrabModeAsync)
 
 	#
 	# Event handling
