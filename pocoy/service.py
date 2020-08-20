@@ -86,7 +86,7 @@ def start():
 	controller.connect_to(Wnck.Screen.get_default(), model.windows, model.monitors)
 	remote.export(ipc_handler=message, stop=stop)
 	listener.start()
-	desktop.connect()
+	desktop.connect_to(Wnck.Screen.get_default())
 	Gtk.main()
 	print("Ending pocoy service, pid: {}".format(os.getpid()))
 
@@ -96,6 +96,7 @@ def stop():
 	listener.stop()
 	remote.release()
 	controller.disconnect_from(Wnck.Screen.get_default())
+	desktop.disconnect_from(Wnck.Screen.get_default())
 	model.stop()
 	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
 
@@ -108,7 +109,7 @@ def read_screen(user_event: UserEvent):
 
 
 def reload(user_event: UserEvent):
-	desktop.on_layout_changed()
+	desktop.notify_context_change()
 	state.reload()
 	applications.reload()
 	terminal.reload()

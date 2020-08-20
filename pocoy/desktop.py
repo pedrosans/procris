@@ -154,56 +154,26 @@ def load():
 		notification.set_app_name('pocoy')
 		notification.set_hint('resident', GLib.Variant.new_boolean(True))
 		notification.set_image_from_pixbuf(icon_image)
-		screen = Wnck.Screen.get_default()
-		viewport_handler_id = screen.connect("viewports-changed", _viewports_changed)
-		workspace_handler_id = screen.connect("active-workspace-changed", _active_workspace_changed)
 
 
-def _viewports_changed(scree: Wnck.Screen):
-	on_layout_changed()
-
-
-def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
-	on_layout_changed()
-
-
-def connect():
+def connect_to(screen: Wnck.Screen):
 	import pocoy.service
-	global status_icon
+	global status_icon, viewport_handler_id, workspace_handler_id
 	status_icon = StatusIcon(stop_function=pocoy.service.stop)
 	status_icon.activate()
 	start_pipes()
-
-
-# TODO: rename to notify(layout_change)
-def on_layout_changed():
-	if is_connected():
-		status_icon.reload()
-
-	if state.is_desktop_notifications():
-		show_monitor(monitors.get_active())
-
-	serialized = {}
-	monitor = monitors.get_primary()
-	serialized['primary'] = monitor.to_json()
-	serialized['primary']['workspace'] = get_active_workspace().get_number()
-	secondary_monitor = monitors.get_secondary()
-	if secondary_monitor:
-		serialized['secondary'] = secondary_monitor.to_json()
-		serialized['secondary']['workspace'] = secondary_monitor.workspace
-
-	for pipe in property_queues:
-		pipe['queue'].put(serialized)
+	viewport_handler_id = screen.connect("viewports-changed", _viewports_changed)
+	workspace_handler_id = screen.connect("active-workspace-changed", _active_workspace_changed)
 
 
 def start_pipes():
 	for pipe in property_queues:
 		if not os.path.exists(pipe_path(pipe)):
 			os.mkfifo(pipe_path(pipe))
-		Thread(target=property_writer(pipe), daemon=True).start()
+		Thread(target=_property_writer(pipe), daemon=True).start()
 
 
-def property_writer(pipe):
+def _property_writer(pipe):
 	def write_property_to_pipe():
 		while True:
 			serialized = pipe['queue'].get()
@@ -218,6 +188,65 @@ def pipe_path(pipe: Dict):
 	return '/tmp/' + pipe['name']
 
 
+def _viewports_changed(screen: Wnck.Screen):
+	try:
+		windows.read(screen)
+		notify_context_change()
+	finally:
+		windows.clean()
+
+
+def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
+	try:
+		windows.read(screen)
+		notify_context_change()
+	finally:
+		windows.clean()
+
+
+def notify_context_change():
+	if is_connected():
+		status_icon.reload()
+
+	if state.is_desktop_notifications():
+		_show_monitor()
+		_write_layout_changes()
+
+
+def _show_monitor():
+	html = ''
+	count = 0
+	for monitor in monitors.get_visible():
+		if count > 0:
+			html += '\r'
+		html += '<b>{}</b>: <b>{}</b> <i>nmaster</i>: <b>{}</b>'.format(
+			1 if monitor.primary else 2, monitor.function_key, monitor.nmaster)
+		count += 1
+	workspace_number: int = get_active_workspace().get_number()
+
+	show(summary='pocoy - workspace {}'.format(workspace_number), body=html, icon='pocoy')
+
+
+def _write_layout_changes():
+
+	serialized = {}
+	monitor = monitors.get_primary()
+	serialized['primary'] = monitor.to_json()
+	serialized['primary']['workspace'] = get_active_workspace().get_number()
+	secondary_monitor = monitors.get_secondary()
+	if secondary_monitor:
+		serialized['secondary'] = secondary_monitor.to_json()
+		serialized['secondary']['workspace'] = secondary_monitor.workspace
+
+	for pipe in property_queues:
+		pipe['queue'].put(serialized)
+
+
+def disconnect_from(screen: Wnck.Screen):
+	screen.disconnect(viewport_handler_id)
+	screen.disconnect(workspace_handler_id)
+
+
 def is_connected():
 	return status_icon
 
@@ -225,20 +254,6 @@ def is_connected():
 def unload():
 	if notification:
 		notification.close()
-
-
-def show_monitor(monitor: Monitor):
-	html = ''
-	count = 0
-	while monitor:
-		html += '<b>{}</b>: <b>{}</b> <i>nmaster</i>: <b>{}</b>'.format(
-			1 if monitor.primary else 2, monitor.function_key, monitor.nmaster)
-		count += 1
-		monitor = monitor.next()
-		if monitor:
-			html += '\r'
-	workspace_number: int = get_active_workspace().get_number()
-	show(summary='pocoy - workspace {}'.format(workspace_number), body=html, icon='pocoy')
 
 
 def show(summary: str = 'pocoy', body: str = None, icon: str = 'pocoy'):
@@ -249,6 +264,8 @@ def show(summary: str = 'pocoy', body: str = None, icon: str = 'pocoy'):
 
 ICONNAME = 'pocoy'
 ICON_STYLES_MAP = {'dark': "Dark icon", 'light': "Light icon"}
+viewport_handler_id = None
+workspace_handler_id = None
 status_icon = None
 notification = None
 property_queues = [
