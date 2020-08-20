@@ -140,6 +140,8 @@ class Windows:
 
 	def get_last_managed_focused(self):
 		active = Wnck.Screen.get_default().get_active_window()
+		if not active:
+			return None
 		if is_buffer(active):
 			last = active
 		else:
