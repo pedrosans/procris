@@ -24,7 +24,7 @@ from typing import List, Dict, Tuple
 
 class Key:
 
-	def __init__(self, accelerator=None, code=None, mask=None, function=None, parameters=[], combinations=[]):
+	def __init__(self, accelerator=None, code=None, mask=None, function=None, ignore_modifier_mapping=False, parameters=[], combinations=[]):
 
 		if (code is not None or mask is not None) and accelerator is not None:
 			raise Exception('A Key must be defined by an accelerator or by a code+mask pair.')
@@ -32,6 +32,7 @@ class Key:
 		self.accelerator = accelerator
 		self.code = code
 		self.mask = mask
+		self.ignore_modifier_mapping = ignore_modifier_mapping
 
 		if accelerator:
 			self.parse_accelerator(accelerator)
@@ -160,7 +161,7 @@ class KeyboardListener:
 		while not self.stopped:
 			event = self.connection.next_event()
 
-			if event.type == X.KeyPress and event.detail not in self.mod_keys_set:
+			if event.type == X.KeyPress:
 				self.handle_keypress(event)
 
 	# http://python-xlib.sourceforge.net/doc/html/python-xlib_13.html
@@ -172,11 +173,14 @@ class KeyboardListener:
 		key_id = (code, mask)
 
 		if key_id in self.context.children:
+			key: Key = self.context.children[key_id].key
+			if not key.ignore_modifier_mapping and e.detail in self.mod_keys_set:
+				return
 			gdk_mask = Gdk.ModifierType(mask)
 			_wasmapped, keyval, egroup, level, consumed = keymap.translate_keyboard_state(e.detail, gdk_mask, 0)
 			e.keyval = keyval
 			e.keymod = gdk_mask
-			self.callback(self.context.children[key_id].key, e)
+			self.callback(key, e)
 
 		if key_id in self.context.children and self.context.children[key_id].children:
 			self.advance_key_streak(key_id, e.time)
