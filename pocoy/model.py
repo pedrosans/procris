@@ -460,13 +460,6 @@ class ActiveWindow:
 	def focus_down(self, user_event: UserEvent):
 		self.move_focus(1, VERTICAL)
 
-	@impure(mutates=False)
-	def focus_previous(self, user_event: UserEvent):
-		previous = windows.get_previous()
-		if not previous:
-			return
-		self.change_to(previous.get_xid())
-
 	def move_focus(self, increment, axis):
 		active = self.get_wnck_window()
 
@@ -494,6 +487,27 @@ class ActiveWindow:
 		i = line.index(self.get_wnck_window())
 		next_window = line[(i + direction) % len(line)]
 		self.change_to(next_window.get_xid())
+
+	@impure(mutates=False)
+	def focus_previous(self, user_event: UserEvent):
+		previous = windows.get_previous()
+		if not previous:
+			return
+		self.change_to(previous.get_xid())
+
+	@impure(mutates=False)
+	def cycle_workspace(self, user_event: UserEvent):
+		screen: Wnck.Screen = Wnck.Screen.get_default()
+		count = screen.get_workspace_count()
+		if count <= 1:
+			return
+
+		wheel = user_event.parameters
+		current = screen.get_active_workspace().get_number()
+
+		next_workspace: Wnck.Workspace = screen.get_workspace(
+			0 if current not in wheel else wheel[(wheel.index(current) + 1) % len(wheel)])
+		next_workspace.activate(user_event.time)
 
 
 # https://valadoc.org/gdk-3.0/Gdk.Monitor.html
