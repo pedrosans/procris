@@ -15,8 +15,6 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 
-import gi
-gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck
 from typing import List
 from pocoy import state

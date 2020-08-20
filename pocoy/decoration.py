@@ -14,12 +14,9 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi
 import pocoy.state as persistor
-from pocoy.wm import gdk_window_for, UserEvent, window_for
-
-gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck, GdkX11, Gdk
+from pocoy.wm import UserEvent, window_for
+from gi.repository import Gdk
 from typing import List
 
 

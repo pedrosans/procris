@@ -21,6 +21,14 @@ xlib_support_initialized = x11.XInitThreads()
 if not xlib_support_initialized:
 	raise Exception('Unable to initialize Xlib support for multiple threads.')
 import os, gi, signal, setproctitle, traceback
+gi.require_version('Gtk', '3.0')
+gi.require_version('Gdk', '3.0')
+gi.require_version('Wnck', '3.0')
+gi.require_version('AppIndicator3', '0.1')
+try:
+	gi.require_version('Notify', '0.7')
+except:
+	print('Can not load Notify')
 import pocoy.names as names
 import pocoy.state as state
 import pocoy.applications as applications
@@ -30,8 +38,6 @@ import pocoy.remote as remote
 import pocoy.model as model
 import pocoy.controller as controller
 import pocoy.desktop as desktop
-gi.require_version('Gtk', '3.0')
-gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, Gtk, GLib
 from datetime import datetime
 from types import ModuleType

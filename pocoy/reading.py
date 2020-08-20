@@ -14,18 +14,14 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, pocoy
 import pocoy.messages as messages
 import pocoy.names as names
 import pocoy.state as configurations
-
-gi.require_version('Gtk', '3.0')
-gi.require_version('Gdk', '3.0')
-from gi.repository import Gtk, Gdk, GLib
+from gi.repository import Gtk, Gdk
 from pocoy.view import ReadingWindow
 from pocoy.names import PromptHistory
 from pocoy.wm import UserEvent
-from pocoy.model import Windows, ActiveWindow
+from pocoy.model import Windows
 from pocoy.assistant import Completion
 
 HINT_LAUNCH_KEYS = [Gdk.KEY_Tab, Gdk.KEY_ISO_Left_Tab]

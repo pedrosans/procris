@@ -6,9 +6,6 @@ import pocoy.layout
 import pocoy.state as state
 import xdg.IconTheme
 import os
-import gi
-gi.require_version('Gtk', '3.0')
-gi.require_version('AppIndicator3', '0.1')
 from gi.repository import Gtk, GLib, GdkPixbuf, AppIndicator3
 from pocoy import state as configurations
 from pocoy.wm import get_active_workspace, UserEvent
@@ -147,11 +144,10 @@ def load():
 		print('**********************************************************************************')
 	if state.is_desktop_notifications():
 		try:
-			gi.require_version('Notify', '0.7')
+			from gi.repository import Notify
 		except:
 			print('Can not load Notify')
 			return
-		from gi.repository import Notify
 		global notification
 		Notify.init('pocoy')
 		notification = Notify.Notification.new('pocoy')

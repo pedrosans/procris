@@ -14,16 +14,11 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi, io
 import pocoy.messages as messages
 import pocoy.state as configurations
 import pocoy.names as names
-
-gi.require_version('Gtk', '3.0')
-gi.require_version('Wnck', '3.0')
-from gi.repository import Wnck
-from gi.repository import Gtk, Gdk, Pango, GLib
-from pocoy.model import Windows, ActiveWindow
+from gi.repository import Wnck, Gtk, Gdk, Pango, GLib
+from pocoy.model import Windows
 
 
 def create_icon_image(window: Wnck.Window, size):

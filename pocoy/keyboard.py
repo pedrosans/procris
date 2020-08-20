@@ -1,13 +1,11 @@
 from typing import List
 
 import Xlib
-import gi, threading, sys
+import threading, sys
 from Xlib import X
 from Xlib.display import Display
 from Xlib.protocol import rq
-gi.require_version('Gtk', '3.0')
-gi.require_version('Gdk', '3.0')
-from gi.repository import Gtk, Gdk, GObject, GLib
+from gi.repository import Gtk, Gdk
 
 
 class Key:

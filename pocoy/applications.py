@@ -18,13 +18,10 @@ import os, glob, gi, sys
 import xdg.DesktopEntry
 import xdg.Exceptions
 import pocoy.messages as messages
-gi.require_version('Gdk', '3.0')
 from gi.repository import Gdk, GLib, Gio, GdkX11
 from datetime import datetime
 from pocoy.messages import Message
 from pocoy.wm import UserEvent
-
-gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk
 
 APPS_GLOB = [

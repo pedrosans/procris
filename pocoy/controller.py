@@ -14,7 +14,6 @@ GNU General Public License for more details.
 You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
-import gi
 import traceback
 from pocoy import wm, scratchpads
 from pocoy.model import Monitors, Windows
@@ -22,7 +21,6 @@ from pocoy.wm import DirtyState, is_managed, gdk_window_for, Trap, resize
 from functools import reduce
 from typing import List, Dict, Callable
 from gi.repository import Wnck, Gdk, Gtk
-gi.require_version('Wnck', '3.0')
 
 
 windows: Windows = None
