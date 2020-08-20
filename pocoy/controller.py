@@ -15,6 +15,7 @@ You should have received a copy of the GNU General Public License
 along with this program.  If not, see <https://www.gnu.org/licenses/>.
 """
 import gi
+import traceback
 from pocoy import wm, scratchpads
 from pocoy.model import Monitors, Windows
 from pocoy.wm import DirtyState, is_managed, gdk_window_for, Trap, resize
@@ -39,7 +40,10 @@ def resilient(function):
 			with Trap():
 				function(*args, **kwargs)
 		except DirtyState as e:
-			e.print()
+			if not e.__cause__ and not e.__context__:
+				print('During execution of \'{}\':'.format(function.__name__))
+			traceback.print_exc()
+
 		finally:
 			windows.clean()
 	return decorator

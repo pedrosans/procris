@@ -17,7 +17,6 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import os
 import re
 import gi
-import traceback
 import pocoy.state as config
 gi.require_version('Wnck', '3.0')
 from gi.repository import Wnck, GdkX11, Gdk, Gio
@@ -237,16 +236,6 @@ class DirtyState(Exception):
 	def __str__(self):
 		return self.message
 
-	def print(self):
-		print(self.__str__())
-		traceback.print_exc()
-
-	def debug(self):
-		print('\tOn screen:')
-		for listed in Wnck.Screen.get_default().get_windows():
-			print('\t\t {} - {}'.format(listed.get_xid(), listed.get_name()))
-		traceback.print_stack()
-
 
 class Trap:
 
@@ -260,7 +249,7 @@ class Trap:
 		self.display.error_trap_push()
 		return self
 
-	def __exit__(self, type, exception, traceback):
+	def __exit__(self, type, exception, exception_traceback):
 		error: int = self.display.error_trap_pop()
 		if error:
 			raise DirtyState('X11 Error code {}'.format(error)) from exception
