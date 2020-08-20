@@ -21,15 +21,32 @@ import argparse
 VERSION = '0.3'
 parser = argparse.ArgumentParser()
 parser.add_argument(
-	'-v', '--version', required=False, action='store_true',help='print the version'
+	'-v', '--version', required=False, action='store_true', help='print the version'
+)
+parser.add_argument(
+	'-l', '--list', required=False, action='store_true', help='list windows xid'
+)
+parser.add_argument(
+	'-a', '--all', required=False, action='store_true', help='show geometry and stack index'
 )
 parser.add_argument(
 	'-c', '--config', action='store', required=False, metavar='path', help='config module path'
 )
 
 args = parser.parse_args()
+
 if args.version:
 	print(VERSION)
+elif args.list:
+	import pocoy.service
+	from gi.repository import Wnck
+	Wnck.Screen.get_default().force_update()
+	if args.all:
+		pocoy.service.load(config_module=args.config)
+		print(pocoy.service.model.resume())
+	else:
+		for w in Wnck.Screen.get_default().get_windows():
+			print('{} {}'.format(w.get_xid(), w.get_name()))
 else:
 	import pocoy.service
 	pocoy.service.load(config_module=args.config)

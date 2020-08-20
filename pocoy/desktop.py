@@ -175,6 +175,7 @@ def connect():
 	start_pipes()
 
 
+# TODO: rename to notify(layout_change)
 def on_layout_changed():
 	if is_connected():
 		status_icon.reload()
