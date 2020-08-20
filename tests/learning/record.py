@@ -1,12 +1,13 @@
 import warnings
+import Xlib
 import gi, threading, sys
-gi.require_version('Gtk', '3.0')
 gi.require_version('Gdk', '3.0')
+from gi.repository import Gdk
 from Xlib import X
 from Xlib.ext import record
 from Xlib.display import Display
 from Xlib.protocol import rq
-from pocoy.keyboard import format_key_event
+from pocoy.keyboard import normalize_mask
 warnings.filterwarnings("ignore", category=DeprecationWarning)
 
 CONTEXT_FILTER = [{
@@ -17,6 +18,7 @@ CONTEXT_FILTER = [{
 		'errors': (0, 0),
 		'client_started': False, 'client_died': False,
 	}]
+keymap: Gdk.Keymap = Gdk.Keymap.get_default()
 
 
 class Record:
@@ -66,6 +68,35 @@ class Record:
 
 			if event.type == X.KeyPress:
 				format_key_event(event)
+
+
+# http://python-xlib.sourceforge.net/doc/html/python-xlib_13.html
+def format_key_event(event: Xlib.protocol.event.KeyPress):
+	def clean_mask(mask: str):
+		return mask.replace('GDK_', '').replace('_MASK', '').replace('<flags ', '').replace(
+			' of type Gdk.ModifierType>', '')
+
+	print('\nX:')
+	print('\tcode: {}'.format(event.detail))
+	print('\tmask: {} named: {}'.format(event.state, clean_mask(str(Gdk.ModifierType(event.state)))))
+	print('pocoy:')
+
+	normalized_mask = normalize_mask(event.state)
+	print('\tnormalized mask: {} named: {}'.format(
+		normalized_mask,
+		clean_mask(str(Gdk.ModifierType(normalized_mask)))
+	))
+
+	_wasmapped, keyval, egroup, level, consumed = keymap.translate_keyboard_state(
+		event.detail, Gdk.ModifierType(event.state), 0)
+
+	print('GDK:')
+	print('\tname: {}'.format(Gdk.keyval_name(keyval)))
+	print('\twasmapped: {}'.format(_wasmapped))
+	print('\tkeyval: {}'.format(keyval))
+	print('\tegroup: {}'.format(egroup))
+	print('\tlevel: {}'.format(level))
+	print('\tconsumed: {}'.format(clean_mask(str(consumed))))
 
 
 listener = Record()
