@@ -804,6 +804,7 @@ def start():
 def stop():
 	windows.read_default_screen()
 	decoration.restore(windows.buffers)
+	decoration.clear()
 
 
 def persist():
@@ -826,7 +827,7 @@ def resume():
 	resume = ''
 	# for w in reversed(Wnck.Screen.get_default().get_windows_stacked()): resume += '{}\n'.format(w.get_name())
 	from pocoy.layout import FUNCTIONS_MAP
-	for wn in windows.get_buffers():
+	for wn in Wnck.Screen.get_default().get_windows_stacked():
 		gdk_w = gdk_window_for(wn)
 
 		resume += '\n'

@@ -32,7 +32,7 @@ DECORATION_MAP = {
 
 
 def remove(windows_xid: List[int]):
-	decoration_map = persistor.get_decorations()
+	original_decorations = persistor.get_decorations()
 
 	for xid in windows_xid:
 
@@ -44,18 +44,27 @@ def remove(windows_xid: List[int]):
 		ssd = not is_decorated and not decorations
 
 		if has_title or ssd:
-			if key not in decoration_map:
-				decoration_map[key] = decorations if not ssd else Gdk.WMDecoration.ALL
+			if key not in original_decorations:
+				original_decorations[key] = decorations if not ssd else Gdk.WMDecoration.ALL
 			gdk_w.set_decorations(Gdk.WMDecoration.BORDER)
 
-	persistor.persist_decorations(decoration_map)
+	persistor.persist_decorations(original_decorations)
 
 
 def restore(windows_xid: List[int]):
 	original_decorations = persistor.get_decorations()
 	for xid in windows_xid:
-		if str(xid) in original_decorations:
-			window_for(xid).set_decorations(Gdk.WMDecoration(original_decorations[str(xid)]))
+		key = str(xid)
+		if key in original_decorations:
+			window_for(xid).set_decorations(Gdk.WMDecoration(original_decorations[key]))
+			del original_decorations[key]
+	persistor.persist_decorations(original_decorations)
+
+
+def clear():
+	original_decorations = persistor.get_decorations()
+	original_decorations.clear()
+	persistor.persist_decorations(original_decorations)
 
 
 def complete(c_in: UserEvent):
