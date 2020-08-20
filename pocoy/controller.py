@@ -27,7 +27,7 @@ windows: Windows = None
 monitors: Monitors = None
 screen_handlers: List[int] = []
 handlers_by_xid: Dict[int, int] = {}
-layout_change_callbacks: [Callable] = []
+on_layout_change: [Callable] = []
 mapped = set()
 configured = set()
 
@@ -53,9 +53,7 @@ def connect_to(screen: Wnck.Screen, model_windows: Windows, model_monitors: Moni
 	monitors = model_monitors
 	opened_handler_id = screen.connect("window-opened", _window_opened)
 	closed_handler_id = screen.connect("window-closed", _window_closed)
-	viewport_handler_id = screen.connect("viewports-changed", _viewports_changed)
-	workspace_handler_id = screen.connect("active-workspace-changed", _active_workspace_changed)
-	screen_handlers.extend([opened_handler_id, closed_handler_id, viewport_handler_id, workspace_handler_id])
+	screen_handlers.extend([opened_handler_id, closed_handler_id])
 	_install_present_window_handlers(screen)
 	Gdk.Event.handler_set(_handle_x_event)
 
@@ -124,16 +122,6 @@ def _window_closed(screen: Wnck.Screen, window):
 
 
 @resilient
-def _viewports_changed(scree: Wnck.Screen):
-	notify_layout_change()
-
-
-@resilient
-def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
-	notify_layout_change()
-
-
-@resilient
 def _handle_x_event(event: Gdk.Event):
 	Gtk.main_do_event(event)
 	event_type = event.get_event_type()
@@ -163,5 +151,5 @@ def _handle_x_event(event: Gdk.Event):
 
 
 def notify_layout_change():
-	for callback in layout_change_callbacks:
+	for callback in on_layout_change:
 		callback()

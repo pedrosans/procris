@@ -52,8 +52,7 @@ def load(config_module: str = None):
 	terminal.load()
 	state.load(config_module)
 	desktop.load()
-	controller.layout_change_callbacks.append(model.persist)
-	controller.layout_change_callbacks.append(desktop.on_layout_changed)
+	controller.on_layout_change.append(model.persist)
 	_read_environment(Wnck.Screen.get_default(), state.get_config_module())
 	_configure_process()
 
@@ -84,7 +83,6 @@ def start():
 		quit()
 
 	model.start()
-	controller.notify_layout_change()
 	controller.connect_to(Wnck.Screen.get_default(), model.windows, model.monitors)
 	remote.export(ipc_handler=message, stop=stop)
 	listener.start()

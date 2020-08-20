@@ -35,8 +35,7 @@ def impure(mutates: bool = False):
 				return function(self, user_event)
 			finally:
 				if mutates:
-					import pocoy.controller as controller
-					controller.notify_layout_change()
+					persist()
 		return read_write_state
 	return decorator
 
@@ -799,6 +798,7 @@ def start():
 	for monitor in monitors.all():
 		monitor.apply(unmaximize=True)
 	windows.apply_decoration_config()
+	persist()
 
 
 def stop():

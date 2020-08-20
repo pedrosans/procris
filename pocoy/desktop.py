@@ -6,7 +6,7 @@ import pocoy.layout
 import pocoy.state as state
 import xdg.IconTheme
 import os
-from gi.repository import Gtk, GLib, GdkPixbuf, AppIndicator3
+from gi.repository import Gtk, GLib, GdkPixbuf, AppIndicator3, Wnck
 from pocoy import state as configurations
 from pocoy.wm import get_active_workspace, UserEvent
 from pocoy.model import Monitor, monitors, windows
@@ -154,6 +154,17 @@ def load():
 		notification.set_app_name('pocoy')
 		notification.set_hint('resident', GLib.Variant.new_boolean(True))
 		notification.set_image_from_pixbuf(icon_image)
+		screen = Wnck.Screen.get_default()
+		viewport_handler_id = screen.connect("viewports-changed", _viewports_changed)
+		workspace_handler_id = screen.connect("active-workspace-changed", _active_workspace_changed)
+
+
+def _viewports_changed(scree: Wnck.Screen):
+	on_layout_changed()
+
+
+def _active_workspace_changed(screen: Wnck.Screen, workspace: Wnck.Workspace):
+	on_layout_changed()
 
 
 def connect():
