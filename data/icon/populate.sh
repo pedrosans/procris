@@ -3,19 +3,28 @@ DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 _export_sizes() {
 	NAMEDIFF=$1
 	for SIZE in 16 48 96 256 ; do
-		mkdir -p $DIR/$SIZE'x'$SIZE
-		inkscape -z -e $DIR/$SIZE'x'$SIZE/pocoy$NAMEDIFF-dark.png -w $SIZE -h $SIZE $DIR/pocoy$NAMEDIFF.svg 1>/dev/null
-		# inkscape -z -e $DIR/$SIZE'x'$SIZE/pocoy-dark.png -w $SIZE -h $SIZE $DIR/$MODEL.svg
-		convert $DIR/$SIZE'x'$SIZE/pocoy$NAMEDIFF-dark.png -channel RGB -negate $DIR/$SIZE'x'$SIZE/pocoy$NAMEDIFF-light.png 1>/dev/null
+
+		SCALED_DIR=$DIR/$SIZE'x'$SIZE
+		SCALED_PNG=$SCALED_DIR/pocoy$NAMEDIFF-dark.png
+		LIGHT_PNG=$SCALED_DIR/pocoy$NAMEDIFF-light.png
+		RED_PNG=$SCALED_DIR/pocoy$NAMEDIFF-red.png
+
+		mkdir -p $SCALED_DIR
+		inkscape -z -e $SCALED_PNG -w $SIZE -h $SIZE $DIR/pocoy$NAMEDIFF.svg 1>/dev/null
+		convert $SCALED_PNG -channel RGB -negate $LIGHT_PNG 1>/dev/null
+		convert $SCALED_PNG -fuzz 95% -fill red -opaque 'rgb(125,125,125)' $RED_PNG
+
 	done
+}
+
+_escape_xml() {
+	echo "$1"| sed 's/\\/\\\\/' | sed 's/</\\\&lt;/' | sed 's/>/\\\&gt;/'
 }
 
 _export_sizes ""
 
-for LETTER in "M" "T" "C" "<" ">" "@" "\\"; do
-	ESCAPED_LETTER=$(sed 's/[\/]/\\&/'<<<"$LETTER")
-	ESCAPED_LETTER=$(sed 's/</\\\&lt;/'<<<"$ESCAPED_LETTER")
-	ESCAPED_LETTER=$(sed 's/>/\\\&gt;/'<<<"$ESCAPED_LETTER")
+for LETTER in 'M' 'T' 'C' '<' '>' '@' '\'; do
+	ESCAPED_LETTER=$(_escape_xml $LETTER)
 	SVG_NAME_DIFF="-$LETTER"
 	LETTER_SVG=$DIR/pocoy$SVG_NAME_DIFF.svg
 	cp $DIR/pocoy-layout.svg $LETTER_SVG

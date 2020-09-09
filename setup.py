@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 from distutils.core import setup
 
-ICON_STYLE_KEYS = ['dark', 'light']
+ICON_STYLE_KEYS = ['dark', 'light', 'red']
 FUNCTION_KEYS = [None, 'M', 'T', 'C', '>', '<', '@', '\\']
 icons = [
 	('/usr/share/icons/hicolor/symbolic', ['data/icon/pocoy.svg']),
