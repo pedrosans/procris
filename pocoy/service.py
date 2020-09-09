@@ -82,6 +82,7 @@ def start():
 		print("pocoy is already running")
 		quit()
 
+	model.layout_changed_event.add_callback(lambda: desktop.status_icon.reload())
 	model.start()
 	controller.connect_to(Wnck.Screen.get_default(), model.windows, model.monitors)
 	remote.export(ipc_handler=message, stop=stop)

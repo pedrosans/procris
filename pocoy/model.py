@@ -17,7 +17,7 @@ along with this program.  If not, see <https://www.gnu.org/licenses/>.
 import traceback, re
 import pocoy.messages as messages
 from gi.repository import Wnck, Gdk
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Callable
 from pocoy.names import PROMPT
 from pocoy.wm import gdk_window_for, resize, is_visible, \
 	get_last_focused, decoration_delta, UserEvent, monitor_of, X_Y_W_H_GEOMETRY_MASK, \
@@ -537,7 +537,8 @@ class Monitor:
 	def set_layout(self, new_function):
 		if self.function_key != new_function:
 			self.last_function_key = self.function_key
-		self.function_key = new_function
+			self.function_key = new_function
+			layout_changed_event.fire()
 
 	def apply(self, unmaximize: bool = False):
 		from pocoy.layout import FUNCTIONS_MAP
@@ -772,6 +773,19 @@ class ActiveMonitor:
 		monitor.apply()
 
 
+class LayoutChangedEvent:
+
+	def __init__(self):
+		self.callbacks: [Callable] = []
+
+	def add_callback(self, callback: Callable):
+		self.callbacks.append(callback)
+
+	def fire(self):
+		for callback in self.callbacks:
+			callback()
+
+
 class Axis:
 	position_mask: Wnck.WindowMoveResizeMask
 	size_mask: Wnck.WindowMoveResizeMask
@@ -903,3 +917,4 @@ windows: Windows = Windows()
 active_window = ActiveWindow()
 monitors: Monitors = Monitors()
 active_monitor: ActiveMonitor = ActiveMonitor()
+layout_changed_event: LayoutChangedEvent = LayoutChangedEvent()
