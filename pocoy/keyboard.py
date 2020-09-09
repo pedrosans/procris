@@ -184,13 +184,14 @@ class KeyboardListener:
 
 		if key_id in self.context.children and self.context.children[key_id].children:
 			self.advance_key_streak(key_id, e.time)
-		else:
+		elif e.detail not in self.mod_keys_set:
 			self.reset_key_streak(e.time)
 
 	def advance_key_streak(self, key_id: Tuple, time):
 		self.context = self.context.children[key_id]
-		self.root.grab_keyboard(True, X.GrabModeAsync, X.GrabModeAsync, time)
-		self.temporary_grab = True
+		if not self.temporary_grab:
+			self.root.grab_keyboard(True, X.GrabModeAsync, X.GrabModeAsync, time)
+			self.temporary_grab = True
 
 	def reset_key_streak(self, time):
 		self.context = self.root_context
