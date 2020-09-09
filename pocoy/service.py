@@ -43,7 +43,7 @@ from datetime import datetime
 from types import ModuleType
 from typing import Callable
 from pocoy.reading import Reading
-from pocoy.keyboard import KeyboardListener, Key
+from pocoy.keyboard import KeyboardListener, Key, keyboard_grab_event
 from pocoy.wm import UserEvent
 
 
@@ -85,7 +85,10 @@ def start():
 	model.start()
 	controller.connect_to(Wnck.Screen.get_default(), model.windows, model.monitors)
 	remote.export(ipc_handler=message, stop=stop)
+
+	keyboard_grab_event.add_callback(lambda: desktop.status_icon.reload())
 	listener.start()
+
 	desktop.connect_to(Wnck.Screen.get_default())
 	Gtk.main()
 	print("Ending pocoy service, pid: {}".format(os.getpid()))

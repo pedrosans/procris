@@ -19,7 +19,7 @@ from Xlib import X
 from Xlib.display import Display
 from Xlib.protocol import rq
 from gi.repository import Gtk, Gdk
-from typing import List, Dict, Tuple
+from typing import List, Dict, Tuple, Callable
 
 
 class Key:
@@ -56,6 +56,19 @@ class Key:
 		self.code = a.accelerator_codes[0]
 		mapped_the_same, non_virtual_counterpart = keymap.map_virtual_modifiers(a.accelerator_mods)
 		self.mask = normalize_mask(non_virtual_counterpart)
+
+
+class KeyboardGrabEvent:
+
+	def __init__(self):
+		self.callbacks: Callable = []
+
+	def add_callback(self, callback: Callable):
+		self.callbacks.append(callback)
+
+	def fire(self):
+		for callback in self.callbacks:
+			callback()
 
 
 class Context:
@@ -192,12 +205,14 @@ class KeyboardListener:
 		if not self.temporary_grab:
 			self.root.grab_keyboard(True, X.GrabModeAsync, X.GrabModeAsync, time)
 			self.temporary_grab = True
+			keyboard_grab_event.fire()
 
 	def reset_key_streak(self, time):
 		self.context = self.root_context
 		if self.temporary_grab:
 			self.connection.ungrab_keyboard(time)
 			self.temporary_grab = False
+			keyboard_grab_event.fire()
 
 
 def normalize_mask(state) -> int:
@@ -212,3 +227,4 @@ MODIFIERS = [
 	Gdk.ModifierType.MOD1_MASK, Gdk.ModifierType.MOD4_MASK]
 
 keymap: Gdk.Keymap = Gdk.Keymap.get_default()
+keyboard_grab_event: KeyboardGrabEvent = KeyboardGrabEvent()

@@ -83,8 +83,12 @@ class StatusIcon:
 	def reload(self):
 		self._reloading = True
 
-		iconname = configurations.get_desktop_icon()
 		function_key = monitors.get_primary().function_key
+		import pocoy.service as service
+		if pocoy.service.listener.temporary_grab:
+			iconname = 'red'
+		else:
+			iconname = configurations.get_desktop_icon()
 
 		for item in self.icons_submenu.get_children():
 			item.set_active(item.icon_style == iconname)
@@ -95,8 +99,7 @@ class StatusIcon:
 		sys_icon = 'pocoy'
 		if function_key:
 			sys_icon = sys_icon + '-' + function_key
-		if iconname == "dark" or iconname == "light":
-			sys_icon = sys_icon + '-' + iconname
+		sys_icon = sys_icon + '-' + iconname
 		self.app_indicator.set_icon(sys_icon)
 
 		self._reloading = False
@@ -266,7 +269,7 @@ ICONNAME = 'pocoy'
 ICON_STYLES_MAP = {'dark': "Dark icon", 'light': "Light icon"}
 viewport_handler_id = None
 workspace_handler_id = None
-status_icon = None
+status_icon: StatusIcon = None
 notification = None
 property_queues = [
 	{'name': 'pocoy-primary-workspace',   'object': 'primary',   'property': 'workspace', 'queue': queue.Queue()},
