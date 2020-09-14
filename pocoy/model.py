@@ -838,14 +838,14 @@ def read_user_config(config_json: Dict, screen: Wnck.Screen):
 			)
 
 
-def start():
+def apply_user_config():
 	for monitor in monitors.all():
 		monitor.apply(unmaximize=True)
 	windows.apply_decoration_config()
 	persist()
 
 
-def stop():
+def restore_system_defaults():
 	windows.read_default_screen()
 	decoration.restore(windows.buffers)
 	decoration.clear()

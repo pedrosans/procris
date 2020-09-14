@@ -85,7 +85,7 @@ class StatusIcon:
 
 		function_key = monitors.get_primary().function_key
 		import pocoy.service as service
-		if pocoy.service.listener.temporary_grab:
+		if pocoy.service.keyboard_listener.temporary_grab:
 			iconname = 'red'
 		else:
 			iconname = configurations.get_desktop_icon()

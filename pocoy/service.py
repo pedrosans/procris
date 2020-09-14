@@ -61,12 +61,10 @@ def _read_environment(screen: Wnck.Screen, config: ModuleType):
 	for name in config.names:
 		names.add(name)
 	for key in config.keys:
-		listener.add(key)
-	model.load(screen)
+		keyboard_listener.add(key)
 
 
 def _configure_process():
-	Wnck.set_client_type(Wnck.ClientType.PAGER)
 	setproctitle.setproctitle("pocoy")
 	unix_signal_add = _signal_function()
 	for sig in (SIGINT, SIGTERM, SIGHUP):
@@ -83,25 +81,31 @@ def start():
 		quit()
 
 	model.layout_changed_event.add_callback(lambda: desktop.status_icon.reload())
-	model.start()
-	controller.connect_to(Wnck.Screen.get_default(), model.windows, model.monitors)
+	keyboard_grab_event.add_callback(lambda: desktop.status_icon.reload())
+	keyboard_listener.start()
+	GLib.idle_add(configure_active_environment, priority=GLib.PRIORITY_HIGH)
 	remote.export(ipc_handler=message, stop=stop)
 
-	keyboard_grab_event.add_callback(lambda: desktop.status_icon.reload())
-	listener.start()
-
-	desktop.connect_to(Wnck.Screen.get_default())
 	Gtk.main()
 	print("Ending pocoy service, pid: {}".format(os.getpid()))
 
 
+def configure_active_environment():
+	Wnck.set_client_type(Wnck.ClientType.PAGER)
+	model.load(Wnck.Screen.get_default())
+	model.apply_user_config()
+	controller.connect_to(Wnck.Screen.get_default(), model.windows, model.monitors)
+	desktop.connect_to(Wnck.Screen.get_default())
+	return False
+
+
 def stop():
 	desktop.unload()
-	listener.stop()
+	keyboard_listener.stop()
 	remote.release()
 	controller.disconnect_from(Wnck.Screen.get_default())
 	desktop.disconnect_from(Wnck.Screen.get_default())
-	model.stop()
+	model.restore_system_defaults()
 	GLib.idle_add(Gtk.main_quit, priority=GLib.PRIORITY_HIGH)
 
 
@@ -126,7 +130,7 @@ def reload(user_event: UserEvent):
 #
 # Callbacks
 #
-def keyboard_listener(key: Key, x_key_event, multiplier=1):
+def key_handler(key: Key, x_key_event, multiplier=1):
 	if not key.function:
 		return
 
@@ -171,6 +175,7 @@ def execute(function: Callable = None, cmd: str = None, timestamp: int = None, m
 	return True
 
 
+#TODO: rename to not_repeating_call ?
 def call(function, user_event: UserEvent, multiplier=1):
 	try:
 
@@ -240,4 +245,4 @@ SIGTERM = getattr(signal, "SIGTERM", None)
 SIGHUP = getattr(signal, "SIGHUP", None)
 
 reading: Reading = Reading(model.windows)
-listener: KeyboardListener = KeyboardListener(callback=keyboard_listener, on_error=stop)
+keyboard_listener: KeyboardListener = KeyboardListener(callback=key_handler, on_error=stop)
