@@ -39,14 +39,21 @@ if args.version:
 	print(VERSION)
 elif args.list:
 	import pocoy.service
-	from gi.repository import Wnck
+	from gi.repository import Wnck, Gdk
 	Wnck.Screen.get_default().force_update()
 	if args.all:
 		pocoy.service.load(config_module=args.config)
 		print(pocoy.service.model.resume())
 	else:
+		for i in range(Gdk.Display.get_default().get_n_monitors()):
+			gdk_monitor: Gdk.Monitor = Gdk.Display.get_default().get_monitor(i)
+			workarea : Gdk.Rectangle = gdk_monitor.get_workarea()
+			print('Monitor: {} ({:4},{:4}), {}'.format(i, workarea.x, workarea.y, gdk_monitor.is_primary()))
 		for w in Wnck.Screen.get_default().get_windows():
-			print('{} {}'.format(w.get_xid(), w.get_name()))
+			w: Wnck.Window = w
+			g = w.get_geometry()
+			print('{} ({}) ({:4}, {:4}) {}'.format(
+				w.get_xid(), w.get_workspace().get_number(), g[0], g[1], w.get_name()))
 else:
 	import pocoy.service
 	pocoy.service.load(config_module=args.config)
