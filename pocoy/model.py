@@ -740,6 +740,8 @@ class ActiveMonitor:
 
 		if user_event.parameters:
 			new_function_key = user_event.parameters[0]
+			if new_function_key == monitor.function_key:
+				new_function_key = monitor.last_function_key
 		else:
 			new_function_key = monitor.last_function_key
 		monitor.set_layout(new_function_key)
