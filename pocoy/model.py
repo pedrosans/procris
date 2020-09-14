@@ -813,19 +813,24 @@ class Axis:
 
 
 def load(screen: Wnck.Screen):
+	screen.force_update()  # make sure we query X server
+	monitors.read(screen)
+	_try_to_read_user_config()
+	windows.read(screen, force_update=False)
+
+
+def _try_to_read_user_config():
 	import pocoy.state as state
 	try:
 		workspace_config: Dict = state.get_workspace_config()
-		windows.read_default_screen()
-		read_user_config(workspace_config, screen)
+		read_user_config(workspace_config)
 	except (KeyError, TypeError):
 		print('Unable to the last execution state, using default ones.')
 		traceback.print_exc()
 		traceback.print_stack()
-	windows.read(screen)
 
 
-def read_user_config(config_json: Dict, screen: Wnck.Screen):
+def read_user_config(config_json: Dict):
 	for workspace_index in range(len(config_json['workspaces'])):
 		if workspace_index >= len(monitors.by_workspace):
 			continue
