@@ -71,23 +71,17 @@ class Windows:
 				self.buffers.append(xid)
 
 		active_window.read_screen()
+		self._read_workspaces(screen)
 
+	def _read_workspaces(self, screen: Wnck.Screen):
 		for workspace in screen.get_workspaces():
-			self._read_workspace(screen, workspace)
-
-	def clean(self):
-		del self.buffers[:]
-		active_window.clean()
-		self.window_by_xid.clear()
-
-	def _read_workspace(self, screen: Wnck.Screen, workspace: Wnck.Workspace):
-		for i in range(Gdk.Display.get_default().get_n_monitors()):
-			gdk_monitor = Gdk.Display.get_default().get_monitor(i)
-			self._read_workspace_monitor(screen, workspace, gdk_monitor)
+			for i in range(Gdk.Display.get_default().get_n_monitors()):
+				gdk_monitor = Gdk.Display.get_default().get_monitor(i)
+				self._read_workspace_monitor(screen, workspace, gdk_monitor)
 
 	def _read_workspace_monitor(self, screen: Wnck.Screen, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
-		monitor = monitors.of(workspace, gdk_monitor)
-		clients = monitor.clients
+		monitor: Monitor = monitors.of(workspace, gdk_monitor)
+		clients: List[int] = monitor.clients
 
 		def monitor_filter(w):
 			return w.get_xid() not in clients and is_visible(w, workspace, gdk_monitor) and is_managed(w)
@@ -99,6 +93,11 @@ class Windows:
 			clients.remove(outside)
 
 		clients.extend(map(lambda w: w.get_xid(), filter(monitor_filter, reversed(screen.get_windows_stacked()))))
+
+	def clean(self):
+		del self.buffers[:]
+		active_window.clean()
+		self.window_by_xid.clear()
 
 	#
 	# API
