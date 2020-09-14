@@ -516,10 +516,11 @@ class ActiveWindow:
 class Monitor:
 
 	def __init__(
-			self, primary: bool = False,
+			self, id: Tuple[int, str], primary: bool = False,
 			nmaster: int = 1, mfact: float = 0.5,
 			model: str = None, workspace: int = None,
 			function_key: str = 'T', strut: List = (0, 0, 0, 0)):
+		self.id: Tuple[int, str] = id
 		self.primary: bool = primary
 		# TODO: rename to layout key
 		self.function_key: str = function_key
@@ -589,6 +590,7 @@ class Monitor:
 		return rect[0] <= xp < (rect[0] + rect[2]) and rect[1] <= yp < (rect[1] + rect[3])
 
 	def from_json(self, json):
+		self.id = (json['workspace_number'], json['monitor_model'])
 		self.nmaster = json['nmaster'] if 'nmaster' in json else self.nmaster
 		self.mfact = json['mfact'] if 'mfact' in json else self.mfact
 		self.function_key = json['function'] if 'function' in json else self.function_key
@@ -604,8 +606,9 @@ class Monitor:
 
 	def to_json(self):
 		return {
-			'nmaster': self.nmaster,
-			'mfact': self.mfact,
+			'workspace_number': self.id[0],
+			'monitor_model': self.id[1],
+			'nmaster': self.nmaster, 'mfact': self.mfact,
 			'function': self.function_key,
 			'strut': {
 				'left': self.strut[0],
@@ -672,14 +675,14 @@ class Monitors:
 				if (i == 0 and workspace is active_workspace) or (i > 0 and workspace is secondary_workspace):
 					self.visible_ids.append(self.id_for(workspace, gdk_monitor))
 
-	def id_for(self, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
+	def id_for(self, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor) -> Tuple[int, str]:
 		return workspace.get_number(), gdk_monitor.get_model()
 
 	def read_monitor(self, workspace: Wnck.Workspace, gdk_monitor: Gdk.Monitor):
-		id = self.id_for(workspace, gdk_monitor)
+		id: Tuple[int, str] = self.id_for(workspace, gdk_monitor)
 		if id not in self.map.keys():
 			self.map[id] = Monitor(
-				primary=gdk_monitor.is_primary(), model=gdk_monitor.get_model(), workspace=workspace.get_number())
+				id=id, primary=gdk_monitor.is_primary(), model=gdk_monitor.get_model(), workspace=workspace.get_number())
 			self.by_workspace[workspace.get_number()].append(self.map[id])
 			if gdk_monitor.is_primary():
 				self.primaries[workspace.get_number()] = self.map[id]
