@@ -132,12 +132,15 @@ def resize(window: Wnck.Window, rectangle: Gdk.Rectangle = None, l=0, t=0, w=0, 
 	set_geometry(window, x=new_x, y=new_y, w=new_width, h=new_height)
 
 
-def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None, synchronous=False, raise_exceptions=True):
+def set_geometry(window: Wnck.Window, x=None, y=None, w=None, h=None, synchronous=False, raise_exceptions=True, layoutaxis: Callable = None):
 
 	if not w and not h:
 		geometry = window.get_geometry()
 		w = geometry.widthp
 		h = geometry.heightp
+
+	if layoutaxis:
+		x, y = layoutaxis(x, y, w, h)
 
 	xo, yo, wo, ho = calculate_geometry_offset(window)
 	x, y, w, h = x + xo, y + yo, w + wo, h + ho

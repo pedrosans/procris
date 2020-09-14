@@ -45,7 +45,7 @@ from pocoy.model import Monitor
 # © 2015-2016 Quentin Rameau <quinq@fifth.space>
 # © 2015-2016 Eric Pruitt <eric.pruitt@gmail.com>
 # © 2016-2017 Markus Teich <markus.teich@stusta.mhn.de>
-def tile(clients: List[Wnck.Window], m):
+def tile(clients: List[Wnck.Window], m: Monitor):
 	n = len(clients)
 
 	if n > m.nmaster:
@@ -60,12 +60,12 @@ def tile(clients: List[Wnck.Window], m):
 		if i < m.nmaster:
 			h = (m.wh - my) / (min(n, m.nmaster) - i) - padding * 2
 			synchronized = set_geometry(
-				window, synchronous=True, x=m.wx + padding, y=m.wy + my + ty + padding, w=mw - padding * 2, h=h)
+				window, synchronous=True, x=m.wx + padding, y=m.wy + my + ty + padding, w=mw - padding * 2, h=h, layoutaxis=m.ltaxis)
 			my += (get_height(window) if synchronized else h) + padding * 2
 		else:
 			h = (m.wh - ty) / (n - i) - padding * 2
 			synchronized = set_geometry(
-				window, synchronous=True, x=m.wx + mw + padding, y=m.wy + ty + padding, w=m.ww - mw - padding * 2, h=h)
+				window, synchronous=True, x=m.wx + mw + padding, y=m.wy + ty + padding, w=m.ww - mw - padding * 2, h=h, layoutaxis=m.ltaxis)
 			ty += (get_height(window) if synchronized else h) + padding * 2
 
 

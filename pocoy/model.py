@@ -524,15 +524,20 @@ class Monitor:
 		# TODO: rename to layout key
 		self.function_key: str = function_key
 		self.last_function_key = None
+		self.ltaxis = None
 		self.nmaster: int = nmaster
 		self.mfact: float = mfact
 		self.strut: List = strut
 		self.wx = self.wy = self.ww = self.wh = None
 		self.visible_area: List[int] = [0, 0, 0, 0]
+		self.center = [0, 0]
 		self.clients: List[int] = []
 		self.pointer: Monitor = None
 		self.model = model
 		self.workspace = workspace
+
+	def mirror_x_axis(self, x, y, w, h):
+		return self.center[0] * 2 - x - w, y
 
 	def set_layout(self, new_function):
 		if self.function_key != new_function:
@@ -559,6 +564,7 @@ class Monitor:
 		if rectangle.y < self.strut[1]:
 			self.visible_area[3] -= self.strut[1] - rectangle.y
 		self.update_work_area()
+		self.center = [rectangle.x + (rectangle.width / 2), rectangle.y + (rectangle.height / 2)]
 
 	def update_work_area(self):
 		outer_gap = state.get_outer_gap()
@@ -724,10 +730,6 @@ class Monitors:
 
 class ActiveMonitor:
 
-
-	#
-	# COMMANDS
-	#
 	@impure(mutates=True)
 	def setlayout(self, user_event: UserEvent):
 		promote_selected = False if len(user_event.parameters) < 2 else user_event.parameters[1]
@@ -745,6 +747,16 @@ class ActiveMonitor:
 		else:
 			new_function_key = monitor.last_function_key
 		monitor.set_layout(new_function_key)
+		monitor.apply(unmaximize=True)
+		windows.apply_decoration_config()
+
+	@impure(mutates=False)
+	def mirrorlayout(self, user_event: UserEvent):
+		active = windows.get_last_managed_focused()
+		monitor = monitors.get_active(active)
+
+		monitor.ltaxis = None if monitor.ltaxis else monitor.mirror_x_axis
+
 		monitor.apply(unmaximize=True)
 		windows.apply_decoration_config()
 
